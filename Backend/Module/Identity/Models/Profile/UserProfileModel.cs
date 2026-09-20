@@ -66,44 +66,37 @@ namespace Identity.Models.Profile
         public void SetUserProfileId(string id)
         {
             UserProfileId = ModelFieldGuard.Required(id, 12, nameof(id));
-            UserProfileUpdatedAt = DateTime.Now;
         }
 
 
         public void SetUserProfileFirstName(string firstName)
         {
             UserProfileFirstName = ModelFieldGuard.Required(firstName, 30, nameof(firstName));
-            UserProfileUpdatedAt = DateTime.Now;
         }
 
         public void SetUserProfileLastName(string lastName)
         {
             UserProfileLastName = ModelFieldGuard.Required(lastName, 30, nameof(lastName));
-            UserProfileUpdatedAt = DateTime.Now;
         }
 
         public void SetUserProfileBirthday(DateTime birthday)
         {
             UserProfileDateOfBirth = birthday;
-            UserProfileUpdatedAt = DateTime.Now;
         }
 
         public void SetUserProfileGender(ESystemUserGender gender)
         {
             UserProfileGender = gender;
-            UserProfileUpdatedAt = DateTime.Now;
         }
 
         public void SetUserProfilePhoneNumber(string phoneNumber)
         {
             UserProfilePhoneNumber = ModelFieldGuard.Required(phoneNumber, 10, nameof(phoneNumber));
-            UserProfileUpdatedAt = DateTime.Now;
         }
 
         public void SetUserProfileAvatar(string avatar)
         {
             UserProfileAvatarUrl = ModelFieldGuard.Required(avatar, 255, nameof(avatar));
-            UserProfileUpdatedAt = DateTime.Now;
         }
 
         public void SetUserProfileAddress(string address)

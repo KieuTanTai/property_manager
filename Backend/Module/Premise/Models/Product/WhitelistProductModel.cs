@@ -43,7 +43,6 @@ namespace Premise.Models.Product
         public void SetWhitelistProductName(string name)
         {
             WhitelistProductName = ModelFieldGuard.Required(name, 100, nameof(name));
-            WhitelistProductUpdatedAt = DateTime.Now;
         }
 
         public void ClearWhitelistProductDescription()
@@ -52,15 +51,13 @@ namespace Premise.Models.Product
             {
                 return;
             }
-
             WhitelistProductDescription = null;
-            WhitelistProductUpdatedAt = DateTime.Now;
+            WhitelistProductDescription = null;
         }
 
         public void SetWhitelistProductDescription(string description)
         {
             WhitelistProductDescription = ModelFieldGuard.Required(description, 255, nameof(description));
-            WhitelistProductUpdatedAt = DateTime.Now;
         }
 
         #endregion

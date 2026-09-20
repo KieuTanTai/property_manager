@@ -31,7 +31,6 @@ namespace Premise.Models.Premise
         public void SetLocationAddress(string address)
         {
             LocationAddress = ModelFieldGuard.Required(address, 255, nameof(address));
-            LocationUpdatedAt = DateTime.Now;
         }
 
         #endregion

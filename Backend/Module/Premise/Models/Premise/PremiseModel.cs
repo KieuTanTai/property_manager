@@ -85,7 +85,6 @@ namespace Premise.Models.Premise
         public void SetPremiseName(string name)
         {
             PremiseName = ModelFieldGuard.Required(name, 50, nameof(name));
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void SetPremiseLocationId(Guid locationId)
@@ -96,7 +95,6 @@ namespace Premise.Models.Premise
             }
 
             PremiseLocationId = locationId;
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void SetPremiseStatus(EPremiseStatus status)
@@ -107,7 +105,6 @@ namespace Premise.Models.Premise
             }
 
             PremiseStatus = status;
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void SetPremisePosition(int premisePosition)
@@ -118,7 +115,6 @@ namespace Premise.Models.Premise
             }
 
             PremisePosition = premisePosition;
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void SetPremiseFloor(int floor)
@@ -129,19 +125,16 @@ namespace Premise.Models.Premise
             }
 
             PremiseFloor = floor;
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void ClearPremiseArea()
         {
             PremiseArea = string.Empty;
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void SetPremiseArea(string area)
         {
             PremiseArea = ModelFieldGuard.Required(area, 10, nameof(area));
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void ClearPremiseDescription()
@@ -150,15 +143,13 @@ namespace Premise.Models.Premise
             {
                 return;
             }
-
             PremiseDescription = null;
-            PremiseUpdatedAt = DateTime.Now;
+            PremiseDescription = null;
         }
 
         public void SetPremiseDescription(string description)
         {
             PremiseDescription = ModelFieldGuard.Required(description, 100, nameof(description));
-            PremiseUpdatedAt = DateTime.Now;
         }
 
         public void SetPremiseBusinessTypes(IReadOnlyList<BusinessTypeModel> businessTypes)

@@ -4,19 +4,45 @@ namespace Contract.Models.Contract
 {
     public class ContractViolationModel
     {
-        public Guid ViolationId { get; set; }
+        public ContractViolationModel(Guid contractId, string violationContent)
+        {
+            ContractId = contractId;
+            ViolationContent = violationContent;
+        }
 
-        public Guid ContractId { get; set; }
+        public ContractViolationModel(
+            Guid violationId,
+            Guid contractId,
+            string violationContent,
+            decimal? violationPenaltyAmount,
+            DateTime violationDate,
+            DateTime violationDueDate,
+            bool violationIsResolved)
+        {
+            ViolationId = violationId;
+            ContractId = contractId;
+            ViolationContent = violationContent;
+            ViolationPenaltyAmount = violationPenaltyAmount;
+            ViolationDate = violationDate;
+            ViolationDueDate = violationDueDate;
+            ViolationIsResolved = violationIsResolved;
+        }
 
-        [Required, MaxLength(150)] public string ViolationContent { get; set; } = string.Empty;
+        public ContractViolationModel() {}
 
-        public decimal? CompensationAmount { get; set; }
+        public Guid ViolationId { get; init; }
 
-        public DateTime? ViolationDate { get; set; }
+        public Guid ContractId { get; private set; }
 
-        public DateTime? DueDate { get; set; }
+        [MaxLength(150)] public string ViolationContent { get; private set; } = string.Empty;
 
-        public bool IsResolved { get; set; }
+        public decimal? ViolationPenaltyAmount { get; private set; }
+
+        public DateTime ViolationDate { get; private set; } = DateTime.Now;
+
+        public DateTime ViolationDueDate { get; private set; } = DateTime.Now.AddDays(7);
+
+        public bool ViolationIsResolved { get; private set; }
 
     }
 }

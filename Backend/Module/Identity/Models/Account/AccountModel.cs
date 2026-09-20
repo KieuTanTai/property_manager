@@ -71,7 +71,6 @@ namespace Identity.Models.Account
         public void SetEmail(string email)
         {
             AccountEmail = ModelFieldGuard.Required(email, 255, nameof(email));
-            AccountUpdatedAt = DateTime.Now;
         }
 
         public void SetAccountIsActive(bool isActive)
@@ -80,15 +79,13 @@ namespace Identity.Models.Account
             {
                 return;
             }
-
             AccountIsActive = isActive;
-            AccountUpdatedAt = DateTime.Now;
+            AccountIsActive = isActive;
         }
 
         public void SetHashedPassword(string passwordHash)
         {
             AccountPassword = ModelFieldGuard.Required(passwordHash, 255, nameof(passwordHash));
-            AccountUpdatedAt = DateTime.Now;
         }
 
         public void SetRoles(IReadOnlyList<RoleModel> roles)

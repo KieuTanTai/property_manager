@@ -294,13 +294,14 @@ CREATE TABLE `regulation`
                              ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_regulation_name`
-        (`regulation_name`)
+        (`regulation_name`(20))
 ) ENGINE = InnoDB;
 
 CREATE TABLE `contract_regulation`
 (
     `regulation_id` UUID NOT NULL,
     `contract_id`   UUID NOT NULL,
+    `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`regulation_id`, `contract_id`),
 
@@ -313,17 +314,19 @@ CREATE TABLE `contract_regulation`
         REFERENCES `contract` (`contract_id`)
 ) ENGINE = InnoDB;
 
-
 # historical violation records for each contract, including violation content, penalty amount, due date, and violation date,
-# remove old enum column (`violation_status`) and replace with a boolean column (`violation_is_resolved`) to indicate whether the violation has been resolved or not
+# remove old enum column (`violation_status`) and replace with a boolean column (`violation_is_resolved`) to indicate whether the violation has been resolved or not,
+# not let violation date and due date be null, because we need to know when the violation happened and when it is due,
+#default violation date to current timestamp and due date to 7 days later
+
 CREATE TABLE `contract_violation`
 (
     `contract_violation_id`                  UUID PRIMARY KEY DEFAULT (UUID_v7()),
     `contract_id`          UUID NOT NULL,
     `violation_content`              VARCHAR(150) NOT NULL,
     `violation_penalty_amount`  DECIMAL(18,2),
-    `violation_date`                 TIMESTAMP,
-    `violation_due_date`                  TIMESTAMP,
+    `violation_date`                 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `violation_due_date`                  TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 7 DAY),
     `violation_is_resolved`              BOOLEAN NOT NULL DEFAULT FALSE,
 
     INDEX `idx_contract_violation_content`
@@ -338,12 +341,15 @@ CREATE TABLE `contract_violation`
 ) ENGINE = InnoDB;
 
 # add a new table to store monthly invoices for each contract, including invoice details such as payment date, due date, total amount, and status (paid/unpaid/overdue)
+# let payment date and due date be not null, because we need to know when the invoice is generated and when it is due,
+# default payment date to current timestamp and due date to 30 days later
+
 CREATE TABLE `monthly_invoice`
 (
     `invoice_id`           UUID PRIMARY KEY DEFAULT (UUID_v7()),
     `invoice_contract_id`  UUID NOT NULL,
-    `invoice_payment_date` TIMESTAMP,
-    `invoice_due_date`     TIMESTAMP,
+    `invoice_payment_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `invoice_due_date`     TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 30 DAY),
     `invoice_total_amount`  DECIMAL(18,2),
     `invoice_status` ENUM (
         'unpaid',
@@ -365,16 +371,26 @@ CREATE TABLE `monthly_invoice`
         REFERENCES `contract` (`contract_id`)
 ) ENGINE = InnoDB;
 
+# add a new table to store invoice details for each premise in the invoice, including rental price, electricity fee, water fee, garbage fee, and total amount
+# the table should have a foreign key to the monthly_invoice table and the premise table,
+# do not let the total amount be null, because we need to know how much the tenant has to pay for each premise in the invoice,
+# default total amount to the sum of rental price, electricity fee, water fee, and garbage
+
 CREATE TABLE `invoice_detail`
 (
     `invoice_detail_id`              INT PRIMARY KEY AUTO_INCREMENT,
     `invoice_detail_invoice_id`      UUID NOT NULL,
     `invoice_detail_premise_id`      UUID NOT NULL,
-    `invoice_detail_rental_price`    DECIMAL(18,2),
-    `invoice_detail_electricity_fee` DECIMAL(18,2),
-    `invoice_detail_water_fee`       DECIMAL(18,2),
-    `invoice_detail_garbage_fee`     DECIMAL(18,2),
-    `invoice_detail_total_amount`    DECIMAL(18,2),
+    `invoice_detail_rental_price`    DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_electricity_fee` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_water_fee`       DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_garbage_fee`     DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_total_amount`    DECIMAL(18,2) NOT NULL DEFAULT (
+        `invoice_detail_rental_price` + 
+        `invoice_detail_electricity_fee` + 
+        `invoice_detail_water_fee` + 
+        `invoice_detail_garbage_fee`
+    ),
 
     CONSTRAINT `fk_invoice_detail_invoice`
         FOREIGN KEY (`invoice_detail_invoice_id`)
@@ -384,7 +400,6 @@ CREATE TABLE `invoice_detail`
         FOREIGN KEY (`invoice_detail_premise_id`)
         REFERENCES `premise` (`premise_id`)
 ) ENGINE = InnoDB;
-
 
 # Ticket and Notification module (now is low priority, so we will implement it later)
 # remove old enum column (`ticket_status`) and replace with a boolean column (`ticket_is_resolved`) to indicate whether the ticket has been resolved or not

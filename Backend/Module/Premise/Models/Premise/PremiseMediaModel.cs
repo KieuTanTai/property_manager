@@ -44,13 +44,11 @@ namespace Premise.Models.Premise
         public void SetPremiseMediaPremiseId(Guid premiseId)
         {
             PremiseMediaPremiseId = premiseId;
-            PremiseMediaUpdatedAt = DateTime.Now;
         }
 
         public void SetPremiseMediaImageUrl(string imageUrl)
         {
             PremiseMediaImageUrl = ModelFieldGuard.Required(imageUrl, 255, nameof(imageUrl));
-            PremiseMediaUpdatedAt = DateTime.Now;
         }
 
         #endregion

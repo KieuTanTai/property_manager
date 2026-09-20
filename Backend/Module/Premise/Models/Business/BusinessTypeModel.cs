@@ -47,7 +47,6 @@ namespace Premise.Models.Business
         public void SetBusinessTypeName(string name)
         {
             BusinessTypeName = ModelFieldGuard.Required(name, 50, nameof(name));
-            BusinessTypeUpdatedAt = DateTime.Now;
         }
 
         public void ClearBusinessTypeDescription()
@@ -56,15 +55,13 @@ namespace Premise.Models.Business
             {
                 return;
             }
-
             BusinessTypeDescription = null;
-            BusinessTypeUpdatedAt = DateTime.Now;
+            BusinessTypeDescription = null;
         }
 
         public void SetBusinessTypeDescription(string description)
         {
             BusinessTypeDescription = ModelFieldGuard.Required(description, 255, nameof(description));
-            BusinessTypeUpdatedAt = DateTime.Now;
         }
 
         public void SetBusinessTypeIsActive(bool isActive)
@@ -73,9 +70,8 @@ namespace Premise.Models.Business
             {
                 return;
             }
-
             BusinessTypeIsActive = isActive;
-            BusinessTypeUpdatedAt = DateTime.Now;
+            BusinessTypeIsActive = isActive;
         }
 
         public void SetPremises(IReadOnlyList<PremiseModel> premises)

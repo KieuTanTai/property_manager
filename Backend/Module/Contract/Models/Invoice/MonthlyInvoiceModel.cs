@@ -1,24 +1,79 @@
-using System.ComponentModel.DataAnnotations;
+using Contract.Utils.Enum;
+using Shared.Enum;
 
 namespace Contract.Models.Invoice
 {
     public class MonthlyInvoiceModel
     {
-        public Guid InvoiceId { get; set; }
+        public MonthlyInvoiceModel(Guid contractId)
+        {
+            InvoiceContractId = contractId;
+        }
 
-        public Guid ContractId { get; set; }
+        public MonthlyInvoiceModel(
+            Guid invoiceId,
+            Guid contractId,
+            DateTime paymentDate,
+            DateTime dueDate,
+            decimal? totalAmount,
+            EInvoiceStatus status)
+        {
+            InvoiceId = invoiceId;
+            InvoiceContractId = contractId;
+            InvoicePaymentDate = paymentDate;
+            InvoiceDueDate = dueDate;
+            InvoiceTotalAmount = totalAmount;
+            InvoiceStatus = status;
+        }
 
-        public DateTime? PaymentDate { get; set; }
+        public MonthlyInvoiceModel() {}
 
-        public DateTime? DueDate { get; set; }
+        public Guid InvoiceId { get; init; }
 
-        public decimal? TotalAmount { get; set; }
+        public Guid InvoiceContractId { get; private set; }
 
-        [Required, MaxLength(10)] public string Status { get; set; } = "unpaid";
+        public DateTime InvoicePaymentDate { get; private set; } = DateTime.Now;
 
-        public DateTime CreatedDate { get; set; }
+        public DateTime InvoiceDueDate { get; private set; } = DateTime.Now.AddDays(30);
 
-        public DateTime UpdatedDate { get; set; }
+        public decimal? InvoiceTotalAmount { get; private set; }
+
+        public EInvoiceStatus InvoiceStatus { get; private set; } = EInvoiceStatus.Unpaid;
+
+        public DateTime InvoiceCreatedAt { get; init; } = DateTime.Now;
+
+        public DateTime InvoiceUpdatedAt { get; private set; } = DateTime.Now;
+        
+        public IReadOnlyList<InvoiceDetailModel> InvoiceDetails { get; private set; } = new List<InvoiceDetailModel>();
+
+        #region SET
+
+        public void SetPaymentDate(DateTime paymentDate)
+        {
+            InvoicePaymentDate = paymentDate;
+        }
+
+        public void SetDueDate(DateTime dueDate)
+        {
+            InvoiceDueDate = dueDate;
+        }
+
+        public void SetTotalAmount(decimal? totalAmount)
+        {
+            InvoiceTotalAmount = totalAmount;
+        }
+
+        public void SetStatus(EInvoiceStatus status)
+        {
+            InvoiceStatus = status;
+        }
+
+        public void SetContractId(Guid contractId)
+        {
+            InvoiceContractId = contractId;
+        }
+        
+        #endregion
 
     }
 }
