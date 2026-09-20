@@ -1,24 +1,79 @@
 using System.ComponentModel.DataAnnotations;
-using TicketAndNotification.Utils.Enum;
+using Shared.Enum;
 
 namespace TicketAndNotification.Models.Ticket
 {
     public class TicketModel
-{
-    public Guid TicketId { get; set; }
+    {
+        public TicketModel(Guid accountId, string content, ETicketType type = ETicketType.Feedback)
+        {
+            TicketAccountId = accountId;
+            TicketContent = content;
+            TicketType = type;
+        }
 
-    public Guid AccountId { get; set; }
+        public TicketModel(
+            Guid ticketId,
+            Guid accountId,
+            string content,
+            ETicketType type,
+            bool isResolved)
+        {
+            TicketId = ticketId;
+            TicketAccountId = accountId;
+            TicketContent = content;
+            TicketType = type;
+            TicketIsResolved = isResolved;
+        }
 
-    [Required, MaxLength(255)] public string Content { get; set; } = string.Empty;
+        public TicketModel() {}
 
-    public ETicketType Type { get; set; }
-        = ETicketType.Feedback;
+        public Guid TicketId { get; init; }
 
-    public bool IsResolved { get; set; }
+        public Guid TicketAccountId { get; private set; }
 
-    public DateTime CreatedDate { get; set; }
+        [Required, MaxLength(255)]
+        public string TicketContent { get; private set; } = string.Empty;
 
-    public DateTime UpdatedDate { get; set; }
+        public ETicketType TicketType { get; private set; } = ETicketType.Feedback;
 
-}
+        public bool TicketIsResolved { get; private set; }
+
+        public DateTime TicketCreatedAt { get; init; } = DateTime.Now;
+
+        public DateTime TicketUpdatedAt { get; private set; } = DateTime.Now;
+
+        public IReadOnlyList<TicketMediaModel> TicketMedias { get; private set; } =
+            new List<TicketMediaModel>();
+
+        #region Setter
+
+        public void SetTicketAccountId(Guid accountId)
+        {
+            TicketAccountId = accountId;
+        }
+
+        public void SetTicketContent(string content)
+        {
+            TicketContent = content;
+        }
+
+        public void SetTicketType(ETicketType type)
+        {
+            TicketType = type;
+        }
+
+        public void SetTicketIsResolved(bool isResolved)
+        {
+            TicketIsResolved = isResolved;
+        }
+
+        public void SetTicketMedias(IReadOnlyList<TicketMediaModel> ticketMedias)
+        {
+            TicketMedias = ticketMedias;
+        }
+
+        #endregion
+        
+    }
 }

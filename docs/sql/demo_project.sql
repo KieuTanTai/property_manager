@@ -123,7 +123,7 @@ CREATE TABLE `location`
     `location_address`   VARCHAR(255) NOT NULL,
     `location_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `location_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                          ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_location_address`
         (`location_address`)
@@ -139,7 +139,7 @@ CREATE TABLE `premise`
         'rented',
         'available',
         'maintenance'
-    ) NOT NULL DEFAULT 'available',
+        ) NOT NULL DEFAULT 'available',
 
     `premise_position`     INT NOT NULL,
     `premise_floor`        INT NOT NULL,
@@ -147,13 +147,13 @@ CREATE TABLE `premise`
     `premise_description`  VARCHAR(100),
     `premise_created_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `premise_updated_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                           ON UPDATE CURRENT_TIMESTAMP,
-    
+        ON UPDATE CURRENT_TIMESTAMP,
+
     INDEX `idx_premise_name` (`premise_name`(20)),
 
     CONSTRAINT `fk_premise_location`
         FOREIGN KEY (`premise_location_id`)
-        REFERENCES `location` (`location_id`)
+            REFERENCES `location` (`location_id`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `business_type`
@@ -164,7 +164,7 @@ CREATE TABLE `business_type`
     `business_type_is_active`   BOOLEAN NOT NULL DEFAULT TRUE,
     `business_type_created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `business_type_updated_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                                ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_business_type_name`
         (`business_type_name`(20))
@@ -180,11 +180,11 @@ CREATE TABLE `premise_business_type`
 
     CONSTRAINT `fk_premise_business_type_premise`
         FOREIGN KEY (`pre_bt_premise_id`)
-        REFERENCES `premise` (`premise_id`),
+            REFERENCES `premise` (`premise_id`),
 
     CONSTRAINT `fk_premise_business_type_business_type`
         FOREIGN KEY (`pre_bt_business_type_id`)
-        REFERENCES `business_type` (`business_type_id`)
+            REFERENCES `business_type` (`business_type_id`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `whitelist_product`
@@ -194,7 +194,7 @@ CREATE TABLE `whitelist_product`
     `whitelist_product_description` VARCHAR(255),
     `whitelist_product_created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `whitelist_product_updated_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                          ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_whitelist_product_name`
         (`whitelist_product_name`)
@@ -207,14 +207,14 @@ CREATE TABLE `product_business_type`
     `pbt_assigned_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`pbt_product_id`, `pbt_business_type_id`),
-    
+
     CONSTRAINT `fk_product_business_type_product`
         FOREIGN KEY (`pbt_product_id`)
-        REFERENCES `whitelist_product` (`whitelist_product_id`),
+            REFERENCES `whitelist_product` (`whitelist_product_id`),
 
     CONSTRAINT `fk_product_business_type_business_type`
         FOREIGN KEY (`pbt_business_type_id`)
-        REFERENCES `business_type` (`business_type_id`)
+            REFERENCES `business_type` (`business_type_id`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `premise_media`
@@ -224,11 +224,11 @@ CREATE TABLE `premise_media`
     `premise_media_image_url`      VARCHAR(255) NOT NULL,
     `premise_media_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `premise_media_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                               ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT `fk_premise_media_premise`
         FOREIGN KEY (`premise_media_premise_id`)
-        REFERENCES `premise` (`premise_id`)
+            REFERENCES `premise` (`premise_id`)
 ) ENGINE = InnoDB;
 
 # Contract module
@@ -246,16 +246,16 @@ CREATE TABLE `contract`
         'expired',
         'signed',
         'terminated'
-    ) NOT NULL DEFAULT 'pending_signature',
+        ) NOT NULL DEFAULT 'pending_signature',
 
     `contract_termination_date`    TIMESTAMP,
     `contract_created_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `contract_updated_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                                   ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT `fk_contract_account`
         FOREIGN KEY (`contract_account_id`)
-        REFERENCES `account` (`account_id`)
+            REFERENCES `account` (`account_id`)
 ) ENGINE = InnoDB;
 
 
@@ -274,11 +274,11 @@ CREATE TABLE `rented_premise`
 
     CONSTRAINT `fk_rented_premise_contract`
         FOREIGN KEY (`rented_premise_contract_id`)
-        REFERENCES `contract` (`contract_id`),
+            REFERENCES `contract` (`contract_id`),
 
     CONSTRAINT `fk_rented_premise_premise`
         FOREIGN KEY (`rented_premise_premise_id`)
-        REFERENCES `premise` (`premise_id`)
+            REFERENCES `premise` (`premise_id`)
 ) ENGINE = InnoDB;
 
 #add fine amount, active status
@@ -291,7 +291,7 @@ CREATE TABLE `regulation`
     `regulation_is_active`   BOOLEAN NOT NULL DEFAULT TRUE,
     `regulation_created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `regulation_updated_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                             ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_regulation_name`
         (`regulation_name`(20))
@@ -307,17 +307,17 @@ CREATE TABLE `contract_regulation`
 
     CONSTRAINT `fk_contract_regulation_regulation`
         FOREIGN KEY (`regulation_id`)
-        REFERENCES `regulation` (`regulation_id`),
+            REFERENCES `regulation` (`regulation_id`),
 
     CONSTRAINT `fk_contract_regulation_contract`
         FOREIGN KEY (`contract_id`)
-        REFERENCES `contract` (`contract_id`)
+            REFERENCES `contract` (`contract_id`)
 ) ENGINE = InnoDB;
 
 # historical violation records for each contract, including violation content, penalty amount, due date, and violation date,
 # remove old enum column (`violation_status`) and replace with a boolean column (`violation_is_resolved`) to indicate whether the violation has been resolved or not,
 # not let violation date and due date be null, because we need to know when the violation happened and when it is due,
-#default violation date to current timestamp and due date to 7 days later
+#default violation date to current timestamp and due date 7 days later
 
 CREATE TABLE `contract_violation`
 (
@@ -331,13 +331,13 @@ CREATE TABLE `contract_violation`
 
     INDEX `idx_contract_violation_content`
         (`violation_content`(20)),
-    
+
     INDEX `idx_contract_violation_date`
         (`violation_date`),
-    
+
     CONSTRAINT `fk_contract_violation_contract`
         FOREIGN KEY (`contract_id`)
-        REFERENCES `contract` (`contract_id`)
+            REFERENCES `contract` (`contract_id`)
 ) ENGINE = InnoDB;
 
 # add a new table to store monthly invoices for each contract, including invoice details such as payment date, due date, total amount, and status (paid/unpaid/overdue)
@@ -355,20 +355,20 @@ CREATE TABLE `monthly_invoice`
         'unpaid',
         'paid',
         'overdue'
-    ) NOT NULL DEFAULT 'unpaid',
+        ) NOT NULL DEFAULT 'unpaid',
     `invoice_created_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `invoice_updated_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                           ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_invoice_payment_date`
         (`invoice_payment_date`),
-    
+
     INDEX `idx_invoice_due_date`
         (`invoice_due_date`),
-    
+
     CONSTRAINT `fk_monthly_invoice_contract`
         FOREIGN KEY (`invoice_contract_id`)
-        REFERENCES `contract` (`contract_id`)
+            REFERENCES `contract` (`contract_id`)
 ) ENGINE = InnoDB;
 
 # add a new table to store invoice details for each premise in the invoice, including rental price, electricity fee, water fee, garbage fee, and total amount
@@ -386,19 +386,19 @@ CREATE TABLE `invoice_detail`
     `invoice_detail_water_fee`       DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `invoice_detail_garbage_fee`     DECIMAL(18,2) NOT NULL DEFAULT 0.00,
     `invoice_detail_total_amount`    DECIMAL(18,2) NOT NULL DEFAULT (
-        `invoice_detail_rental_price` + 
-        `invoice_detail_electricity_fee` + 
-        `invoice_detail_water_fee` + 
+        `invoice_detail_rental_price` +
+        `invoice_detail_electricity_fee` +
+        `invoice_detail_water_fee` +
         `invoice_detail_garbage_fee`
-    ),
+        ),
 
     CONSTRAINT `fk_invoice_detail_invoice`
         FOREIGN KEY (`invoice_detail_invoice_id`)
-        REFERENCES `monthly_invoice` (`invoice_id`),
+            REFERENCES `monthly_invoice` (`invoice_id`),
 
     CONSTRAINT `fk_invoice_detail_premise`
         FOREIGN KEY (`invoice_detail_premise_id`)
-        REFERENCES `premise` (`premise_id`)
+            REFERENCES `premise` (`premise_id`)
 ) ENGINE = InnoDB;
 
 # Ticket and Notification module (now is low priority, so we will implement it later)
@@ -413,17 +413,17 @@ CREATE TABLE `ticket`
         'review',
         'complaint',
         'feedback'
-    ) NOT NULL DEFAULT 'feedback',
+        ) NOT NULL DEFAULT 'feedback',
 
     `ticket_is_resolved` BOOLEAN NOT NULL DEFAULT FALSE,
 
     `ticket_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `ticket_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT `fk_ticket_account`
         FOREIGN KEY (`ticket_account_id`)
-        REFERENCES `account` (`account_id`)
+            REFERENCES `account` (`account_id`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `ticket_media`
@@ -434,9 +434,8 @@ CREATE TABLE `ticket_media`
 
     CONSTRAINT `fk_ticket_media_ticket`
         FOREIGN KEY (`ticket_media_ticket_id`)
-        REFERENCES `ticket` (`ticket_id`)
+            REFERENCES `ticket` (`ticket_id`)
 ) ENGINE = InnoDB;
-
 
 # Notification,
 # move `notification_status` column to `notification_is_read` boolean column to indicate whether the notification has been read or not
@@ -450,18 +449,18 @@ CREATE TABLE `notification`
         'violation',
         'ticket',
         'other'
-    ) NOT NULL DEFAULT 'other',
+        ) NOT NULL DEFAULT 'other',
 
     `notification_content` VARCHAR(255) NOT NULL,
     `notification_is_read` BOOLEAN NOT NULL DEFAULT FALSE,
 
     `notification_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `notification_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                              ON UPDATE CURRENT_TIMESTAMP,
+        ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT `fk_notification_sender_account`
         FOREIGN KEY (`notification_sender_account_id`)
-        REFERENCES `account` (`account_id`)
+            REFERENCES `account` (`account_id`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `notification_recipient`
@@ -473,11 +472,11 @@ CREATE TABLE `notification_recipient`
 
     CONSTRAINT `fk_notification_recipient_notification`
         FOREIGN KEY (`nr_notification_id`)
-        REFERENCES `notification` (`notification_id`),
+            REFERENCES `notification` (`notification_id`),
 
     CONSTRAINT `fk_notification_recipient_account`
         FOREIGN KEY (`nr_account_id`)
-        REFERENCES `account` (`account_id`)
+            REFERENCES `account` (`account_id`)
 ) ENGINE = InnoDB;
 
 # Triggers to enforce immutability of certain fields

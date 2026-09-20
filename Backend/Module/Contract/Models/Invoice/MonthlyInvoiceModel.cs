@@ -46,7 +46,7 @@ namespace Contract.Models.Invoice
         
         public IReadOnlyList<InvoiceDetailModel> InvoiceDetails { get; private set; } = new List<InvoiceDetailModel>();
 
-        #region SET
+        #region Setter
 
         public void SetPaymentDate(DateTime paymentDate)
         {

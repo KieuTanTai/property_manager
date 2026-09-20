@@ -45,7 +45,7 @@ namespace Contract.Models.Invoice
 
         public decimal InvoiceDetailTotalAmount { get; private set; } = 0;
 
-        #region SET
+        #region Setter
 
         public void SetRentalPrice(decimal rentalPrice)
         {

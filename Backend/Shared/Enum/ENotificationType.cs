@@ -1,4 +1,4 @@
-namespace TicketAndNotification.Utils.Enum
+namespace Shared.Enum
 {
     public enum ENotificationType
     {

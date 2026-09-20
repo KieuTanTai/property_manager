@@ -44,5 +44,33 @@ namespace Contract.Models.Contract
 
         public bool ViolationIsResolved { get; private set; }
 
+        #region Setter
+        
+        public void SetViolationContent(string violationContent)
+        {
+            ViolationContent = violationContent;
+        }
+        
+        public void SetViolationPenaltyAmount(decimal? violationPenaltyAmount)
+        {
+            ViolationPenaltyAmount = violationPenaltyAmount;
+        }
+        
+        public void SetViolationDate(DateTime violationDate)
+        {
+            ViolationDate = violationDate;
+        }
+        
+        public void SetViolationDueDate(DateTime violationDueDate)
+        {
+            ViolationDueDate = violationDueDate;
+        }
+        
+        public void SetViolationIsResolved(bool violationIsResolved)
+        {
+            ViolationIsResolved = violationIsResolved;
+        }
+
+        #endregion
     }
 }

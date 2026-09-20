@@ -1,22 +1,81 @@
 using System.ComponentModel.DataAnnotations;
+using Shared.Enum;
 
 namespace TicketAndNotification.Models.Notification
 {
-    public class Notification
+    public class NotificationModel
     {
-        public Guid NotificationId { get; set; }
+        public NotificationModel(
+            Guid senderAccountId,
+            string content,
+            ENotificationType type = ENotificationType.Other)
+        {
+            NotificationSenderAccountId = senderAccountId;
+            NotificationContent = content;
+            NotificationType = type;
+        }
 
-        public Guid SenderAccountId { get; set; }
+        public NotificationModel(
+            Guid notificationId,
+            Guid senderAccountId,
+            ENotificationType type,
+            string content,
+            bool isRead)
+        {
+            NotificationId = notificationId;
+            NotificationSenderAccountId = senderAccountId;
+            NotificationType = type;
+            NotificationContent = content;
+            NotificationIsRead = isRead;
+        }
 
-        public TicketAndNotification.Utils.Enum.ENotificationType Type { get; set; }
-            = TicketAndNotification.Utils.Enum.ENotificationType.Other;
+        public NotificationModel() {}
 
-        [Required, MaxLength(255)] public string Content { get; set; } = string.Empty;
+        public Guid NotificationId { get; init; }
 
-        public bool IsRead { get; set; }
+        public Guid NotificationSenderAccountId { get; private set; }
 
-        public DateTime CreatedDate { get; set; }
+        public ENotificationType NotificationType { get; private set; } = ENotificationType.Other;
 
-        public DateTime UpdatedDate { get; set; }
+        [Required, MaxLength(255)]
+        public string NotificationContent { get; private set; } = string.Empty;
+
+        public bool NotificationIsRead { get; private set; }
+
+        public DateTime NotificationCreatedAt { get; init; } = DateTime.Now;
+
+        public DateTime NotificationUpdatedAt { get; private set; } = DateTime.Now;
+
+        public IReadOnlyList<NotificationRecipientModel> NotificationRecipients { get; private set; } =
+            new List<NotificationRecipientModel>();
+
+        #region Setter
+
+        public void SetNotificationSenderAccountId(Guid senderAccountId)
+        {
+            NotificationSenderAccountId = senderAccountId;
+        }
+
+        public void SetNotificationType(ENotificationType type)
+        {
+            NotificationType = type;
+        }
+
+        public void SetNotificationContent(string content)
+        {
+            NotificationContent = content;
+        }
+
+        public void SetNotificationIsRead(bool isRead)
+        {
+            NotificationIsRead = isRead;
+        }
+
+        public void SetNotificationRecipients(IReadOnlyList<NotificationRecipientModel> recipients)
+        {
+            NotificationRecipients = recipients;
+        }
+
+        #endregion
     }
 }
