@@ -25,7 +25,7 @@ namespace Identity.Utils
 
             var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
             var hasher = new PasswordHasher<AccountModel>();
-            var accountHelper = new AccountHelper(null, hasher);
+            var accountHelper = new AccountHelper(null!, hasher);
             var accountRepository = scope.ServiceProvider.GetRequiredService<IAccountRepository>();
             
             var accounts = await accountRepository.GetAllAsync(cancellationToken);
