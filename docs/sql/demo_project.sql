@@ -269,9 +269,6 @@ CREATE TABLE `rented_premise`
 
     PRIMARY KEY (`rented_premise_premise_id`, `rented_premise_contract_id`),
 
-    INDEX `idx_rented_premise_premise_id`
-        (`rented_premise_premise_id`),
-
     CONSTRAINT `fk_rented_premise_contract`
         FOREIGN KEY (`rented_premise_contract_id`)
             REFERENCES `contract` (`contract_id`),
@@ -506,3 +503,4 @@ BEGIN
 END //
 
 DELIMITER ;
+
