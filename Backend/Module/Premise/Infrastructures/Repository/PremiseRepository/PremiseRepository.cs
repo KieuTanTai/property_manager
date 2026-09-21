@@ -57,7 +57,7 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
         public async Task<PremiseModel?> GetPremiseAndNavigationByIdAsync(Guid id, bool isGetLocation = true,
             bool isGetMedia = false, bool isGetBusinessTypes = false, CancellationToken cancellationToken = default)
         {
-            var query = _db.Premises.AsNoTracking();
+            var query = _db.Premises.AsNoTracking().Where(premise => premise.PremiseId == id);
 
             if (isGetLocation)
             {
@@ -74,7 +74,7 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
                 query = query.Include(premise => premise.PremiseBusinessTypes);
             }
 
-            return await query.FirstOrDefaultAsync(premise => premise.PremiseId == id, cancellationToken);
+            return await query.FirstOrDefaultAsync(cancellationToken);
         }
 
         public async Task<IReadOnlyList<PremiseModel>> GetPremisesByFloorAsync(int floor,

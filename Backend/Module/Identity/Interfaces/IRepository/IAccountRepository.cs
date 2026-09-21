@@ -16,7 +16,7 @@ namespace Identity.Interfaces.IRepository
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize, bool isActive,
             CancellationToken cancellationToken = default);
 
-        Task<AccountModel?> GetAccountAndNavigationByEmailAsync(string email, bool isGetRole = true, bool isGetProfile = false,
+        Task<AccountModel?> GetAccountAndNavigationByEmailAsync(string email, bool isGetRole = true, bool isGetAdditionalPermission = true, bool isGetProfile = false,
             CancellationToken cancellationToken = default);
     }
 }

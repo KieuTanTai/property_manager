@@ -4,12 +4,12 @@ namespace Identity.Utils.Enum
     {
         Customer,
 
-        Admin,
-
-        Manager,
+        Employee,
 
         Inspector,
 
-        Employee
+        Manager,
+
+        Admin
     }
 }

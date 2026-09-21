@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Identity.Models.Permission;
 using Identity.Models.Profile;
 using Identity.Models.Role;
+using Identity.Utils;
 using Shared.ModelHelper;
 
 namespace Identity.Models.Account
@@ -62,7 +63,7 @@ namespace Identity.Models.Account
 
         public IReadOnlyList<RoleModel> Roles { get; private set; } = new List<RoleModel>();
 
-        public IReadOnlyList<PermissionModel> Permissions { get; private set; } =
+        public IReadOnlyList<PermissionModel> AdditionalPermissions { get; private set; } =
             new List<PermissionModel>();
 
         public UserProfileModel? UserProfile { get; private set; }
@@ -97,7 +98,7 @@ namespace Identity.Models.Account
 
         public void SetPermissions(IReadOnlyList<PermissionModel> permissions)
         {
-            Permissions = permissions;
+            AdditionalPermissions = permissions;
         }
 
         public void SetUserProfile(UserProfileModel userProfile)

@@ -51,29 +51,25 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             return await _db.Accounts.AnyAsync(account => account.AccountId == id, cancellationToken);
         }
 
-        public async Task<AccountModel?> GetAccountAndNavigationByEmailAsync(string email, bool isGetRole = true, bool isGetProfile = false,
+        public async Task<AccountModel?> GetAccountAndNavigationByEmailAsync(string email, bool isGetRole = true, bool isGetAdditionalPermission = true, bool isGetProfile = false,
             CancellationToken cancellationToken = default)
         {
-            switch (isGetRole)
+            var query = _db.Accounts.AsNoTracking().Where(account => account.AccountEmail == email);
+            if (isGetRole)
             {
-                case true when isGetProfile:
-                    return await _db.Accounts
-                        .Include(account => account.Roles)
-                        .Include(account => account.UserProfile)
-                        .FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken);
-                case true:
-                    return await _db.Accounts
-                        .Include(account => account.Roles)
-                        .FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken);
+                query = query.Include(account => account.Roles);
             }
-
+            
+            if (isGetAdditionalPermission)
+            {
+                query = query.Include(account => account.AdditionalPermissions);
+            }
+            
             if (isGetProfile)
             {
-                return await _db.Accounts
-                    .Include(account => account.UserProfile)
-                    .FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken);
+                query = query.Include(account => account.UserProfile);
             }
-            return await _db.Accounts.FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken);
+            return await query.FirstOrDefaultAsync(cancellationToken);
         }
 
         // Paging methods

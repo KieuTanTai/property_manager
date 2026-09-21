@@ -30,9 +30,11 @@ namespace Identity.Presentation.Controller
             var nameIdentifierClaim = new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString());
             var emailClaim = new Claim(ClaimTypes.Email, account.Email);
 
-            var roleClaims = account.RoleNames.Select(roleName => new Claim(ClaimTypes.Role, roleName));
+            var roleClaims = account.RoleCodes.Select(roleCode => new Claim(ClaimTypes.Role, roleCode));
+            var additionalPermissionClaims = account.PermissionCodes.Select(permissionCode => new Claim("AdditionalPermission", permissionCode));
             var claims = new List<Claim> { nameIdentifierClaim, emailClaim };
             claims.AddRange(roleClaims);
+            claims.AddRange(additionalPermissionClaims);
             return [.. claims.Select(claim => new RecordClaimResponse(claim.Type, claim.Value))];
         }
 

@@ -55,7 +55,7 @@ namespace Identity.Application
         public async Task<AccountModel> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
         {
             CheckValidEmailAndPassword(email, password); // throw exception if email or password is invalid
-            var accountModel = await GetAccountByEmailAsync(email, true, true, cancellationToken);
+            var accountModel = await GetAccountByEmailAsync(email, true, true, true, cancellationToken);
             if (!accountModel.AccountIsActive)
             {
                 throw new InvalidOperationException("Account is not active.");
@@ -187,15 +187,15 @@ namespace Identity.Application
             }
         }
 
-        private async Task<AccountModel> GetAccountByEmailAsync(string email, bool isGetRole = true, bool isGetProfile = false, CancellationToken cancellationToken = default)
+        private async Task<AccountModel> GetAccountByEmailAsync(string email, bool isGetRole = true, bool isGetAdditionalPermission = true, bool isGetProfile = false, CancellationToken cancellationToken = default)
         {
-            var existedAccount = await _accountRepository.GetAccountAndNavigationByEmailAsync(email, isGetRole, isGetProfile, cancellationToken);
+            var existedAccount = await _accountRepository.GetAccountAndNavigationByEmailAsync(email, isGetRole, isGetAdditionalPermission, isGetProfile, cancellationToken);
             return existedAccount ?? throw new InvalidOperationException("AccountModel not found!");
         }
 
         private async Task<AccountModel> GetAccountByEmailAsync(string email, bool isTracked = false, CancellationToken cancellationToken = default)
         {
-            //! not check email and password, call IsValidEmailAndPassword method before call this method
+            //! not check email and password, call IsValidEmailAndPassword method before calling this method
 
             if (isTracked)
             {

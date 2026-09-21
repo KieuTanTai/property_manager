@@ -1,0 +1,319 @@
+ROLE & PERMISSION MATRIX
+========================
+
+ROLES
+-----
+1. manager
+2. employee
+3. inspector
+4. customer
+
+
+PERMISSIONS
+-----------
+
+IDENTITY
+--------
+identity.read.list
+identity.status.update
+identity.create.employee
+identity.create.inspector
+identity.permission.create
+identity.permission.assign
+identity.permission.update
+identity.permission.revoke
+identity.role.create
+identity.role.assign
+identity.role.update
+identity.role.revoke
+
+
+PREMISE
+-------
+premise.create
+premise.update
+premise.business.create
+premise.business.assign
+premise.business.revoke
+premise.whitelist.read
+premise.whitelist.create
+premise.whitelist.revoke
+premise.location.create
+premise.location.update
+premise.location.revoke
+premise.status.update
+premise.media.delete.hard
+premise.rent
+premise.return
+premise.read.own.rented
+
+
+CONTRACT
+--------
+contract.read.list
+contract.create
+contract.approve
+contract.update
+contract.status.update
+contract.terminate_date.update
+contract.regulation.read
+contract.regulation.create
+contract.regulation.update
+contract.regulation.revoke
+contract.violation.read
+contract.violation.create
+contract.violation.update
+contract.violation.status.update
+contract.sign
+contract.terminate
+contract.cancel
+contract.read.own
+contract.regulation.read.own
+contract.violation.read.own
+contract.violation.pay
+contract.violation.appeal
+
+
+INVOICE
+-------
+invoice.read.list
+invoice.create
+invoice.update
+invoice.status.update
+invoice.read.own
+invoice.pay
+
+
+RECEIPT
+-------
+receipt.read.list
+receipt.create
+receipt.read.own
+
+
+TICKET
+------
+ticket.read.list
+
+
+NOTIFICATION
+------------
+notification.delete.hard
+
+
+ROLE -> PERMISSION
+==================
+
+MANAGER
+-------
+identity.read.list
+identity.status.update
+identity.create.employee
+identity.create.inspector
+identity.permission.create
+identity.permission.assign
+identity.permission.update
+identity.permission.revoke
+identity.role.create
+identity.role.assign
+identity.role.update
+identity.role.revoke
+
+premise.create
+premise.update
+premise.business.create
+premise.business.assign
+premise.business.revoke
+premise.whitelist.create
+premise.whitelist.revoke
+premise.location.create
+premise.location.update
+premise.location.revoke
+premise.status.update
+premise.media.delete.hard
+
+contract.read.list
+contract.approve
+contract.create
+contract.update
+contract.status.update
+contract.terminate_date.update
+contract.regulation.create
+contract.regulation.update
+contract.regulation.revoke
+contract.violation.read
+contract.violation.create
+contract.violation.update
+
+invoice.read.list
+invoice.create
+invoice.update
+
+receipt.read.list
+
+ticket.read.list
+notification.delete.hard
+
+
+EMPLOYEE
+--------
+premise.status.update
+
+contract.create
+contract.status.update
+contract.terminate_date.update
+contract.violation.status.update
+
+invoice.read.list
+invoice.status.update
+
+receipt.create
+receipt.read.list
+
+
+INSPECTOR
+---------
+contract.read.list
+contract.regulation.read
+contract.violation.read
+
+
+CUSTOMER
+--------
+premise.rent
+premise.return
+premise.read.own.rented
+
+contract.sign
+contract.terminate
+contract.cancel
+contract.read.own
+contract.regulation.read.own
+contract.violation.read.own
+contract.violation.pay
+contract.violation.appeal
+
+invoice.read.own
+invoice.pay
+
+receipt.read.own
+
+
+DYNAMIC / SCOPE-BASED PERMISSIONS
+=================================
+
+These are intentionally kept separate from basic RBAC because the same
+capability is constrained by ownership, target status, ticket type, or
+special account assignment.
+
+
+1. RESOURCE SCOPE: OWN
+----------------------
+Use resource-ownership authorization for the following capabilities:
+
+contract.read.own
+contract.regulation.read.own
+contract.violation.read.own
+invoice.read.own
+receipt.read.own
+premise.read.own.rented
+contract.sign
+contract.terminate
+contract.cancel
+premise.rent
+premise.return
+invoice.pay
+contract.violation.pay
+contract.violation.appeal
+
+The policy must verify that the requested resource belongs to the
+current customer/account where applicable.
+
+
+2. CONTRACT STATUS TARGET
+-------------------------
+Use one permission:
+contract.status.update
+
+Do not create separate permissions for each target status.
+
+Manager allowed targets:
+- signed
+- canceled
+- terminated
+
+Employee allowed targets:
+- signed
+- canceled
+
+The target-status restriction belongs to authorization/business policy.
+
+
+3. PREMISE STATUS TARGET
+------------------------
+Use one permission:
+premise.status.update
+
+Employee is allowed to change the premise status to:
+- reserved
+
+Additional target states should be controlled by policy instead of
+creating one permission per status.
+
+
+4. PREMISE DELETE BUSINESS RULE
+------------------------------
+The rule that a premise is hidden/cannot be soft-deleted when status is
+"rented" is a business/authorization condition, not a separate role.
+
+
+5. TICKET TYPE
+--------------
+Dynamic ticket-type policy:
+
+Employee:
+- violation ticket type: NOT allowed
+
+Inspector:
+- violation ticket type: allowed
+
+Customer:
+- violation ticket type: NOT allowed
+
+
+6. SPECIAL EMPLOYEE PERMISSION
+------------------------------
+premise.media.update
+
+This permission is intentionally NOT assigned to the Employee role by
+default. Grant it through account_additional_permission to selected
+employees.
+
+
+7. CONTRACT CREATE / APPROVE SPECIAL RULES
+-------------------------------------------
+The source marks these permissions with "*":
+
+contract.create *
+contract.approve *
+
+The exact meaning of "*" is not defined in the supplied requirements.
+Keep them as normal permissions and implement the additional condition
+in application authorization/business logic until that rule is defined.
+
+
+MERGED / CONSOLIDATED AREAS
+===========================
+
+contract.status.update
+    Manager: signed/canceled/terminated
+    Employee: signed/canceled
+
+contract.violation.read
+    Manager/Inspector: read list
+    Customer: contract.violation.read.own
+
+receipt.read.list
+    Shared by Manager and Employee.
+    Customer uses receipt.read.own.
+

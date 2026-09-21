@@ -5,7 +5,8 @@ namespace Shared.Persistence.Record.Auth
         Guid AccountId,
         string Email,
         bool IsActive,
-        List<string> RoleNames,
+        List<string> RoleCodes,
+        List<string> PermissionCodes,
         DateTime AccountCreatedAt,
         DateTime AccountUpdatedAt
     );
