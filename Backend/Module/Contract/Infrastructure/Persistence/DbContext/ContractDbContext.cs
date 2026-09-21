@@ -16,6 +16,7 @@ namespace Contract.Infrastructure.Persistence.DbContext
         public DbSet<RegulationModel> Regulations { get; set; }
         public DbSet<MonthlyInvoiceModel> MonthlyInvoices { get; set; }
         public DbSet<InvoiceDetailModel> InvoiceDetails { get; set; }
+        public DbSet<ReceiptModel> Receipts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -45,6 +45,8 @@ namespace Contract.Models.Invoice
 
         public IReadOnlyList<InvoiceDetailModel> InvoiceDetails { get; private set; } = new List<InvoiceDetailModel>();
 
+        public ReceiptModel? InvoiceReceipt { get; private set; }
+
         #region Setter
 
         public void SetPaymentDate(DateTime paymentDate)
@@ -70,6 +72,11 @@ namespace Contract.Models.Invoice
         public void SetContractId(Guid contractId)
         {
             InvoiceContractId = contractId;
+        }
+
+        public void SetReceipt(ReceiptModel? receipt)
+        {
+            InvoiceReceipt = receipt;
         }
 
         #endregion

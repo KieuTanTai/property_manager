@@ -8,7 +8,7 @@ namespace Identity.Utils.Enum
 
         Manager,
 
-        Assistant,
+        Inspector,
 
         Employee
     }

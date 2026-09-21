@@ -136,6 +136,7 @@ CREATE TABLE `premise`
     `premise_location_id` UUID NOT NULL,
 
     `premise_status` ENUM (
+        'reserved',
         'rented',
         'available',
         'maintenance'
@@ -396,6 +397,43 @@ CREATE TABLE `invoice_detail`
     CONSTRAINT `fk_invoice_detail_premise`
         FOREIGN KEY (`invoice_detail_premise_id`)
             REFERENCES `premise` (`premise_id`)
+) ENGINE = InnoDB;
+
+CREATE TABLE IF NOT EXISTS `receipt`
+(
+    `receipt_id`                         UUID PRIMARY KEY DEFAULT (UUID_v7()),
+    `receipt_invoice_id`                UUID NOT NULL,
+    `receipt_created_by_account_id`      UUID NOT NULL,
+    `receipt_payment_method`             ENUM(
+        'vnpay',
+        'bank',
+        'cash'
+        ) NOT NULL DEFAULT 'cash',
+    `receipt_amount`                     DECIMAL(18,2) NOT NULL DEFAULT 0.00,
+    `receipt_payment_date`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `receipt_transaction_reference`      VARCHAR(100) NULL,
+    `receipt_gateway_transaction_number` VARCHAR(100) NULL,
+    `receipt_transaction_info`           VARCHAR(250) NULL,
+    `receipt_bank_name`                  VARCHAR(100) NULL,
+    `receipt_created_at`                 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `receipt_updated_at`                 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    UNIQUE KEY `uk_receipt_invoice_id` (`receipt_invoice_id`),
+
+    INDEX `idx_receipt_payment_method` (`receipt_payment_method`),
+    INDEX `idx_receipt_payment_date` (`receipt_payment_date`),
+    INDEX `idx_receipt_transaction_reference` (`receipt_transaction_reference`),
+    INDEX `idx_receipt_created_by_account_id` (`receipt_created_by_account_id`),
+
+    CONSTRAINT `fk_receipt_invoice`
+        FOREIGN KEY (`receipt_invoice_id`)
+            REFERENCES `monthly_invoice` (`invoice_id`),
+
+    CONSTRAINT `fk_receipt_created_by_account`
+        FOREIGN KEY (`receipt_created_by_account_id`)
+            REFERENCES `account` (`account_id`)
+
 ) ENGINE = InnoDB;
 
 # Ticket and Notification module (now is low priority, so we will implement it later)
