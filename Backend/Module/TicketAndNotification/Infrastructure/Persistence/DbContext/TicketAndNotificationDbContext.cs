@@ -11,10 +11,10 @@ namespace TicketAndNotification.Infrastructure.Persistence.DbContext
         DbContextOptions<TicketAndNotificationDbContext> options)
         : Microsoft.EntityFrameworkCore.DbContext(options)
     {
-        public DbSet<NotificationModel> Notifications {get; set;}
-        public DbSet<NotificationRecipientModel> NotificationRecipients {get; set;}
-        public DbSet<TicketMediaModel> TicketMedias {get; set;}
-        public DbSet<TicketModel> Tickets {get; set;}
+        public DbSet<NotificationModel> Notifications { get; set; }
+        public DbSet<NotificationRecipientModel> NotificationRecipients { get; set; }
+        public DbSet<TicketMediaModel> TicketMedias { get; set; }
+        public DbSet<TicketModel> Tickets { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -80,9 +80,11 @@ namespace Identity.Application
 
         private static bool TryProcessPhoneNumber(string input, out string stringPhoneNumber)
         {
-
             stringPhoneNumber = string.Empty;
-            if (string.IsNullOrWhiteSpace(input)) return false;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
 
             // 1. Remove all non-digit characters except a leading '+' sign (if present)
             var cleaned = MyRegex().Replace(input, "");
@@ -107,11 +109,11 @@ namespace Identity.Application
             }
             stringPhoneNumber = cleaned;
             return true;
-
         }
 
         [GeneratedRegex(@"[^\d+]")]
         private static partial Regex MyRegex();
+
         #endregion
     }
 }

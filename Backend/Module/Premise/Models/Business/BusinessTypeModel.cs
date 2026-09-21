@@ -39,9 +39,9 @@ namespace Premise.Models.Business
         public DateTime BusinessTypeUpdatedAt { get; private set; } = DateTime.Now;
 
         public IReadOnlyList<PremiseModel> Premises { get; private set; } = new List<PremiseModel>();
-        
+
         public IReadOnlyList<WhitelistProductModel> WhitelistProducts { get; private set; } = new List<WhitelistProductModel>();
-        
+
         #region Setter
 
         public void SetBusinessTypeName(string name)

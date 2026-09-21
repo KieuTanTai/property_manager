@@ -13,7 +13,7 @@ namespace Premise.Models.Product
         public Guid ProductId { get; init; }
 
         public Guid BusinessTypeId { get; init; }
-        
+
         public DateTime AssignedAt { get; init; } = DateTime.Now;
     }
 }

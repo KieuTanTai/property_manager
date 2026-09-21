@@ -6,7 +6,7 @@ namespace Contract.Infrastructure.Repository
     public class EfContractUnitOfWork(ContractDbContext context) : IUnitOfWork
     {
         private readonly ContractDbContext _context = context;
-        
+
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             return await _context.SaveChangesAsync(cancellationToken);

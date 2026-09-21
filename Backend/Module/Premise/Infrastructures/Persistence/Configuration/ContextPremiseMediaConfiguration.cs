@@ -11,20 +11,20 @@ namespace Premise.Infrastructures.Persistence.Configuration
             entity.ToTable("premise_media");
 
             entity.HasKey(premiseMedia => premiseMedia.PremiseMediaId);
-            
+
             entity.Property(premiseMedia => premiseMedia.PremiseMediaId)
-                  .HasColumnName("premise_media_id")
-                  .ValueGeneratedOnAdd();
+                .HasColumnName("premise_media_id")
+                .ValueGeneratedOnAdd();
 
             entity.Property(premiseMedia => premiseMedia.PremiseMediaPremiseId)
                 .HasColumnName("premise_media_premise_id")
                 .IsRequired();
-            
+
             entity.Property(premiseMedia => premiseMedia.PremiseMediaImageUrl)
-                  .HasColumnName("premise_media_image_url")
-                  .HasConversion<string>()
-                  .IsRequired();
-            
+                .HasColumnName("premise_media_image_url")
+                .HasConversion<string>()
+                .IsRequired();
+
             entity.Property(premiseMedia => premiseMedia.PremiseMediaCreatedAt)
                 .HasColumnName("premise_media_created_at")
                 .HasColumnType("timestamp")
@@ -34,7 +34,7 @@ namespace Premise.Infrastructures.Persistence.Configuration
                 .HasColumnName("premise_media_updated_at")
                 .HasColumnType("timestamp")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
-            
+
             entity.HasOne<PremiseModel>()
                 .WithMany()
                 .HasForeignKey(premiseMedia => premiseMedia.PremiseMediaPremiseId)

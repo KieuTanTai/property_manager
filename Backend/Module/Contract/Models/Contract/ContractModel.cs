@@ -43,18 +43,18 @@ namespace Contract.Models.Contract
 
         public DateTime ContractPremiseReturnDate { get; private set; }
 
-        public EContractStatus ContractStatus { get; private set; } = EContractStatus.PendingSignature;
+        public EContractStatus ContractStatus { get; private set; } = EContractStatus.PendingApproval;
 
         public DateTime? ContractTerminationDate { get; private set; }
 
         public DateTime ContractCreatedAt { get; init; } = DateTime.Now;
 
         public DateTime ContractUpdatedAt { get; private set; } = DateTime.Now;
-        
+
         public IReadOnlyList<ContractViolationModel> ContractViolations { get; private set; } = new List<ContractViolationModel>();
         public IReadOnlyList<MonthlyInvoiceModel> ContractInvoices { get; private set; } = new List<MonthlyInvoiceModel>();
         public IReadOnlyList<RegulationModel> ContractRegulations { get; private set; } = new List<RegulationModel>();
-        
+
         #region Setter
 
         public void SetContractAccountId(Guid accountId)
@@ -86,7 +86,7 @@ namespace Contract.Models.Contract
         {
             ContractTerminationDate = terminationDate;
         }
-        
+
         public void SetContractViolations(IReadOnlyList<ContractViolationModel> violations)
         {
             ContractViolations = violations;
@@ -96,11 +96,12 @@ namespace Contract.Models.Contract
         {
             ContractInvoices = invoices;
         }
-        
+
         public void SetContractRegulations(IReadOnlyList<RegulationModel> regulations)
         {
             ContractRegulations = regulations;
         }
+
         #endregion
     }
 }

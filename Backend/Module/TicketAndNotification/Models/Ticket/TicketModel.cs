@@ -32,7 +32,7 @@ namespace TicketAndNotification.Models.Ticket
 
         public Guid TicketAccountId { get; private set; }
 
-        [Required, MaxLength(255)]
+        [Required] [MaxLength(255)]
         public string TicketContent { get; private set; } = string.Empty;
 
         public ETicketType TicketType { get; private set; } = ETicketType.Feedback;
@@ -74,6 +74,5 @@ namespace TicketAndNotification.Models.Ticket
         }
 
         #endregion
-        
     }
 }

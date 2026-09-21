@@ -55,7 +55,7 @@ namespace Contract.Infrastructure.Persistence.Configurations
                                       invoice_detail_electricity_fee +
                                       invoice_detail_water_fee +
                                       invoice_detail_garbage_fee
-                                      """, stored: true)
+                                      """, true)
                 .IsRequired();
         }
     }

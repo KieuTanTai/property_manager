@@ -10,7 +10,8 @@ namespace TicketAndNotification.Infrastructure.Persistence.Configurations
         {
             entity.ToTable("notification_recipient");
 
-            entity.HasKey(notificationRecipient => new{
+            entity.HasKey(notificationRecipient => new
+            {
                 notificationRecipient.NotificationId,
                 notificationRecipient.AccountId
             });

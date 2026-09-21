@@ -32,4 +32,3 @@ namespace TicketAndNotification.Infrastructure.Persistence.Configurations
         }
     }
 }
-                

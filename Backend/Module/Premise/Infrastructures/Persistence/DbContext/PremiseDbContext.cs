@@ -8,17 +8,17 @@ using MySqlModelBuilderExtensions=
 
 namespace Premise.Infrastructures.Persistence.DbContext
 {
-    public sealed class PremiseDbContext(DbContextOptions<PremiseDbContext> contextOptions) 
+    public sealed class PremiseDbContext(DbContextOptions<PremiseDbContext> contextOptions)
         : Microsoft.EntityFrameworkCore.DbContext(contextOptions)
     {
-        public DbSet<PremiseModel> Premises {get; set;}
-        public DbSet<LocationModel> Locations {get; set;}
-        public DbSet<PremiseBusinessTypeModel> PremiseBusinessTypes {get; set;}
-        public DbSet<PremiseMediaModel> PremiseMedias {get; set;}
-        public DbSet<ProductBusinessTypeModel> ProductBusinessTypes {get; set;}
-        public DbSet<WhitelistProductModel> WhitelistProducts {get; set;}
-        public DbSet<RentedPremiseModel> RentedPremiseModels {get; set;}
-        public DbSet<BusinessTypeModel> BusinessTypes {get; set;}
+        public DbSet<PremiseModel> Premises { get; set; }
+        public DbSet<LocationModel> Locations { get; set; }
+        public DbSet<PremiseBusinessTypeModel> PremiseBusinessTypes { get; set; }
+        public DbSet<PremiseMediaModel> PremiseMedias { get; set; }
+        public DbSet<ProductBusinessTypeModel> ProductBusinessTypes { get; set; }
+        public DbSet<WhitelistProductModel> WhitelistProducts { get; set; }
+        public DbSet<RentedPremiseModel> RentedPremiseModels { get; set; }
+        public DbSet<BusinessTypeModel> BusinessTypes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,6 +1,4 @@
-using Contract.Models.Contract;
 using Contract.Models.Invoice;
-using Contract.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

@@ -13,17 +13,17 @@ namespace Premise.Infrastructures.Persistence.Configuration
             entity.HasKey(whitelistProduct => whitelistProduct.WhitelistProductId);
 
             entity.Property(whitelistProduct => whitelistProduct.WhitelistProductId)
-                  .HasColumnName("whitelist_product_id")
-                  .ValueGeneratedOnAdd();
+                .HasColumnName("whitelist_product_id")
+                .ValueGeneratedOnAdd();
 
             entity.Property(whitelistProduct => whitelistProduct.WhitelistProductName)
-                  .HasColumnName("whitelist_product_name")
-                  .HasMaxLength(100)
-                  .IsRequired();
+                .HasColumnName("whitelist_product_name")
+                .HasMaxLength(100)
+                .IsRequired();
 
             entity.Property(whitelistProduct => whitelistProduct.WhitelistProductDescription)
-                  .HasColumnName("whitelist_product_description")
-                  .HasMaxLength(255);
+                .HasColumnName("whitelist_product_description")
+                .HasMaxLength(255);
 
             entity.Property(whitelistProduct => whitelistProduct.WhitelistProductCreatedAt)
                 .HasColumnName("whitelist_product_created_at")

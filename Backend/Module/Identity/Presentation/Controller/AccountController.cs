@@ -23,6 +23,21 @@ namespace Identity.Presentation.Controller
 
         private readonly IUserProfileApplication _userProfileApplication = userProfileApplication;
 
+        #region PRIVATE
+
+        private static List<RecordClaimResponse> CreateClaims(RecordAuthResponse account)
+        {
+            var nameIdentifierClaim = new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString());
+            var emailClaim = new Claim(ClaimTypes.Email, account.Email);
+
+            var roleClaims = account.RoleNames.Select(roleName => new Claim(ClaimTypes.Role, roleName));
+            var claims = new List<Claim> { nameIdentifierClaim, emailClaim };
+            claims.AddRange(roleClaims);
+            return [.. claims.Select(claim => new RecordClaimResponse(claim.Type, claim.Value))];
+        }
+
+        #endregion
+
         #region POST
 
         [RequireHttps]
@@ -172,21 +187,6 @@ namespace Identity.Presentation.Controller
             {
                 return BadRequest(ex.Message);
             }
-        }
-
-        #endregion
-
-        #region PRIVATE
-
-        private static List<RecordClaimResponse> CreateClaims(RecordAuthResponse account)
-        {
-            var nameIdentifierClaim = new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString());
-            var emailClaim = new Claim(ClaimTypes.Email, account.Email);
-
-            var roleClaims = account.RoleNames.Select(roleName => new Claim(ClaimTypes.Role, roleName));
-            var claims  = new List<Claim> { nameIdentifierClaim, emailClaim};
-            claims.AddRange(roleClaims);
-            return [.. claims.Select(claim => new RecordClaimResponse(claim.Type, claim.Value))];
         }
 
         #endregion

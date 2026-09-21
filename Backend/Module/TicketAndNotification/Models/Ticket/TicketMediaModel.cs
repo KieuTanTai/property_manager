@@ -25,9 +25,9 @@ namespace TicketAndNotification.Models.Ticket
 
         [MaxLength(255)]
         public string TicketMediaImageUrl { get; private set; } = string.Empty;
-        
+
         #region Setter
-        
+
         public void SetTicketMediaTicketId(Guid ticketId)
         {
             TicketMediaTicketId = ticketId;
@@ -37,7 +37,7 @@ namespace TicketAndNotification.Models.Ticket
         {
             TicketMediaImageUrl = imageUrl;
         }
-        
+
         #endregion
     }
 }

@@ -72,13 +72,13 @@ namespace Premise.Models.Premise
         public DateTime PremiseCreatedAt { get; init; } = DateTime.Now;
 
         public DateTime PremiseUpdatedAt { get; private set; } = DateTime.Now;
-        
+
         public LocationModel? PremiseLocation { get; private set; }
-        
+
         public IReadOnlyList<PremiseMediaModel> PremiseMedia { get; private set; } = new List<PremiseMediaModel>();
-        
+
         public IReadOnlyList<BusinessTypeModel> PremiseBusinessTypes { get; private set; } = new List<BusinessTypeModel>();
-        
+
 
         #region Setter
 
@@ -166,7 +166,7 @@ namespace Premise.Models.Premise
         {
             PremiseLocation = location;
         }
-        
+
         #endregion
     }
 }

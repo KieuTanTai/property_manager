@@ -10,9 +10,10 @@ namespace Premise.Infrastructures.Persistence.Configuration
         {
             entity.ToTable("rented_premise");
 
-            entity.HasKey(rentedPremise => new {
+            entity.HasKey(rentedPremise => new
+            {
                 rentedPremise.ContractId,
-                rentedPremise.PremiseId,
+                rentedPremise.PremiseId
             });
 
             entity.Property(rentedPremise => rentedPremise.ContractId)
@@ -20,13 +21,13 @@ namespace Premise.Infrastructures.Persistence.Configuration
                 .IsRequired();
 
             entity.Property(rentedPremise => rentedPremise.PremiseId)
-                  .HasColumnName("rented_premise_premise_id")
-                  .IsRequired();
+                .HasColumnName("rented_premise_premise_id")
+                .IsRequired();
 
             entity.HasOne<PremiseModel>()
-                  .WithMany()
-                  .HasForeignKey(rentedPremise => rentedPremise.PremiseId)
-                  .OnDelete(DeleteBehavior.Restrict);
+                .WithMany()
+                .HasForeignKey(rentedPremise => rentedPremise.PremiseId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
 using Identity.Models.Profile;
@@ -21,17 +20,23 @@ namespace Identity.Presentation.Controller
 
         [RequireHttps]
         [HttpGet]
-        public async Task<ActionResult<RecordProfileResponse>> GetProfileAsync([FromQuery]RecordGetProfileRequest requestDto, CancellationToken cancellationToken)
+        public async Task<ActionResult<RecordProfileResponse>> GetProfileAsync([FromQuery] RecordGetProfileRequest requestDto, CancellationToken cancellationToken)
         {
             if (requestDto.IdentityCode == null && requestDto.AccountId == null)
+            {
                 return BadRequest("must have at least one id");
+            }
             try
             {
                 UserProfileModel? result;
                 if (requestDto.AccountId != null)
+                {
                     result = await _userProfileApplication.GetProfileInfoAsync(requestDto.AccountId, cancellationToken);
+                }
                 else
+                {
                     result = await _userProfileApplication.GetProfileInfoAsync(requestDto.IdentityCode, cancellationToken);
+                }
                 var response = _apiHelper.MappingProfileResult(result);
                 return Ok(response);
             }
@@ -46,7 +51,7 @@ namespace Identity.Presentation.Controller
         }
 
         #endregion
-        
+
         #region POST
 
         [RequireHttps]

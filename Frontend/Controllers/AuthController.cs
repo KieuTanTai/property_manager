@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using System.Text.Json;
+using Identity.Presentation.Record.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Identity.Presentation.Record.Account;
 using Shared.Persistence.Record.Auth;
 using MvcJsonOptions=Microsoft.AspNetCore.Mvc.JsonOptions;
 
@@ -82,7 +82,7 @@ namespace Frontend.Controllers
         private static ClaimsIdentity CreateClaimsIdentity(RecordLoginResponse responseData)
         {
             var claims = responseData.Claims.Select(claim => new Claim(claim.Type, claim.Value));
-        
+
             return new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         }
 

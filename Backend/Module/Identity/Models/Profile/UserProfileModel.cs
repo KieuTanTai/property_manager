@@ -17,7 +17,7 @@ namespace Identity.Models.Profile
             UserProfileAccountId = userProfileAccountId;
             UserProfileFirstName = userProfileFirstName;
             UserProfileLastName = userProfileLastName;
-            UserProfileDateOfBirth =userProfileDateOfBirth;
+            UserProfileDateOfBirth = userProfileDateOfBirth;
             UserProfileGender = userProfileGender;
             UserProfilePhoneNumber = userProfilePhoneNumber;
             UserProfileAddress = userProfileAddress;

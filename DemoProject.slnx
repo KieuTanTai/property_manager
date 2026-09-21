@@ -1,14 +1,14 @@
 <Solution>
     <Folder Name="/Backend/">
-        <Project Path="Backend/Shared/Shared.csproj" />
+        <Project Path="Backend/Shared/Shared.csproj"/>
     </Folder>
     <Folder Name="/Backend/Module/">
-        <Project Path="Backend/Module/Contract/Contract.csproj" />
-        <Project Path="Backend/Module/Gateway/Gateway.csproj" />
-        <Project Path="Backend/Module/Identity/Identity.csproj" />
-        <Project Path="Backend/Module/Premise/Premise.csproj" />
-        <Project Path="Backend/Module/TicketAndNotification/TicketAndNotification.csproj" />
+        <Project Path="Backend/Module/Contract/Contract.csproj"/>
+        <Project Path="Backend/Module/Gateway/Gateway.csproj"/>
+        <Project Path="Backend/Module/Identity/Identity.csproj"/>
+        <Project Path="Backend/Module/Premise/Premise.csproj"/>
+        <Project Path="Backend/Module/TicketAndNotification/TicketAndNotification.csproj"/>
     </Folder>
-    <Project Path="Frontend/Frontend.csproj" />
-    <Project Path="TestProject/TestProject.csproj" />
+    <Project Path="Frontend/Frontend.csproj"/>
+    <Project Path="TestProject/TestProject.csproj"/>
 </Solution>

@@ -1,6 +1,4 @@
 using Contract.Models.Contract;
-using Contract.Models.Invoice;
-using Contract.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -40,7 +38,7 @@ namespace Contract.Infrastructure.Persistence.Configurations
                 .HasColumnName("contract_status")
                 .HasConversion<string>()
                 .HasMaxLength(20)
-                .HasDefaultValueSql("'pending_signature'")
+                .HasDefaultValueSql("'pending_approval'")
                 .IsRequired();
 
             entity.Property(contract => contract.ContractTerminationDate)
@@ -80,12 +78,11 @@ namespace Contract.Infrastructure.Persistence.Configurations
                         .WithMany()
                         .HasForeignKey(join => join.ContractId)
                         .OnDelete(DeleteBehavior.Restrict),
-                    join =>
-                    {
+                    join => {
                         join.ToTable("contract_regulation");
-                        
+
                         join.HasKey(item => new { item.RegulationId, item.ContractId });
-                        
+
                         join.Property(item => item.RegulationId)
                             .HasColumnName("regulation_id");
                         join.Property(item => item.ContractId)

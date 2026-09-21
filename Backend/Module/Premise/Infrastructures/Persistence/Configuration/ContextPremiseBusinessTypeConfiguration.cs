@@ -11,19 +11,20 @@ namespace Premise.Infrastructures.Persistence.Configuration
         {
             entity.ToTable("premise_business_type");
 
-            entity.HasKey(premiseBusinessType => new {
+            entity.HasKey(premiseBusinessType => new
+            {
                 premiseBusinessType.PremiseId,
-                premiseBusinessType.BusinessTypeId,
+                premiseBusinessType.BusinessTypeId
             });
-            
+
             entity.Property(premiseBusinessType => premiseBusinessType.PremiseId)
-                  .HasColumnName("premise_id")
-                  .IsRequired();
+                .HasColumnName("premise_id")
+                .IsRequired();
 
             entity.Property(premiseBusinessType => premiseBusinessType.BusinessTypeId)
-                  .HasColumnName("business_type_id")
-                  .IsRequired();
-            
+                .HasColumnName("business_type_id")
+                .IsRequired();
+
             entity.Property(premiseBusinessType => premiseBusinessType.AssignedAt)
                 .HasColumnName("assigned_at")
                 .HasColumnType("timestamp")
@@ -37,7 +38,7 @@ namespace Premise.Infrastructures.Persistence.Configuration
             entity.HasOne<BusinessTypeModel>()
                 .WithMany()
                 .HasForeignKey(premiseBusinessType => premiseBusinessType.BusinessTypeId)
-                .OnDelete(DeleteBehavior.Restrict);    
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

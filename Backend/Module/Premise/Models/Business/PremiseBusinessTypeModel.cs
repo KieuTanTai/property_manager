@@ -13,7 +13,7 @@ namespace Premise.Models.Business
         public Guid PremiseId { get; init; }
 
         public Guid BusinessTypeId { get; init; }
-        
+
         public DateTime AssignedAt { get; init; } = DateTime.UtcNow;
     }
 }

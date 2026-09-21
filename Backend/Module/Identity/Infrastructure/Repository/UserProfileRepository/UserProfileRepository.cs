@@ -142,7 +142,7 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
         {
             return await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(profile => profile.UserProfileId == id, cancellationToken);
         }
-        
+
         public async Task<UserProfileModel?> GetUserProfileAsync(Guid accountId, CancellationToken cancellationToken = default)
         {
             return await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(profile => profile.UserProfileAccountId == accountId, cancellationToken);

@@ -1,7 +1,4 @@
 namespace Contract.Application
 {
-    public class PlaceHolder
-    {
-        
-    }
+    public class PlaceHolder {}
 }

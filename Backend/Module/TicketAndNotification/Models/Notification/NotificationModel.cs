@@ -37,7 +37,7 @@ namespace TicketAndNotification.Models.Notification
 
         public ENotificationType NotificationType { get; private set; } = ENotificationType.Other;
 
-        [Required, MaxLength(255)]
+        [Required] [MaxLength(255)]
         public string NotificationContent { get; private set; } = string.Empty;
 
         public bool NotificationIsRead { get; private set; }

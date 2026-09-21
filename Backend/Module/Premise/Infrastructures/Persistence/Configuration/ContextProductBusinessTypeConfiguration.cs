@@ -11,7 +11,8 @@ namespace Premise.Infrastructures.Persistence.Configuration
         {
             entity.ToTable("product_business_type");
 
-            entity.HasKey(productBusinessType => new{
+            entity.HasKey(productBusinessType => new
+            {
                 productBusinessType.ProductId,
                 productBusinessType.BusinessTypeId
             });
@@ -21,9 +22,9 @@ namespace Premise.Infrastructures.Persistence.Configuration
                 .IsRequired();
 
             entity.Property(productBusinessType => productBusinessType.BusinessTypeId)
-                  .HasColumnName("pbt_business_type_id")
-                  .IsRequired();
-            
+                .HasColumnName("pbt_business_type_id")
+                .IsRequired();
+
             entity.Property(productBusinessType => productBusinessType.AssignedAt)
                 .HasColumnName("pbt_assigned_at")
                 .HasColumnType("timestamp")
@@ -31,15 +32,14 @@ namespace Premise.Infrastructures.Persistence.Configuration
                 .ValueGeneratedOnAdd();
 
             entity.HasOne<WhitelistProductModel>()
-                  .WithMany()
-                  .HasForeignKey(productBusinessType => productBusinessType.ProductId)
-                  .OnDelete(DeleteBehavior.Restrict);  
+                .WithMany()
+                .HasForeignKey(productBusinessType => productBusinessType.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne<BusinessTypeModel>()
-                  .WithMany()
-                  .HasForeignKey(productBusinessType => productBusinessType.BusinessTypeId)
-                  .OnDelete(DeleteBehavior.Restrict);  
-
+                .WithMany()
+                .HasForeignKey(productBusinessType => productBusinessType.BusinessTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -32,8 +32,8 @@ namespace Identity.Infrastructure.DIContainer
             services.AddScoped<IAccountApplication, AccountApplication>();
             services.AddScoped<IUserProfileApplication, UserProfileApplication>();
             // HashExistingAccounts.RunAsync(environment).Wait();
-            
-            
+
+
             return services;
         }
     }

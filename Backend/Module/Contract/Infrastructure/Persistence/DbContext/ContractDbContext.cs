@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore;
-using MySql.EntityFrameworkCore.Extensions;
 using Contract.Models.Contract;
 using Contract.Models.Invoice;
-using MySqlModelBuilderExtensions =
+using Microsoft.EntityFrameworkCore;
+using MySql.EntityFrameworkCore.Extensions;
+using MySqlModelBuilderExtensions=
     MySql.EntityFrameworkCore.Extensions.MySQLModelBuilderExtensions;
 
 namespace Contract.Infrastructure.Persistence.DbContext

@@ -15,5 +15,5 @@ namespace Identity.Presentation.Record.Profile
         string? AvatarUrl = null,
         DateTime? DateOfBirth = null,
         ESystemUserGender? Gender = null
-        );
+    );
 }

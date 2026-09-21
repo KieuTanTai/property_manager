@@ -16,7 +16,7 @@ namespace Identity.Utils
 
         public RecordProfileResponse MappingProfileResult(UserProfileModel model)
         {
-            return new RecordProfileResponse(model.UserProfileId, model.UserProfileAccountId, model.UserProfileFirstName, 
+            return new RecordProfileResponse(model.UserProfileId, model.UserProfileAccountId, model.UserProfileFirstName,
                 model.UserProfileLastName, model.UserProfilePhoneNumber, model.UserProfileAddress, model.UserProfileAvatarUrl, model.UserProfileDateOfBirth, model.UserProfileGender);
         }
     }

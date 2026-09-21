@@ -13,8 +13,7 @@ namespace Contract.Models.Contract
         public Guid RegulationId { get; init; }
 
         public Guid ContractId { get; init; }
-        
-        public DateTime AssignedAt { get; init; } = DateTime.Now;
 
+        public DateTime AssignedAt { get; init; } = DateTime.Now;
     }
 }

@@ -34,9 +34,9 @@ namespace Premise.Models.Premise
         public Guid PremiseMediaPremiseId { get; private set; }
 
         [MaxLength(255)] public string PremiseMediaImageUrl { get; private set; } = string.Empty;
-        
+
         public DateTime PremiseMediaCreatedAt { get; init; } = DateTime.Now;
-        
+
         public DateTime PremiseMediaUpdatedAt { get; private set; } = DateTime.Now;
 
         #region Setter

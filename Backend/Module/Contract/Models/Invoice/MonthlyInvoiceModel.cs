@@ -1,5 +1,4 @@
 using Contract.Utils.Enum;
-using Shared.Enum;
 
 namespace Contract.Models.Invoice
 {
@@ -43,7 +42,7 @@ namespace Contract.Models.Invoice
         public DateTime InvoiceCreatedAt { get; init; } = DateTime.Now;
 
         public DateTime InvoiceUpdatedAt { get; private set; } = DateTime.Now;
-        
+
         public IReadOnlyList<InvoiceDetailModel> InvoiceDetails { get; private set; } = new List<InvoiceDetailModel>();
 
         #region Setter
@@ -72,8 +71,7 @@ namespace Contract.Models.Invoice
         {
             InvoiceContractId = contractId;
         }
-        
-        #endregion
 
+        #endregion
     }
 }

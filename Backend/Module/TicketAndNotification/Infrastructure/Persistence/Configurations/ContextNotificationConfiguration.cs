@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Shared.Enum;
 using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Infrastructure.Persistence.Configurations

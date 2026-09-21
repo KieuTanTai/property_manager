@@ -241,12 +241,13 @@ CREATE TABLE `contract`
     `contract_premise_return_date` TIMESTAMP NOT NULL,
 
     `contract_status` ENUM (
+        'pending_approval',
         'pending_signature',
         'canceled',
         'expired',
         'signed',
         'terminated'
-        ) NOT NULL DEFAULT 'pending_signature',
+        ) NOT NULL DEFAULT 'pending_approval',
 
     `contract_termination_date`    TIMESTAMP,
     `contract_created_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -257,7 +258,6 @@ CREATE TABLE `contract`
         FOREIGN KEY (`contract_account_id`)
             REFERENCES `account` (`account_id`)
 ) ENGINE = InnoDB;
-
 
 # (write on premise modules)
 # not need assigned at because the premise can only be rented by one contract at a time,

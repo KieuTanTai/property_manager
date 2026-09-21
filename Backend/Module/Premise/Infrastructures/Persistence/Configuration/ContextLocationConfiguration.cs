@@ -11,15 +11,15 @@ namespace Premise.Infrastructures.Persistence.Configuration
             entity.ToTable("location");
 
             entity.HasKey(location => location.LocationId);
-            
+
             entity.Property(location => location.LocationId)
-                  .HasColumnName("location_id")
-                  .ValueGeneratedOnAdd();
+                .HasColumnName("location_id")
+                .ValueGeneratedOnAdd();
 
             entity.Property(location => location.LocationAddress)
-                  .HasColumnName("location_address")
-                  .HasConversion<string>()
-                  .IsRequired();
+                .HasColumnName("location_address")
+                .HasConversion<string>()
+                .IsRequired();
 
             entity.Property(location => location.LocationCreatedAt)
                 .HasColumnName("location_created_at")

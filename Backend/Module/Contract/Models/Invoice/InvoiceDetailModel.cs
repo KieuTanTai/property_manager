@@ -35,15 +35,15 @@ namespace Contract.Models.Invoice
 
         public Guid InvoiceDetailPremiseId { get; private set; }
 
-        public decimal InvoiceDetailRentalPrice { get; private set; } = 0;
+        public decimal InvoiceDetailRentalPrice { get; private set; }
 
-        public decimal InvoiceDetailElectricityFee { get; private set; } = 0;
+        public decimal InvoiceDetailElectricityFee { get; private set; }
 
-        public decimal InvoiceDetailWaterFee { get; private set; } = 0;
+        public decimal InvoiceDetailWaterFee { get; private set; }
 
-        public decimal InvoiceDetailGarbageFee { get; private set; } = 0;
+        public decimal InvoiceDetailGarbageFee { get; private set; }
 
-        public decimal InvoiceDetailTotalAmount { get; private set; } = 0;
+        public decimal InvoiceDetailTotalAmount { get; private set; }
 
         #region Setter
 
@@ -51,12 +51,12 @@ namespace Contract.Models.Invoice
         {
             InvoiceDetailRentalPrice = rentalPrice;
         }
-        
+
         public void SetElectricityFee(decimal electricityFee)
         {
             InvoiceDetailElectricityFee = electricityFee;
         }
-        
+
         public void SetGarbageFee(decimal garbageFee)
         {
             InvoiceDetailGarbageFee = garbageFee;
@@ -76,7 +76,7 @@ namespace Contract.Models.Invoice
         {
             return InvoiceDetailRentalPrice + InvoiceDetailElectricityFee + InvoiceDetailWaterFee + InvoiceDetailGarbageFee;
         }
-        
+
         #endregion
     }
 }

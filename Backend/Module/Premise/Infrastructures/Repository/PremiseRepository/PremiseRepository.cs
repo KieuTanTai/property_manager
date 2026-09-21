@@ -110,8 +110,8 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             return await SharedGetApplyPagingRepository.ApplyPaging(premises, pageSize, premise => premise.PremiseId,
                 cancellationToken);
         }
-        
-                
+
+
         public async Task<RecordBaseCursorPage<PremiseModel>> GetApplyPagingByNameAsync(Guid? cursor, int pageSize, string premiseName,
             CancellationToken cancellationToken = default)
         {
@@ -119,7 +119,9 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             var query = _db.Premises.AsNoTracking();
 
             if (cursor.HasValue)
+            {
                 query = query.Where(premise => premise.PremiseId < cursor.Value);
+            }
             query = query.Where(premise => premise.PremiseName.Contains(premiseName));
             query = query.OrderByDescending(premise => premise.PremiseId);
             var premises = query.ToAsyncEnumerable();

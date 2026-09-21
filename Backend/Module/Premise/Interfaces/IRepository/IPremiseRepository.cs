@@ -17,7 +17,7 @@ namespace Premise.Interfaces.IRepository
 
         Task<RecordBaseCursorPage<PremiseModel>> GetApplyPagingByNameAsync(Guid? cursor, int pageSize, string premiseName,
             CancellationToken cancellationToken = default);
-        
+
         Task<PremiseModel> GetTrackedPremiseByNameAsync(string premiseName, CancellationToken cancellationToken = default);
 
         Task<PremiseModel?> GetPremiseAndNavigationByIdAsync(Guid id, bool isGetLocation = true, bool isGetMedia = false,
@@ -28,4 +28,3 @@ namespace Premise.Interfaces.IRepository
         Task<IReadOnlyList<PremiseModel>> GetPremisesByLocationIdAsync(Guid locationId, CancellationToken cancellationToken = default);
     }
 }
- 
