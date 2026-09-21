@@ -5,6 +5,8 @@ namespace Shared.Enum
         Review,
 
         Complaint,
+        
+        Violation,
 
         Feedback
     }

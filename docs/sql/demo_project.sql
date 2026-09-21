@@ -412,6 +412,7 @@ CREATE TABLE `ticket`
     `ticket_type` ENUM (
         'review',
         'complaint',
+        'violation',
         'feedback'
         ) NOT NULL DEFAULT 'feedback',
 
@@ -466,7 +467,7 @@ CREATE TABLE `notification`
 CREATE TABLE `notification_recipient`
 (
     `nr_notification_id` UUID NOT NULL,
-    `nr_account_id`      UUID NOT NULL,
+    `nr_account_id`      UUID NOT NULL, 
 
     PRIMARY KEY (`nr_notification_id`, `nr_account_id`),
 
