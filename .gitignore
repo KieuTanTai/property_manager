@@ -74,7 +74,7 @@ Thumbs.db
 desktop.ini
 
 # Frontend ASP.NET Core MVC / web assets
-Frontend/Properties/launchSettings.json
+#Frontend/Properties/launchSettings.json
 Frontend/wwwroot/dist/
 Frontend/wwwroot/build/
 Frontend/wwwroot/assets/

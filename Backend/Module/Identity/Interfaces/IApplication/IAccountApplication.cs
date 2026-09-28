@@ -1,4 +1,5 @@
 using Identity.Models.Account;
+using Shared.Persistence.Record;
 
 namespace Identity.Interfaces.IApplication
 {
@@ -12,10 +13,10 @@ namespace Identity.Interfaces.IApplication
 
         // Methods for admins
         Task<int> InactiveAccountByAdminAsync(Guid accountId, CancellationToken cancellationToken = default);
-        // Task<IReadOnlyList<AccountModel>> GetAllAccountAsync(CancellationToken cancellationToken = default);
-        // Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, CancellationToken cancellationToken = default);
-        // Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize, bool isActive, CancellationToken cancellationToken = default);
-        // Task<AccountModel> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default);
-        // Task<RecordBaseCursorPage<AccountModel>> GetAccountByPhoneNumberAsync(Guid? cursor, string phoneNumber, int pageSize, CancellationToken cancellationToken = default);
+        Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, CancellationToken cancellationToken = default);
+        Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, bool isGetProfile, CancellationToken cancellationToken = default);
+        
+        Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize, bool isActive, CancellationToken cancellationToken = default);
+        Task<AccountModel?> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default);
     }
 }

@@ -90,6 +90,27 @@ namespace Identity.Infrastructure.Repository.AccountRepository
                 cancellationToken);
         }
 
+        public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, bool isGetProfile, CancellationToken cancellationToken = default)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
+            var query = _db.Accounts.AsNoTracking();
+
+            if (cursor.HasValue)
+            {
+                query = query.Where(account => account.AccountId < cursor.Value);
+            }
+
+            if (isGetProfile)
+            {
+                query = query.Include(account => account.UserProfile);
+            }
+
+            query = query.OrderByDescending(account => account.AccountId);
+            var accounts = query.ToAsyncEnumerable();
+            return await SharedGetApplyPagingRepository.ApplyPaging(accounts, pageSize, account => account.AccountId,
+                cancellationToken);
+        }
+        
         public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor,
             int pageSize,
             bool isActive, CancellationToken cancellationToken = default)

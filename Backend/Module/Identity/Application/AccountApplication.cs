@@ -142,24 +142,30 @@ namespace Identity.Application
             return affectRows == 0 ? throw new InvalidOperationException("Failed to inactive account.") : affectRows;
         }
 
-        public async Task<IReadOnlyList<AccountModel>> GetAllAccountAsync(CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
         public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            var result = await _accountRepository.GetApplyPagingAsync(cursor, pageSize, cancellationToken);
+            return result;
+        }
+        
+        public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, bool isGetProfile, CancellationToken cancellationToken = default)
+        {
+            var result = await _accountRepository.GetApplyPagingAsync(cursor, pageSize, isGetProfile, cancellationToken);
+            return result;
+        }
+        
+        public async Task<AccountModel?> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default)
+        {
+            if (!_accountHelper.IsEmailValid(email))
+                throw new InvalidOperationException("Invalid email format.");
+            var accountModel = await _accountRepository.GetAccountAndNavigationByEmailAsync(email, true, true, true, cancellationToken);
+            return accountModel;
         }
 
         public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize, bool isActive, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
-        }
-
-        public async Task<RecordBaseCursorPage<AccountModel>> GetAccountByPhoneNumberAsync(Guid? cursor, string phoneNumber, int pageSize, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
+            var result = await _accountRepository.GetApplyPagingByStatusAsync(cursor, pageSize, isActive, cancellationToken);
+            return result;
         }
 
         #endregion
