@@ -24,11 +24,54 @@
             Name = "Terra Bottle", Price = "$38", SalePrice = "$29", Discount = "24% OFF",
             Image = "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=900&q=85",
             Description = "A lightweight insulated bottle that keeps drinks cold or warm throughout the day."
+        },
+        new
+        {
+            Name = "Cove Sneakers", Price = "$110", SalePrice = "$82", Discount = "25% OFF",
+            Image = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=85",
+            Description = "Lightweight everyday sneakers with a flexible sole and a clean silhouette."
+        },
+        new
+        {
+            Name = "Milo Watch", Price = "$160", SalePrice = "$119", Discount = "26% OFF",
+            Image = "https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=900&q=85",
+            Description = "A minimalist watch with a polished case and a comfortable leather strap."
+        },
+        new
+        {
+            Name = "Noma Chair", Price = "$245", SalePrice = "$189", Discount = "23% OFF",
+            Image = "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=900&q=85",
+            Description = "A supportive accent chair that brings warmth and character to any room."
+        },
+        new
+        {
+            Name = "Orbit Keyboard", Price = "$98", SalePrice = "$79", Discount = "19% OFF",
+            Image = "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&w=900&q=85",
+            Description = "A compact mechanical keyboard built for comfortable and focused typing."
+        },
+        new
+        {
+            Name = "Sora Sunglasses", Price = "$74", SalePrice = "$55", Discount = "26% OFF",
+            Image = "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=900&q=85",
+            Description = "Classic sunglasses with lightweight frames and everyday UV protection."
+        },
+        new
+        {
+            Name = "Vale Wallet", Price = "$52", SalePrice = "$39", Discount = "25% OFF",
+            Image = "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=900&q=85",
+            Description = "A slim leather wallet with practical storage for cards and cash."
+        },
+        new
+        {
+            Name = "Echo Speaker", Price = "$135", SalePrice = "$99", Discount = "27% OFF",
+            Image = "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=900&q=85",
+            Description = "A compact wireless speaker with room-filling sound and simple controls."
         }
     };
 }
 
-<section class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4" aria-label="Product list">
+<section class="product-showcase" data-product-list>
+<div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4" aria-label="Product list" data-product-grid>
     @foreach (var product in products)
     {
         <article class="product-card group overflow-hidden bg-(--surface) shadow-sm"
@@ -63,6 +106,8 @@
             </div>
         </article>
     }
+</div>
+<div class="product-pagination" data-product-pagination aria-label="Product pages"></div>
 </section>
 
 @await Html.PartialAsync("_ProductDetailOverlay")

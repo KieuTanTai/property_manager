@@ -1,3 +1,4 @@
+"use strict";
 function getAccountListElements(root) {
     const search = root.querySelector("[data-account-search]");
     const summary = root.querySelector("[data-account-summary]");
@@ -43,7 +44,7 @@ function renderAccountList(elements, currentPage, pageSize) {
     }
     return page;
 }
-function initializeAccountList() {
+document.addEventListener("DOMContentLoaded", () => {
     const root = document.querySelector("[data-account-list]");
     if (!root) {
         return;
@@ -58,6 +59,5 @@ function initializeAccountList() {
         currentPage = renderAccountList(elements, 1, pageSize);
     });
     currentPage = renderAccountList(elements, currentPage, pageSize);
-}
-export { initializeAccountList };
+});
 //# sourceMappingURL=accountList.js.map

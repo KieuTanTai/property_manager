@@ -703,6 +703,36 @@ input {
     transition: transform var(--animation-duration) ease, box-shadow var(--animation-duration) ease, border-color var(--animation-duration) ease;
 }
 
+.product-showcase {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.product-pagination {
+    display: flex;
+    justify-content: center;
+    gap: .45rem;
+}
+
+.product-page-button {
+    width: 2.25rem;
+    height: 2.25rem;
+    color: var(--button-secondary-text);
+    font-size: .8rem;
+    font-weight: 700;
+    background: var(--surface);
+    border: 1px solid var(--control-border);
+    border-radius: .5rem;
+    cursor: pointer;
+}
+
+.product-page-button:hover,
+.product-page-button.is-current {
+    color: #fff;
+    background: var(--button-primary);
+    border-color: var(--button-primary);
+}
+
 .product-card:hover,
 .product-card:focus-visible {
     outline: none;
