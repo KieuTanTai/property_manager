@@ -189,5 +189,21 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
         }
 
         #endregion
+
+        #region DELETE
+
+        public async Task DeletePremiseBusinessTypesByPremiseIdAsync(Guid premiseId, CancellationToken cancellationToken = default)
+        {
+            var premiseBusinessTypes = await _db.PremiseBusinessTypes
+                .Where(pbt => pbt.PremiseId == premiseId)
+                .ToListAsync(cancellationToken);
+
+            if (!premiseBusinessTypes.Any())
+                throw new InvalidOperationException($"PremiseBusinessTypes not found! \n {premiseId}");
+
+            _db.PremiseBusinessTypes.RemoveRange(premiseBusinessTypes);
+        }
+
+        #endregion
     }
 }

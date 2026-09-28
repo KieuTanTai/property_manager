@@ -26,5 +26,8 @@ namespace Premise.Interfaces.IRepository
         Task<IReadOnlyList<PremiseModel>> GetPremisesByFloorAsync(int floor, CancellationToken cancellationToken = default);
 
         Task<IReadOnlyList<PremiseModel>> GetPremisesByLocationIdAsync(Guid locationId, CancellationToken cancellationToken = default);
+        
+        Task DeletePremiseBusinessTypesByPremiseIdAsync(Guid premiseId, CancellationToken cancellationToken = default);
+        
     }
 }

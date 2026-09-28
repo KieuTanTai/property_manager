@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@ViewData["Title"] - Admin</title>
+    <link rel="stylesheet" href="~/css/main.css" asp-append-version="true"/>
+</head>
+<body class="admin-body">
+<div class="admin-shell">
+    <aside class="admin-sidebar" aria-label="Admin navigation">
+        <div class="admin-brand">
+            <span class="admin-brand-mark">DS</span>
+            <span>Demo Shop</span>
+        </div>
+        <nav class="admin-nav">
+            <a class="admin-nav-item" href="#" aria-label="Dashboard">
+                <span class="admin-nav-icon">⌂</span><span>Dashboard</span>
+            </a>
+            <a class="admin-nav-item is-active" href="/admin/account/list" aria-current="page">
+                <span class="admin-nav-icon">♙</span><span>Accounts</span>
+            </a>
+            <a class="admin-nav-item" href="#" aria-label="Roles">
+                <span class="admin-nav-icon">◇</span><span>Roles</span>
+            </a>
+            <a class="admin-nav-item" href="#" aria-label="Permissions">
+                <span class="admin-nav-icon">◈</span><span>Permissions</span>
+            </a>
+            <a class="admin-nav-item" href="#" aria-label="Settings">
+                <span class="admin-nav-icon">⚙</span><span>Settings</span>
+            </a>
+        </nav>
+        <div class="admin-sidebar-footer">
+            <span class="admin-avatar">AD</span>
+            <div><strong>Admin</strong><small>Administrator</small></div>
+        </div>
+    </aside>
+    <main class="admin-main" role="main">
+        @RenderBody()
+    </main>
+</div>
+@await RenderSectionAsync("Scripts", false)
+</body>
+</html>

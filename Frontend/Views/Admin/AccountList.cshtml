@@ -1,0 +1,77 @@
+﻿@model IReadOnlyList<Frontend.Models.Admin.AdminAccountRow>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Accounts";
+}
+
+<section class="account-page" data-account-list>
+    <div class="account-page-heading">
+        <div>
+            <p class="admin-eyebrow">User management</p>
+            <h1>Accounts</h1>
+            <p class="admin-description">Manage all accounts and their access status.</p>
+        </div>
+        <button class="admin-primary-button" type="button">
+            <span aria-hidden="true">+</span> Add account
+        </button>
+    </div>
+
+    <div class="account-toolbar">
+        <label class="account-search">
+            <span aria-hidden="true">⌕</span>
+            <input type="search" placeholder="Search by email..." aria-label="Search accounts" data-account-search>
+        </label>
+        <button class="admin-filter-button" type="button">Filter <span aria-hidden="true">⌄</span></button>
+    </div>
+
+    <div class="account-card">
+        <div class="account-card-header">
+            <div>
+                <h2>All accounts</h2>
+                <p><span data-account-count>@Model.Count</span> accounts in total</p>
+            </div>
+            <span class="account-page-size">5 per page</span>
+        </div>
+        <div class="account-table-wrap">
+            <table class="account-table">
+                <thead>
+                <tr>
+                    <th scope="col">Account</th>
+                    <th scope="col">Role</th>
+                    <th scope="col">Created date</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody data-account-rows>
+                @foreach (var account in Model)
+                {
+                    <tr data-account-row data-email="@account.Email">
+                        <td>
+                            <div class="account-identity">
+                                <span class="account-avatar">@account.Email[0].ToString().ToUpperInvariant()</span>
+                                <div><strong>@account.Email</strong><small>@account.AccountId</small></div>
+                            </div>
+                        </td>
+                        <td><span class="account-role">@account.Role</span></td>
+                        <td>@account.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td>
+                            <span class="account-status @(account.IsActive ? "is-active" : "is-inactive")">
+                                <span></span>@(account.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td><button class="account-more" type="button" aria-label="Actions for @account.Email">•••</button></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="account-empty" data-account-empty hidden>No accounts match your search.</div>
+        <div class="account-pagination">
+            <span class="account-pagination-summary" data-account-summary></span>
+            <div class="account-pagination-buttons" data-account-pagination></div>
+        </div>
+    </div>
+</section>
+
+<script src="~/js/admin/accountList.js" asp-append-version="true"></script>
