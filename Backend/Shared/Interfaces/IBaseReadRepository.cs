@@ -7,6 +7,8 @@ namespace Shared.Interfaces
 
         Task<T?> GetByIdAsync(TId id, CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<T>> GetByIdsAsync(IEnumerable<TId> ids, CancellationToken cancellationToken = default);
+        
         Task<T?> GetTrackedByIdAsync(TId id, CancellationToken cancellationToken = default);
 
         Task<bool> ExistsAsync(TId id, CancellationToken cancellationToken = default);

@@ -28,7 +28,7 @@ namespace Identity.Infrastructure.DIContainer
             services.AddSingleton<IAccountHelper, AccountHelper>();
             services.AddSingleton<IApiHelper, ApiHelper>();
             services.AddSingleton<IPasswordHasher<AccountModel>, PasswordHasher<AccountModel>>();
-            services.AddScoped<IRoleApplication, RoleApplication>();
+            services.AddScoped<IAuthorizationApplication, AuthorizationApplication>();
             services.AddScoped<IAccountApplication, AccountApplication>();
             services.AddScoped<IUserProfileApplication, UserProfileApplication>();
             // HashExistingAccounts.RunAsync(environment).Wait();

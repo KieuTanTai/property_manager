@@ -24,6 +24,13 @@ namespace Identity.Infrastructure.Repository.Permission
                 .FirstOrDefaultAsync(permission => permission.PermissionId == id, cancellationToken);
         }
 
+        public async Task<IReadOnlyList<PermissionModel>> GetByIdsAsync(IEnumerable<Guid> ids,
+            CancellationToken cancellationToken = default)
+        {
+            return await context.Permissions.AsNoTracking()
+                .Where(permission => ids.Contains(permission.PermissionId)).ToListAsync(cancellationToken);
+        }
+        
         public async Task<PermissionModel?> GetTrackedByIdAsync(Guid id,
             CancellationToken cancellationToken = default)
         {

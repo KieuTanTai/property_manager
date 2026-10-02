@@ -142,6 +142,11 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
         {
             return await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(profile => profile.UserProfileId == id, cancellationToken);
         }
+        
+        public async Task<IReadOnlyList<UserProfileModel>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
+        {
+            return await _db.UserProfiles.AsNoTracking().Where(profile => ids.Contains(profile.UserProfileId)).ToListAsync(cancellationToken);
+        }
 
         public async Task<UserProfileModel?> GetUserProfileAsync(Guid accountId, CancellationToken cancellationToken = default)
         {

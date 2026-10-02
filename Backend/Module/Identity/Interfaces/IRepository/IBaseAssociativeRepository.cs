@@ -4,6 +4,10 @@ namespace Identity.Interfaces.IRepository
     {
         Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<T>> GetByFirstForeignIdAsync(TTypeId firestForeignId, CancellationToken cancellationToken = default);
+        
+        Task<IReadOnlyList<T>> GetBySecondForeignIdAsync(TTypeId secondForeignId, CancellationToken cancellationToken = default);
+        
         Task<T?> GetByIdAsync(TTypeId firstForeignId, TTypeId secondForeignId,
             CancellationToken cancellationToken = default);
 
