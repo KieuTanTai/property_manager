@@ -1,0 +1,89 @@
+@{
+    ViewData["Title"] = "Thống Kê";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="min-h-screen flex">
+    {{-- Sidebar --}}
+    <aside class="w-56 flex-shrink-0 flex flex-col border-r"
+           style="border-color:var(--border); background:var(--card)">
+        <div class="px-5 py-6 border-b" style="border-color:var(--border)">
+            <div class="text-xs font-mono tracking-widest uppercase mb-1" style="color:var(--muted)">
+                Hệ thống quản lý mặt bằng trung tâm thương mại
+            </div>
+            <div class="text-base font-semibold" style="color:var(--fg)">Thống Kê</div>
+        </div>
+
+        <nav class="flex-1 py-4 px-3 space-y-1">
+            <button onclick="switchTab('finance')" id="tab-btn-finance"
+                    class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all text-left active-tab">
+                <span class="font-mono text-base w-5 text-center leading-none">₫</span>
+                Tài chính
+            </button>
+            <button onclick="switchTab('premise')" id="tab-btn-premise"
+                    class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all text-left"
+                    style="color:var(--muted)">
+                <span class="font-mono text-base w-5 text-center leading-none">⊡</span>
+                Mặt bằng
+            </button>
+            <button onclick="switchTab('contract')" id="tab-btn-contract"
+                    class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all text-left"
+                    style="color:var(--muted)">
+                <span class="font-mono text-base w-5 text-center leading-none">≡</span>
+                Hợp đồng
+            </button>
+            <button onclick="switchTab('violation')" id="tab-btn-violation"
+                    class="tab-btn w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-all text-left"
+                    style="color:var(--muted)">
+                <span class="font-mono text-base w-5 text-center leading-none">⚠</span>
+                Vi phạm
+            </button>
+        </nav>
+
+        <div class="px-5 py-4 border-t" style="border-color:var(--border)">
+            <div class="text-xs font-mono" style="color:var(--muted)">Q3 · 2026</div>
+        </div>
+    </aside>
+
+    {{-- Main content --}}
+    <main class="flex-1 overflow-auto">
+        <div class="px-8 py-7">
+            <div id="tab-finance" class="tab-content active">
+                @await Html.PartialAsync("_FinanceStats")
+            </div>
+            <div id="tab-premise" class="tab-content">
+                @await Html.PartialAsync("_PremiseStats")
+            </div>
+            <div id="tab-contract" class="tab-content">
+                @await Html.PartialAsync("_ContractStats")
+            </div>
+            <div id="tab-violation" class="tab-content">
+                @await Html.PartialAsync("_ViolationStats")
+            </div>
+        </div>
+    </main>
+</div>
+
+@section Scripts {
+<script>
+    function switchTab(name) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.style.background = 'transparent';
+            btn.style.color = 'var(--muted)';
+        });
+        document.getElementById('tab-' + name).classList.add('active');
+        const btn = document.getElementById('tab-btn-' + name);
+        btn.style.background = 'var(--primary)';
+        btn.style.color = '#fff';
+        // init charts lazily
+        if (window['initCharts_' + name]) window['initCharts_' + name]();
+    }
+    // init active tab on load
+    document.getElementById('tab-btn-finance').style.background = 'var(--primary)';
+    document.getElementById('tab-btn-finance').style.color = '#fff';
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.initCharts_finance) initCharts_finance();
+    });
+</script>
+}

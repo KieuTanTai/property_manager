@@ -1,0 +1,146 @@
+@* Partial: _ContractStats.cshtml *@
+@{
+    var statusBreakdown = new[] {
+        new { Status = "Đang hiệu lực", Count = 68, Color = "#5b8dee" },
+        new { Status = "Chờ duyệt",     Count = 7,  Color = "#f0a030" },
+        new { Status = "Chờ ký",        Count = 5,  Color = "#a78bfa" },
+        new { Status = "Đã hết hạn",    Count = 23, Color = "#6b7280" },
+        new { Status = "Đã chấm dứt",   Count = 9,  Color = "#f43f5e" },
+        new { Status = "Đã hủy",        Count = 4,  Color = "#374151" },
+    };
+
+    var expiringSoon = new[] {
+        new { Id = "CT-2024-087", Tenant = "Nguyễn Văn Minh",         Premise = "P3-04", Days = 8,  Amount = "12.5tr/th" },
+        new { Id = "CT-2024-091", Tenant = "Công ty TNHH Bắc Phong",  Premise = "P1-12", Days = 14, Amount = "28.0tr/th" },
+        new { Id = "CT-2024-103", Tenant = "Trần Thị Lan",             Premise = "P2-07", Days = 21, Amount = "9.5tr/th"  },
+        new { Id = "CT-2024-118", Tenant = "Phạm Đức Thắng",           Premise = "P4-02", Days = 27, Amount = "18.2tr/th" },
+        new { Id = "CT-2024-125", Tenant = "CTY CP Minh Khoa",         Premise = "P5-09", Days = 30, Amount = "35.6tr/th" },
+    };
+}
+
+<div class="mb-6">
+    <h1 class="text-xl font-semibold" style="color:var(--fg)">Thống kê Hợp đồng</h1>
+    <p class="text-sm mt-0.5" style="color:var(--muted)">Trạng thái · Xu hướng · Sắp hết hạn</p>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    @foreach (var k in new[] {
+        new { Label = "Tổng hợp đồng",  Value = "116", Sub = "Tất cả trạng thái",   Accent = false },
+        new { Label = "Đang hiệu lực",  Value = "68",  Sub = "58.6% tổng số",        Accent = false },
+        new { Label = "Sắp hết hạn",    Value = "12",  Sub = "Trong 30 ngày tới",    Accent = true  },
+        new { Label = "Mới tháng 9",    Value = "9",   Sub = "+9 so với T8",          Accent = false },
+    })
+    {
+        <div class="rounded-lg p-5 border flex flex-col gap-1"
+             style="background:var(--card); border-color:var(--border)">
+            <div class="text-xs uppercase tracking-wider font-mono" style="color:var(--muted)">@k.Label</div>
+            <div class="text-2xl font-bold mt-1"
+                 style="color:@(k.Accent ? "var(--accent)" : "var(--primary)")">@k.Value</div>
+            <div class="text-xs mt-0.5" style="color:var(--muted)">@k.Sub</div>
+        </div>
+    }
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    {{-- Status list --}}
+    <div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Phân loại trạng thái</div>
+        <div class="space-y-2.5">
+            @foreach (var s in statusBreakdown)
+            {
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" style="background:@s.Color"></div>
+                        <span class="text-sm" style="color:var(--fg)">@s.Status</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-20 h-1.5 rounded-full overflow-hidden" style="background:var(--border)">
+                            <div class="h-full rounded-full" style="width:@(s.Count * 100 / 68)%; background:@s.Color"></div>
+                        </div>
+                        <span class="font-mono text-xs w-6 text-right" style="color:@s.Color">@s.Count</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    {{-- Trend line chart --}}
+    <div class="rounded-lg border p-5 md:col-span-2" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Xu hướng hợp đồng 9 tháng</div>
+        <canvas id="contractTrendChart" height="180"></canvas>
+        <div class="flex gap-5 mt-3">
+            @foreach (var l in new[] {
+                new { Label = "Hợp đồng mới", Color = "#5b8dee" },
+                new { Label = "Hết hạn",      Color = "#f0a030" },
+                new { Label = "Chấm dứt sớm", Color = "#f43f5e" },
+            })
+            {
+                <div class="flex items-center gap-1.5 text-xs" style="color:var(--muted)">
+                    <div class="w-5 h-0.5 rounded" style="background:@l.Color"></div>
+                    @l.Label
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+{{-- Expiring soon table --}}
+<div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+    <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Hợp đồng sắp hết hạn (30 ngày tới)</div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b" style="border-color:var(--border)">
+                    @foreach (var h in new[] { "Mã HĐ", "Khách thuê", "Mặt bằng", "Còn lại", "Giá thuê" })
+                    {
+                        <th class="text-left py-2 pr-4 text-xs font-mono uppercase tracking-wider"
+                            style="color:var(--muted)">@h</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in expiringSoon)
+                {
+                    var badgeColor = c.Days <= 10 ? "#f43f5e" : c.Days <= 20 ? "#f0a030" : "#a78bfa";
+                    <tr class="border-b last:border-0" style="border-color:var(--border)">
+                        <td class="py-2.5 pr-4 font-mono text-xs" style="color:var(--primary)">@c.Id</td>
+                        <td class="py-2.5 pr-4" style="color:var(--fg)">@c.Tenant</td>
+                        <td class="py-2.5 pr-4 font-mono text-xs" style="color:var(--muted)">@c.Premise</td>
+                        <td class="py-2.5 pr-4">
+                            <span class="inline-block px-2 py-0.5 rounded text-xs font-mono font-medium"
+                                  style="background:@(badgeColor)22; color:@badgeColor">@(c.Days) ngày</span>
+                        </td>
+                        <td class="py-2.5 font-mono text-xs" style="color:var(--accent)">@c.Amount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+window.initCharts_contract = function() {
+    if (window._contractChartDone) return;
+    window._contractChartDone = true;
+    const months = ['T1','T2','T3','T4','T5','T6','T7','T8','T9'];
+    new Chart(document.getElementById('contractTrendChart'), {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                { label: 'Mới',       data: [8,6,11,9,12,7,10,13,9],  borderColor: '#5b8dee', backgroundColor: '#5b8dee', pointRadius: 3, tension: 0.3 },
+                { label: 'Hết hạn',   data: [3,2,4,3,5,2,4,3,2],      borderColor: '#f0a030', backgroundColor: '#f0a030', pointRadius: 3, tension: 0.3 },
+                { label: 'Chấm dứt',  data: [1,0,2,1,2,1,0,1,1],      borderColor: '#f43f5e', backgroundColor: '#f43f5e', pointRadius: 3, tension: 0.3 },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color:'#6b7280', font:{family:'DM Mono',size:11} }, grid:{display:false} },
+                y: { ticks: { color:'#6b7280', font:{family:'DM Mono',size:11} }, grid:{color:'#252a3a'} },
+            }
+        }
+    });
+};
+</script>

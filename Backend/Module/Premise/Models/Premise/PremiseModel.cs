@@ -67,7 +67,7 @@ namespace Premise.Models.Premise
 
         [MaxLength(10)] public string PremiseArea { get; private set; } = string.Empty;
 
-        [MaxLength(100)] public string? PremiseDescription { get; private set; }
+        [MaxLength(255)] public string? PremiseDescription { get; private set; }
 
         public DateTime PremiseCreatedAt { get; init; } = DateTime.Now;
 

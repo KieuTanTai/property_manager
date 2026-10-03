@@ -1,0 +1,146 @@
+@* Partial: _PremiseStats.cshtml *@
+@{
+    var statusData = new[] {
+        new { Name = "Đang thuê", Count = 68, Pct = 57, Color = "#5b8dee" },
+        new { Name = "Còn trống", Count = 24, Pct = 20, Color = "#34d399" },
+        new { Name = "Đặt cọc",   Count = 18, Pct = 15, Color = "#f0a030" },
+        new { Name = "Bảo trì",   Count = 10, Pct = 8,  Color = "#f43f5e" },
+    };
+
+    var longVacant = new[] {
+        new { Name = "P3-08", Floor = "Tầng 3", Area = "42m²", Days = 87, Type = "Văn phòng" },
+        new { Name = "P4-12", Floor = "Tầng 4", Area = "65m²", Days = 63, Type = "Kho" },
+        new { Name = "P5-03", Floor = "Tầng 5", Area = "28m²", Days = 51, Type = "Cửa hàng" },
+        new { Name = "P2-16", Floor = "Tầng 2", Area = "38m²", Days = 44, Type = "Văn phòng" },
+        new { Name = "P1-09", Floor = "Tầng 1", Area = "55m²", Days = 31, Type = "Nhà hàng" },
+    };
+
+    var bizTypes = new[] {
+        new { Name = "Văn phòng", Count = 34, Color = "#5b8dee" },
+        new { Name = "Cửa hàng",  Count = 22, Color = "#f0a030" },
+        new { Name = "Kho",       Count = 18, Color = "#a78bfa" },
+        new { Name = "Nhà hàng",  Count = 12, Color = "#34d399" },
+        new { Name = "Khác",      Count = 14, Color = "#6b7280" },
+    };
+}
+
+<div class="mb-6">
+    <h1 class="text-xl font-semibold" style="color:var(--fg)">Thống kê Mặt bằng</h1>
+    <p class="text-sm mt-0.5" style="color:var(--muted)">Tình trạng · Tỷ lệ lấp đầy · Phân tầng</p>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    @foreach (var item in new[] {
+        new { Label = "Tổng mặt bằng",  Value = "120",  Sub = "5 tầng · 2 tòa",    Accent = false },
+        new { Label = "Đang thuê",       Value = "68",   Sub = "Tỷ lệ 56.7%",        Accent = false },
+        new { Label = "Tỷ lệ lấp đầy",  Value = "85%",  Sub = "Rented + Reserved",   Accent = false },
+        new { Label = "Đang bảo trì",   Value = "10",   Sub = "Không khả dụng",      Accent = true  },
+    })
+    {
+        <div class="rounded-lg p-5 border flex flex-col gap-1"
+             style="background:var(--card); border-color:var(--border)">
+            <div class="text-xs uppercase tracking-wider font-mono" style="color:var(--muted)">@item.Label</div>
+            <div class="text-2xl font-bold mt-1"
+                 style="color:@(item.Accent ? "var(--accent)" : "var(--primary)")">@item.Value</div>
+            <div class="text-xs mt-0.5" style="color:var(--muted)">@item.Sub</div>
+        </div>
+    }
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    {{-- Status breakdown --}}
+    <div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Phân loại trạng thái</div>
+        <div class="space-y-3">
+            @foreach (var s in statusData)
+            {
+                <div>
+                    <div class="flex justify-between text-sm mb-1.5">
+                        <span style="color:var(--fg)">@s.Name</span>
+                        <span class="font-mono" style="color:@s.Color">@s.Count (@(s.Pct)%)</span>
+                    </div>
+                    <div class="w-full h-1.5 rounded-full overflow-hidden" style="background:var(--border)">
+                        <div class="h-full rounded-full" style="width:@(s.Count * 100 / 120)%; background:@s.Color"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    {{-- Floor chart --}}
+    <div class="rounded-lg border p-5 md:col-span-2" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Phân bổ theo tầng</div>
+        <canvas id="floorChart" height="180"></canvas>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {{-- Long vacant --}}
+    <div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Mặt bằng trống lâu nhất</div>
+        <div class="space-y-2">
+            @foreach (var p in longVacant)
+            {
+                var badgeColor = p.Days > 60 ? "#f43f5e" : p.Days > 40 ? "#f0a030" : "#6b7280";
+                <div class="flex items-center justify-between py-1.5 border-b last:border-0"
+                     style="border-color:var(--border)">
+                    <div class="flex items-center gap-3">
+                        <div class="text-sm font-mono font-medium" style="color:var(--primary)">@p.Name</div>
+                        <div>
+                            <div class="text-xs" style="color:var(--fg)">@p.Floor · @p.Area</div>
+                            <div class="text-xs" style="color:var(--muted)">@p.Type</div>
+                        </div>
+                    </div>
+                    <span class="inline-block px-2 py-0.5 rounded text-xs font-mono font-medium"
+                          style="background:@(badgeColor)22; color:@badgeColor">@(p.Days) ngày</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    {{-- Business types --}}
+    <div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Loại hình kinh doanh</div>
+        <div class="space-y-3">
+            @foreach (var b in bizTypes)
+            {
+                <div>
+                    <div class="flex justify-between text-sm mb-1.5">
+                        <span style="color:var(--fg)">@b.Name</span>
+                        <span class="font-mono text-xs" style="color:@b.Color">@b.Count MB</span>
+                    </div>
+                    <div class="w-full h-1.5 rounded-full overflow-hidden" style="background:var(--border)">
+                        <div class="h-full rounded-full" style="width:@(b.Count)%; background:@b.Color"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+window.initCharts_premise = function() {
+    if (window._premiseChartDone) return;
+    window._premiseChartDone = true;
+    new Chart(document.getElementById('floorChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Tầng 1','Tầng 2','Tầng 3','Tầng 4','Tầng 5'],
+            datasets: [
+                { label: 'Đang thuê', data: [14,16,14,12,12], backgroundColor: '#5b8dee' },
+                { label: 'Đặt cọc',   data: [3,4,5,4,2],     backgroundColor: '#f0a030' },
+                { label: 'Trống',     data: [2,4,6,7,5],      backgroundColor: '#34d399' },
+                { label: 'Bảo trì',   data: [1,1,2,3,3],      backgroundColor: '#f43f5e' },
+            ]
+        },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } } },
+            scales: {
+                x: { stacked: true, ticks: { color:'#6b7280', font:{family:'DM Mono',size:11} }, grid:{color:'#252a3a'} },
+                y: { stacked: true, ticks: { color:'#6b7280', font:{family:'DM Sans', size:11} }, grid:{display:false} },
+            }
+        }
+    });
+};
+</script>

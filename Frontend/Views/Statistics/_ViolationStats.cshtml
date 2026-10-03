@@ -1,0 +1,138 @@
+@* Partial: _ViolationStats.cshtml *@
+@{
+    var topViolations = new[] {
+        new { Type = "Gây tiếng ồn ngoài giờ quy định",  Count = 18, Pct = 24, Color = "#f43f5e" },
+        new { Type = "Chậm thanh toán tiền thuê",          Count = 14, Pct = 19, Color = "#f0a030" },
+        new { Type = "Sử dụng mặt bằng sai mục đích",     Count = 11, Pct = 15, Color = "#a78bfa" },
+        new { Type = "Vi phạm nội quy an toàn PCCC",       Count = 9,  Pct = 12, Color = "#5b8dee" },
+        new { Type = "Không vệ sinh khu vực chung",        Count = 7,  Pct = 9,  Color = "#34d399" },
+        new { Type = "Khác",                               Count = 15, Pct = 21, Color = "#6b7280" },
+    };
+
+    var recent = new[] {
+        new { Contract = "CT-2024-091", Tenant = "Công ty TNHH Bắc Phong", Type = "Chậm thanh toán", Date = "18/09/2026", Penalty = "2.5tr", Resolved = false },
+        new { Contract = "CT-2024-078", Tenant = "Lê Văn Hùng",             Type = "Gây tiếng ồn",   Date = "15/09/2026", Penalty = "1.0tr", Resolved = false },
+        new { Contract = "CT-2024-056", Tenant = "Nguyễn Thị Mai",           Type = "Vi phạm PCCC",   Date = "12/09/2026", Penalty = "5.0tr", Resolved = false },
+        new { Contract = "CT-2024-103", Tenant = "Trần Thị Lan",             Type = "Sai mục đích",   Date = "10/09/2026", Penalty = "3.0tr", Resolved = true  },
+        new { Contract = "CT-2024-082", Tenant = "CTY CP Minh Khoa",         Type = "Không vệ sinh",  Date = "08/09/2026", Penalty = "0.5tr", Resolved = true  },
+    };
+}
+
+<div class="mb-6">
+    <h1 class="text-xl font-semibold" style="color:var(--fg)">Thống kê Vi phạm</h1>
+    <p class="text-sm mt-0.5" style="color:var(--muted)">Lịch sử · Phân loại · Tình trạng xử lý</p>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    @foreach (var k in new[] {
+        new { Label = "Tổng vi phạm",       Value = "73",    Sub = "Từ đầu năm 2026",          Accent = false },
+        new { Label = "Chưa xử lý",         Value = "18",    Sub = "Tháng 9: 5 vi phạm",       Accent = true  },
+        new { Label = "Tỷ lệ xử lý",        Value = "75.3%", Sub = "55/73 đã giải quyết",      Accent = false },
+        new { Label = "Tiền phạt chưa thu",  Value = "8.5tr", Sub = "Tháng 9 chưa giải quyết", Accent = true  },
+    })
+    {
+        <div class="rounded-lg p-5 border flex flex-col gap-1"
+             style="background:var(--card); border-color:var(--border)">
+            <div class="text-xs uppercase tracking-wider font-mono" style="color:var(--muted)">@k.Label</div>
+            <div class="text-2xl font-bold mt-1"
+                 style="color:@(k.Accent ? "var(--accent)" : "var(--primary)")">@k.Value</div>
+            <div class="text-xs mt-0.5" style="color:var(--muted)">@k.Sub</div>
+        </div>
+    }
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    {{-- Monthly bar chart --}}
+    <div class="rounded-lg border p-5 md:col-span-2" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Vi phạm theo tháng</div>
+        <canvas id="violationChart" height="180"></canvas>
+        <div class="flex gap-5 mt-2">
+            <div class="flex items-center gap-1.5 text-xs" style="color:var(--muted)">
+                <div class="w-2 h-2 rounded-sm" style="background:#34d399"></div>Đã xử lý
+            </div>
+            <div class="flex items-center gap-1.5 text-xs" style="color:var(--muted)">
+                <div class="w-2 h-2 rounded-sm" style="background:#f43f5e"></div>Chưa xử lý
+            </div>
+        </div>
+    </div>
+
+    {{-- Top violation types --}}
+    <div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Loại vi phạm phổ biến</div>
+        <div class="space-y-3">
+            @foreach (var v in topViolations)
+            {
+                <div>
+                    <div class="flex justify-between text-xs mb-1.5">
+                        <span class="pr-2 leading-tight" style="color:var(--fg)">@v.Type</span>
+                        <span class="font-mono flex-shrink-0" style="color:@v.Color">@v.Count</span>
+                    </div>
+                    <div class="w-full h-1.5 rounded-full overflow-hidden" style="background:var(--border)">
+                        <div class="h-full rounded-full" style="width:@(v.Count * 100 / 18)%; background:@v.Color"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+{{-- Recent violations table --}}
+<div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+    <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Vi phạm gần đây</div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b" style="border-color:var(--border)">
+                    @foreach (var h in new[] { "Mã HĐ", "Khách thuê", "Loại vi phạm", "Ngày", "Tiền phạt", "Trạng thái" })
+                    {
+                        <th class="text-left py-2 pr-4 text-xs font-mono uppercase tracking-wider"
+                            style="color:var(--muted)">@h</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var v in recent)
+                {
+                    var badgeColor = v.Resolved ? "#34d399" : "#f43f5e";
+                    var badgeText  = v.Resolved ? "Đã xử lý" : "Chưa xử lý";
+                    <tr class="border-b last:border-0" style="border-color:var(--border)">
+                        <td class="py-2.5 pr-4 font-mono text-xs" style="color:var(--primary)">@v.Contract</td>
+                        <td class="py-2.5 pr-4 text-sm" style="color:var(--fg)">@v.Tenant</td>
+                        <td class="py-2.5 pr-4 text-xs" style="color:var(--muted)">@v.Type</td>
+                        <td class="py-2.5 pr-4 font-mono text-xs" style="color:var(--muted)">@v.Date</td>
+                        <td class="py-2.5 pr-4 font-mono text-xs font-medium" style="color:var(--accent)">@v.Penalty</td>
+                        <td class="py-2.5">
+                            <span class="inline-block px-2 py-0.5 rounded text-xs font-mono font-medium"
+                                  style="background:@(badgeColor)22; color:@badgeColor">@badgeText</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+window.initCharts_violation = function() {
+    if (window._violationChartDone) return;
+    window._violationChartDone = true;
+    new Chart(document.getElementById('violationChart'), {
+        type: 'bar',
+        data: {
+            labels: ['T1','T2','T3','T4','T5','T6','T7','T8','T9'],
+            datasets: [
+                { label: 'Đã xử lý',    data: [3,5,7,5,6,8,6,7,8],  backgroundColor: '#34d399', borderRadius: 3 },
+                { label: 'Chưa xử lý', data: [1,1,2,0,2,3,1,3,5],  backgroundColor: '#f43f5e', borderRadius: 3 },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color:'#6b7280', font:{family:'DM Mono',size:11} }, grid:{display:false} },
+                y: { ticks: { color:'#6b7280', font:{family:'DM Mono',size:11} }, grid:{color:'#252a3a'} },
+            }
+        }
+    });
+};
+</script>

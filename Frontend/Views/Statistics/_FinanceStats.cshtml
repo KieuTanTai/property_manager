@@ -1,0 +1,120 @@
+@* Partial: _FinanceStats.cshtml *@
+
+@* Helper macros *@
+@{
+    var kpis = new[] {
+        new { Label = "Tổng doanh thu T9", Value = "271tr", Sub = "+9.3% so với T8", Accent = false },
+        new { Label = "Đã thu",             Value = "254tr", Sub = "93.7% tỷ lệ thu",  Accent = false },
+        new { Label = "Hóa đơn quá hạn",   Value = "19",    Sub = "Tổng 20.4tr",      Accent = true  },
+        new { Label = "Hóa đơn chưa thu",  Value = "29",    Sub = "Tổng 29.8tr",      Accent = false },
+    };
+
+    var paymentMethods = new[] {
+        new { Method = "Chuyển khoản", Count = 142, Amount = "178.4tr", Color = "#5b8dee" },
+        new { Method = "VNPay",         Count = 87,  Amount = "98.6tr",  Color = "#34d399" },
+        new { Method = "Tiền mặt",      Count = 31,  Amount = "36.2tr",  Color = "#f0a030" },
+    };
+
+    var invoiceStatuses = new[] {
+        new { Status = "Đã thanh toán",    Count = 218, Pct = 82, Color = "#34d399" },
+        new { Status = "Chưa thanh toán",  Count = 29,  Pct = 11, Color = "#f0a030" },
+        new { Status = "Quá hạn",          Count = 19,  Pct = 7,  Color = "#f43f5e" },
+    };
+}
+
+{{-- Header --}}
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-xl font-semibold" style="color:var(--fg)">Thống kê Tài chính</h1>
+        <p class="text-sm mt-0.5" style="color:var(--muted)">Doanh thu · Hóa đơn · Thanh toán</p>
+    </div>
+</div>
+
+{{-- KPI row --}}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    @foreach (var k in kpis)
+    {
+        <div class="rounded-lg p-5 border flex flex-col gap-1"
+             style="background:var(--card); border-color:var(--border)">
+            <div class="text-xs uppercase tracking-wider font-mono" style="color:var(--muted)">@k.Label</div>
+            <div class="text-2xl font-bold mt-1"
+                 style="color:@(k.Accent ? "var(--accent)" : "var(--primary)")">@k.Value</div>
+            <div class="text-xs mt-0.5" style="color:var(--muted)">@k.Sub</div>
+        </div>
+    }
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {{-- Revenue bar chart --}}
+    <div class="rounded-lg border p-5 md:col-span-2" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Doanh thu 9 tháng (triệu đồng)</div>
+        <canvas id="revenueChart" height="180"></canvas>
+    </div>
+
+    {{-- Payment methods --}}
+    <div class="rounded-lg border p-5" style="background:var(--card); border-color:var(--border)">
+        <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Phương thức thanh toán</div>
+        <div class="space-y-3">
+            @foreach (var m in paymentMethods)
+            {
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" style="background:@m.Color"></div>
+                        <span class="text-sm" style="color:var(--fg)">@m.Method</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-mono font-medium" style="color:@m.Color">@m.Amount</div>
+                        <div class="text-xs" style="color:var(--muted)">@m.Count giao dịch</div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+{{-- Invoice status --}}
+<div class="rounded-lg border p-5 mt-4" style="background:var(--card); border-color:var(--border)">
+    <div class="text-sm font-semibold mb-4" style="color:var(--fg)">Trạng thái hóa đơn tháng 9/2026</div>
+    <div class="space-y-3">
+        @foreach (var s in invoiceStatuses)
+        {
+            <div class="flex items-center gap-4">
+                <div class="w-36 text-sm" style="color:var(--fg)">@s.Status</div>
+                <div class="flex-1 h-2 rounded-full overflow-hidden" style="background:var(--border)">
+                    <div class="h-full rounded-full" style="width:@(s.Pct)%; background:@s.Color"></div>
+                </div>
+                <div class="w-12 text-right font-mono text-sm" style="color:@s.Color">@(s.Pct)%</div>
+                <div class="w-16 text-right text-sm" style="color:var(--muted)">@s.Count HĐ</div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+window.initCharts_finance = function() {
+    if (window._financeChartDone) return;
+    window._financeChartDone = true;
+    const months = ['T1','T2','T3','T4','T5','T6','T7','T8','T9'];
+    const paid    = [168,180,195,208,220,236,248,228,254];
+    const overdue = [14, 16, 15, 17, 18, 16, 17, 20, 17];
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [
+                { label: 'Đã thu',   data: paid,    backgroundColor: '#5b8dee', borderRadius: 3 },
+                { label: 'Quá hạn', data: overdue, backgroundColor: '#f43f5e', borderRadius: 3 },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } } } },
+            scales: {
+                x: { ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } }, grid: { display: false } },
+                y: { ticks: { color: '#6b7280', font: { family: 'DM Mono', size: 11 } }, grid: { color: '#252a3a' } },
+            }
+        }
+    });
+};
+window.initCharts_finance();
+</script>
