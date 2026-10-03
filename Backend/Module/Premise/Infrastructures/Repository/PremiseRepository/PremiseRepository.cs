@@ -25,6 +25,13 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             return await _db.Premises.AsNoTracking()
                 .FirstOrDefaultAsync(premise => premise.PremiseId == id, cancellationToken);
         }
+        
+        public async Task<IReadOnlyList<PremiseModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+        {
+            return await _db.Premises.AsNoTracking()
+                .Where(premise => ids.Contains(premise.PremiseId))
+                .ToListAsync(cancellationToken);
+        }
 
         public async Task<PremiseModel?> GetTrackedByIdAsync(Guid id,
             CancellationToken cancellationToken = default)

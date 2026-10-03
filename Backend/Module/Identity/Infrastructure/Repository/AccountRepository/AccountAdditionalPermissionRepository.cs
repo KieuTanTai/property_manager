@@ -43,6 +43,16 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             return await _db.AccountPermissions.AsNoTracking().ToListAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyList<AccountAdditionalPermissionModel>> GetByFirstForeignIdAsync(Guid firstForeignId, CancellationToken cancellationToken = default)
+        {
+            return await _db.AccountPermissions.AsNoTracking().Where(ap => ap.AccountId == firstForeignId).ToListAsync(cancellationToken);
+        }
+        
+        public async Task<IReadOnlyList<AccountAdditionalPermissionModel>> GetBySecondForeignIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
+        {
+            return await _db.AccountPermissions.AsNoTracking().Where(ap => ap.PermissionId == secondForeignId).ToListAsync(cancellationToken);
+        }
+        
         public async Task<AccountAdditionalPermissionModel?> GetByIdAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             return await _db.AccountPermissions.AsNoTracking().FirstOrDefaultAsync(ap => ap.AccountId == firstForeignId && ap.PermissionId == secondForeignId, cancellationToken);

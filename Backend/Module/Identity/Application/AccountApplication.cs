@@ -12,7 +12,7 @@ namespace Identity.Application
         IAccountRepository accountRepository,
         IUserProfileRepository userProfileRepository,
         IBaseAssociativeRepository<AccountRoleModel, Guid> accountRoleRepository,
-        IRoleApplication roleApplication,
+        IAuthorizationApplication roleApplication,
         IAccountHelper accountHelper)
         : IAccountApplication
     {
@@ -23,7 +23,7 @@ namespace Identity.Application
 
         private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
 
-        private readonly IRoleApplication _roleApplication = roleApplication;
+        private readonly IAuthorizationApplication _roleApplication = roleApplication;
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 

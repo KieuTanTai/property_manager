@@ -25,6 +25,13 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             return await _db.Accounts.AsNoTracking()
                 .FirstOrDefaultAsync(account => account.AccountId == id, cancellationToken);
         }
+        
+        public async Task<IReadOnlyList<AccountModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+        {
+            return await _db.Accounts.AsNoTracking()
+                .Where(account => ids.Contains(account.AccountId))
+                .ToListAsync(cancellationToken);
+        }
 
         public async Task<AccountModel?> GetTrackedByIdAsync(Guid id,
             CancellationToken cancellationToken = default)

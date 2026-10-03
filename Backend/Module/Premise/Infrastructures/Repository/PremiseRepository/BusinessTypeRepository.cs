@@ -22,6 +22,13 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
                 .FirstOrDefaultAsync(businessType => businessType.BusinessTypeId == id, cancellationToken);
         }
 
+        public async Task<IReadOnlyList<BusinessTypeModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+        {
+            return await _db.BusinessTypes.AsNoTracking()
+                .Where(businessType => ids.Contains(businessType.BusinessTypeId))
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<BusinessTypeModel?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             return await _db.BusinessTypes
