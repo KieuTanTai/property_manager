@@ -3,7 +3,7 @@ namespace Contract.Utils.Enum
     public enum EContractStatus
     {
         PendingApproval,
-        
+
         PendingSignature,
 
         Cancelled,

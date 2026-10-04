@@ -8,7 +8,7 @@ namespace Identity.Interfaces.IRepository
     {
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
             CancellationToken cancellationToken = default);
-        
+
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, bool isGetProfile, CancellationToken cancellationToken = default);
 
         Task<AccountModel> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default);

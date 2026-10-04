@@ -49,13 +49,9 @@ namespace Shared.Logging
             var entrySet = entries.ToHashSet();
             var remaining = new ConcurrentQueue<LogEntry>(
                 _entries.Where(entry => !entrySet.Contains(entry)));
-            while (_entries.TryDequeue(out _))
-            {
-            }
+            while (_entries.TryDequeue(out _)) {}
             foreach (var entry in remaining)
-            {
                 _entries.Enqueue(entry);
-            }
 
             var logDirectory = Path.Combine(
                 environment.ContentRootPath,
@@ -65,7 +61,7 @@ namespace Shared.Logging
             var logFile = Path.Combine(logDirectory, $"{module.ToLowerInvariant()}_{date}.jsonl");
 
             await using var stream = new FileStream(
-                logFile, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, useAsync: true);
+                logFile, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, true);
             await using var writer = new StreamWriter(stream);
             foreach (var entry in entries)
             {

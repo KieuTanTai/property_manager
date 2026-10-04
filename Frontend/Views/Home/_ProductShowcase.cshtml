@@ -71,43 +71,44 @@
 }
 
 <section class="product-showcase" data-product-list>
-<div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4" aria-label="Product list" data-product-grid>
-    @foreach (var product in products)
-    {
-        <article class="product-card group overflow-hidden bg-(--surface) shadow-sm"
-                 tabindex="0" role="region" data-product-card
-                 data-product-name="@product.Name" data-product-price="@product.Price"
-                 data-product-sale-price="@product.SalePrice" data-product-discount="@product.Discount"
-                 data-product-image="@product.Image" data-product-description="@product.Description">
-            <div class="relative overflow-hidden bg-(--surface-muted)">
-                <img class="h-52 w-full object-cover" src="@product.Image" alt="@product.Name" loading="lazy"/>
-                <span class="absolute left-3 top-3 rounded-full bg-(--sale) px-2.5 py-1 text-xs font-bold text-white">
+    <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4" aria-label="Product list" data-product-grid>
+        @foreach (var product in products)
+        {
+            <article class="product-card group overflow-hidden bg-(--surface) shadow-sm"
+                     tabindex="0" role="region" data-product-card
+                     data-product-name="@product.Name" data-product-price="@product.Price"
+                     data-product-sale-price="@product.SalePrice" data-product-discount="@product.Discount"
+                     data-product-image="@product.Image" data-product-description="@product.Description">
+                <div class="relative overflow-hidden bg-(--surface-muted)">
+                    <img class="h-52 w-full object-cover" src="@product.Image" alt="@product.Name" loading="lazy"/>
+                    <span
+                        class="absolute left-3 top-3 rounded-full bg-(--sale) px-2.5 py-1 text-xs font-bold text-white">
                     @product.Discount
                 </span>
-            </div>
-            <div class="space-y-4 p-4">
-                <div class="flex items-start justify-between gap-4">
-                    <h2 class="font-semibold text-(--ink)">@product.Name</h2>
-                    <div class="shrink-0 text-right">
-                        <span class="block text-sm text-(--muted)] line-through">@product.Price</span>
-                        <strong class="text-lg font-bold text-(--sale)">@product.SalePrice</strong>
+                </div>
+                <div class="space-y-4 p-4">
+                    <div class="flex items-start justify-between gap-4">
+                        <h2 class="font-semibold text-(--ink)">@product.Name</h2>
+                        <div class="shrink-0 text-right">
+                            <span class="block text-sm text-(--muted)] line-through">@product.Price</span>
+                            <strong class="text-lg font-bold text-(--sale)">@product.SalePrice</strong>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button
+                            class="product-add inline-flex min-h-10 flex-1 items-center justify-center border border-(--control-border) px-3 text-sm font-semibold text-(--button-secondary-text) hover:bg-(--control-hover)"
+                            type="button" data-product-add>Add to cart
+                        </button>
+                        <button
+                            class="product-buy inline-flex min-h-10 flex-1 items-center justify-center bg-(--button-primary) px-3 text-sm font-semibold text-white hover:bg-(--button-primary-hover)"
+                            type="button" data-product-buy>Buy now
+                        </button>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button
-                        class="product-add inline-flex min-h-10 flex-1 items-center justify-center border border-(--control-border) px-3 text-sm font-semibold text-(--button-secondary-text) hover:bg-(--control-hover)"
-                        type="button" data-product-add>Add to cart
-                    </button>
-                    <button
-                        class="product-buy inline-flex min-h-10 flex-1 items-center justify-center bg-(--button-primary) px-3 text-sm font-semibold text-white hover:bg-(--button-primary-hover)"
-                        type="button" data-product-buy>Buy now
-                    </button>
-                </div>
-            </div>
-        </article>
-    }
-</div>
-<div class="product-pagination" data-product-pagination aria-label="Product pages"></div>
+            </article>
+        }
+    </div>
+    <div class="product-pagination" data-product-pagination aria-label="Product pages"></div>
 </section>
 
 @await Html.PartialAsync("_ProductDetailOverlay")

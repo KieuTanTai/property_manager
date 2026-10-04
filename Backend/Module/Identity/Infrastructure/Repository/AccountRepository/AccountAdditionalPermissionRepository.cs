@@ -2,7 +2,6 @@ using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.AccountRepository
@@ -12,11 +11,15 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         ILogger<AccountAdditionalPermissionRepository> logger,
         ILogPool logPool) : IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid>
     {
+        private const string Module = "Identity";
+
+        private const string Layer = "Infrastructure/Repository/AccountRepository";
+
         private readonly IdentityDbContext _db = context;
-        private readonly ILogger<AccountAdditionalPermissionRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
-        private const string Module = "identity";
-        private const string Layer = "repository";
+
+        private readonly ILogger<AccountAdditionalPermissionRepository> _logger = logger;
 
         #region POST
 
@@ -40,7 +43,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         public async Task AddRangeAsync(List<AccountAdditionalPermissionModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account permission associations by account.");
-            if (entities is null || entities.Count == 0)
+            if (entities.Count == 0)
             {
                 _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account permission associations by permission.");
                 throw new ArgumentException("Entities is required.", nameof(entities));
@@ -63,13 +66,13 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Checking account permission association.");
             return await _db.AccountPermissions.AsNoTracking().Where(ap => ap.AccountId == firstForeignId).ToListAsync(cancellationToken);
         }
-        
+
         public async Task<IReadOnlyList<AccountAdditionalPermissionModel>> GetBySecondForeignIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account permission associations by permission.");
             return await _db.AccountPermissions.AsNoTracking().Where(ap => ap.PermissionId == secondForeignId).ToListAsync(cancellationToken);
         }
-        
+
         public async Task<AccountAdditionalPermissionModel?> GetByIdAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account permission association.");

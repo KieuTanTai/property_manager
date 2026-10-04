@@ -83,8 +83,7 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             }
 
             var isNameUsed = await _db.BusinessTypes.AnyAsync(
-                businessType => businessType.BusinessTypeId != entity.BusinessTypeId &&
-                                businessType.BusinessTypeName == entity.BusinessTypeName,
+                businessType => businessType.BusinessTypeId != entity.BusinessTypeId && businessType.BusinessTypeName == entity.BusinessTypeName,
                 cancellationToken);
 
             if (isNameUsed)

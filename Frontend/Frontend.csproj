@@ -80,7 +80,7 @@
 
     <ItemGroup>
         <Folder Include="Views\Profile\"/>
-        <Folder Include="wwwroot\js\admin\" />
+        <Folder Include="wwwroot\js\admin\"/>
     </ItemGroup>
 
     <Target Name="TailwindBuild" BeforeTargets="Build">

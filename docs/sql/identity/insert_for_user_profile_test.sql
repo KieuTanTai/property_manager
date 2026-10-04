@@ -13,12 +13,15 @@ VALUES ('01a051c7-348f-7dc8-9f4a-d9efcd9171e3', 'John', 'Doe', 'male', '1990-01-
        ('01a051c7-3490-7048-a9eb-cea8b71457d4', 'Thien', 'Lang', 'male', '2005-01-20', '0843120314'),
        ('01a052fc-efb9-7ef1-b57f-029e779396de', 'Dien', 'Vy', 'unspecified', '2002-01-20', null);
 COMMIT;
-       
+
 
 alter table user_profile
-    modify column user_profile_address varchar(255) not null default '';
+    modify column user_profile_address varchar (255) not null default '';
 
-show columns from user_profile;
-select * from user_profile;
-select * from account;
+show
+columns from user_profile;
+select *
+from user_profile;
+select *
+from account;
 

@@ -7,16 +7,27 @@ namespace Identity.Utils.Enum
         #region Identity
 
         IdentityReadList,
+
         IdentityStatusUpdate,
+
         IdentityCreateEmployee,
+
         IdentityCreateInspector,
+
         IdentityPermissionCreate,
+
         IdentityPermissionAssign,
+
         IdentityPermissionUpdate,
+
         IdentityPermissionRevoke,
+
         IdentityRoleCreate,
+
         IdentityRoleAssign,
+
         IdentityRoleUpdate,
+
         IdentityRoleRevoke,
 
         #endregion
@@ -24,19 +35,33 @@ namespace Identity.Utils.Enum
         #region Premise
 
         PremiseCreate,
+
         PremiseUpdate,
+
         PremiseBusinessCreate,
+
         PremiseBusinessAssign,
+
         PremiseBusinessRevoke,
+
         PremiseWhitelistCreate,
+
         PremiseWhitelistRevoke,
+
         PremiseLocationCreate,
+
         PremiseLocationUpdate,
+
         PremiseLocationRevoke,
+
         PremiseStatusUpdate,
+
         PremiseMediaDeleteHard,
+
         PremiseRent,
+
         PremiseReturn,
+
         PremiseReadOwnRented,
 
         #endregion
@@ -44,26 +69,47 @@ namespace Identity.Utils.Enum
         #region Contract
 
         ContractReadList,
+
         ContractCreate,
+
         ContractApprove,
+
         ContractUpdate,
+
         ContractStatusUpdate,
+
         ContractTerminateDateUpdate,
+
         ContractRegulationRead,
+
         ContractRegulationCreate,
+
         ContractRegulationUpdate,
+
         ContractRegulationRevoke,
+
         ContractViolationRead,
+
         ContractViolationCreate,
+
         ContractViolationUpdate,
+
         ContractViolationStatusUpdate,
+
         ContractSign,
+
         ContractTerminate,
+
         ContractCancel,
+
         ContractReadOwn,
+
         ContractRegulationReadOwn,
+
         ContractViolationReadOwn,
+
         ContractViolationPay,
+
         ContractViolationAppeal,
 
         #endregion
@@ -71,10 +117,15 @@ namespace Identity.Utils.Enum
         #region Invoice
 
         InvoiceReadList,
+
         InvoiceCreate,
+
         InvoiceUpdate,
+
         InvoiceStatusUpdate,
+
         InvoiceReadOwn,
+
         InvoicePay,
 
         #endregion
@@ -82,7 +133,9 @@ namespace Identity.Utils.Enum
         #region Receipt
 
         ReceiptReadList,
+
         ReceiptCreate,
+
         ReceiptReadOwn,
 
         #endregion
@@ -90,6 +143,7 @@ namespace Identity.Utils.Enum
         #region Ticket
 
         TicketReadList,
+
         NotificationDeleteHard
 
         #endregion

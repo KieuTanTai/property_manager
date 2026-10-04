@@ -2,10 +2,8 @@ using System.Text.RegularExpressions;
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Profile;
-using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace Identity.Application
 {
@@ -15,14 +13,17 @@ namespace Identity.Application
         ILogger<UserProfileApplication> logger,
         ILogPool logPool) : IUserProfileApplication
     {
+        private const string Module = "Identity";
+
+        private const string Layer = "Application";
+
+        private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<UserProfileApplication> _logger = logger;
+
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
-        private readonly ILogger<UserProfileApplication> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
-
-        private const string Module = "identity";
-        private const string Layer = "application";
 
 
         #region GET
@@ -45,6 +46,12 @@ namespace Identity.Application
         }
 
         #endregion
+
+        private ArgumentException InvalidIdType()
+        {
+            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup rejected because the identifier type is invalid.");
+            return new ArgumentException("Invalid id type");
+        }
 
         #region POST
 
@@ -117,12 +124,6 @@ namespace Identity.Application
         }
 
         #endregion
-
-        private ArgumentException InvalidIdType()
-        {
-            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup rejected because the identifier type is invalid.");
-            return new ArgumentException("Invalid id type");
-        }
 
         #region PRIVATE
 

@@ -3,7 +3,6 @@ using Identity.Interfaces.IApplication;
 using Identity.Models.Profile;
 using Identity.Presentation.Record.Profile;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Shared.Logging;
 
 namespace Identity.Presentation.Controller
@@ -18,9 +17,11 @@ namespace Identity.Presentation.Controller
     {
         private readonly IApiHelper _apiHelper = apiHelper;
 
-        private readonly IUserProfileApplication _userProfileApplication = userProfileApplication;
-        private readonly ILogger<ProfileController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<ProfileController> _logger = logger;
+
+        private readonly IUserProfileApplication _userProfileApplication = userProfileApplication;
 
         #region GET
 

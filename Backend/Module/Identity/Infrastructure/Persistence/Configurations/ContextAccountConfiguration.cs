@@ -34,7 +34,7 @@ namespace Identity.Infrastructure.Persistence.Configurations
                 .IsRequired();
 
             entity.Property(account => account.AccountIsActive)
-                .HasColumnName("account_is_active")  
+                .HasColumnName("account_is_active")
                 .HasDefaultValue(true)
                 .IsRequired();
 

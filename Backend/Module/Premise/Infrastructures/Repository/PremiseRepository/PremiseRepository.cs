@@ -12,6 +12,24 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
     {
         private readonly PremiseDbContext _db = context;
 
+        #region DELETE
+
+        public async Task DeletePremiseBusinessTypesByPremiseIdAsync(Guid premiseId, CancellationToken cancellationToken = default)
+        {
+            var premiseBusinessTypes = await _db.PremiseBusinessTypes
+                .Where(pbt => pbt.PremiseId == premiseId)
+                .ToListAsync(cancellationToken);
+
+            if (!premiseBusinessTypes.Any())
+            {
+                throw new InvalidOperationException($"PremiseBusinessTypes not found! \n {premiseId}");
+            }
+
+            _db.PremiseBusinessTypes.RemoveRange(premiseBusinessTypes);
+        }
+
+        #endregion
+
         #region GET
 
         public async Task<IReadOnlyList<PremiseModel>> GetAllAsync(
@@ -25,7 +43,7 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             return await _db.Premises.AsNoTracking()
                 .FirstOrDefaultAsync(premise => premise.PremiseId == id, cancellationToken);
         }
-        
+
         public async Task<IReadOnlyList<PremiseModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
             return await _db.Premises.AsNoTracking()
@@ -193,22 +211,6 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             }
 
             _db.Premises.Update(premiseModel);
-        }
-
-        #endregion
-
-        #region DELETE
-
-        public async Task DeletePremiseBusinessTypesByPremiseIdAsync(Guid premiseId, CancellationToken cancellationToken = default)
-        {
-            var premiseBusinessTypes = await _db.PremiseBusinessTypes
-                .Where(pbt => pbt.PremiseId == premiseId)
-                .ToListAsync(cancellationToken);
-
-            if (!premiseBusinessTypes.Any())
-                throw new InvalidOperationException($"PremiseBusinessTypes not found! \n {premiseId}");
-
-            _db.PremiseBusinessTypes.RemoveRange(premiseBusinessTypes);
         }
 
         #endregion

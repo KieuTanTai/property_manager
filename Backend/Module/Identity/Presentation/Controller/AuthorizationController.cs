@@ -4,9 +4,8 @@ using Identity.Models.Role;
 using Identity.Presentation.Record.Authorization;
 using Identity.Utils.Enum;
 using Microsoft.AspNetCore.Mvc;
-using Shared.ModelHelper;
 using Shared.Logging;
-using Microsoft.Extensions.Logging;
+using Shared.ModelHelper;
 
 namespace Identity.Presentation.Controller
 {
@@ -18,8 +17,10 @@ namespace Identity.Presentation.Controller
         ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
         private readonly IAuthorizationApplication _authorizationApplication = authorizationApplication;
-        private readonly ILogger<AuthorizationController> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<AuthorizationController> _logger = logger;
 
         #region GET
 
@@ -32,7 +33,9 @@ namespace Identity.Presentation.Controller
             {
                 var roles = await _authorizationApplication.GetAllRolesWithPermissionsAsync(cancellationToken);
                 if (!roles.Any())
+                {
                     return NotFound("No roles found.");
+                }
                 return Ok(roles);
             }
             catch (OperationCanceledException ex)
@@ -85,7 +88,9 @@ namespace Identity.Presentation.Controller
             {
                 var permissions = await _authorizationApplication.GetAllPermissionsAsync(cancellationToken);
                 if (!permissions.Any())
+                {
                     return NotFound("No permissions found.");
+                }
                 return Ok(permissions);
             }
             catch (OperationCanceledException ex)
@@ -392,8 +397,7 @@ namespace Identity.Presentation.Controller
                 return false;
             }
 
-            if (request.PermissionIds is not { Count: > 0 } ||
-                request.PermissionIds.Any(id => id == Guid.Empty))
+            if (request.PermissionIds is not { Count: > 0 } || request.PermissionIds.Any(id => id == Guid.Empty))
             {
                 error = "At least one valid permission id is required.";
                 return false;

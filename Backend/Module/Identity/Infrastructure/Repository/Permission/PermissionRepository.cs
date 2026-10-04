@@ -3,7 +3,6 @@ using Identity.Interfaces.IRepository;
 using Identity.Models.Permission;
 using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.Permission
@@ -14,10 +13,14 @@ namespace Identity.Infrastructure.Repository.Permission
         ILogPool logPool)
         : IBaseAuthorizationRepository<PermissionModel, ESystemPermissionCode, Guid>
     {
-        private readonly ILogger<PermissionRepository> _logger = logger;
+        private const string Module = "Identity";
+
+        private const string Layer = "Infrastructure/Repository/Permission";
+
         private readonly ILogPool _logPool = logPool;
-        private const string Module = "identity";
-        private const string Layer = "repository";
+
+        private readonly ILogger<PermissionRepository> _logger = logger;
+
         #region GET
 
         public async Task<IReadOnlyList<PermissionModel>> GetAllAsync(
@@ -42,7 +45,7 @@ namespace Identity.Infrastructure.Repository.Permission
             return await context.Permissions.AsNoTracking()
                 .Where(permission => ids.Contains(permission.PermissionId)).ToListAsync(cancellationToken);
         }
-        
+
         public async Task<PermissionModel?> GetTrackedByIdAsync(Guid id,
             CancellationToken cancellationToken = default)
         {

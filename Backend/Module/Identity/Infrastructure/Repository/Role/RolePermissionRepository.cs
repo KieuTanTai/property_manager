@@ -2,7 +2,6 @@ using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Role;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.Role
@@ -12,11 +11,15 @@ namespace Identity.Infrastructure.Repository.Role
         ILogger<RolePermissionRepository> logger,
         ILogPool logPool) : IBaseAssociativeRepository<RolePermissionModel, Guid>
     {
+        private const string Module = "Identity";
+
+        private const string Layer = "Infrastructure/Repository/Role";
+
         private readonly IdentityDbContext _db = context;
-        private readonly ILogger<RolePermissionRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
-        private const string Module = "identity";
-        private const string Layer = "repository";
+
+        private readonly ILogger<RolePermissionRepository> _logger = logger;
 
         #region POST
 
@@ -120,12 +123,12 @@ namespace Identity.Infrastructure.Repository.Role
         {
             return await _db.RolePermissions.AsNoTracking().Where(rolePermission => rolePermission.RoleId == firstForeignId).ToListAsync(cancellationToken);
         }
-        
+
         public async Task<IReadOnlyList<RolePermissionModel>> GetBySecondForeignIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             return await _db.RolePermissions.AsNoTracking().Where(rolePermission => rolePermission.PermissionId == secondForeignId).ToListAsync(cancellationToken);
         }
-        
+
         public async Task<RolePermissionModel?> GetByIdAsync(Guid firstForeignId, Guid secondForeignId,
             CancellationToken cancellationToken = default)
         {

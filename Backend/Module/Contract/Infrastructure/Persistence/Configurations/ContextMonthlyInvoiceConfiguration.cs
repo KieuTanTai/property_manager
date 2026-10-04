@@ -66,7 +66,7 @@ namespace Contract.Infrastructure.Persistence.Configurations
                 .WithOne()
                 .HasForeignKey(detail => detail.InvoiceDetailInvoiceId)
                 .OnDelete(DeleteBehavior.Restrict);
-            
+
             entity.HasOne(invoice => invoice.InvoiceReceipt)
                 .WithOne()
                 .HasForeignKey<ReceiptModel>(receipt => receipt.ReceiptInvoiceId)

@@ -1,13 +1,10 @@
 using System.Security.Claims;
 using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
-using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
 using Microsoft.AspNetCore.Mvc;
-using Shared.Persistence.Record;
-using Shared.Persistence.Record.Auth;
 using Shared.Logging;
-using Microsoft.Extensions.Logging;
+using Shared.Persistence.Record.Auth;
 
 namespace Identity.Presentation.Controller
 {
@@ -27,10 +24,10 @@ namespace Identity.Presentation.Controller
 
         private readonly IAccountHelper _helper = helper;
 
-        private readonly IUserProfileApplication _userProfileApplication = userProfileApplication;
-        private readonly ILogger<AccountController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
 
+        private readonly ILogger<AccountController> _logger = logger;
+        
         #region PRIVATE
 
         private static List<RecordClaimResponse> CreateClaims(RecordAuthResponse account)
@@ -45,9 +42,9 @@ namespace Identity.Presentation.Controller
             claims.AddRange(additionalPermissionClaims);
             return [.. claims.Select(claim => new RecordClaimResponse(claim.Type, claim.Value))];
         }
-        
+
         #endregion
-        
+
         #region GET
 
         [RequireHttps]
@@ -61,15 +58,16 @@ namespace Identity.Presentation.Controller
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account analytics request rejected because page size is invalid.");
                 return BadRequest("Page size must be greater than 0.");
             }
-            
+
             try
             {
                 var result = await _accountApplication.GetApplyPagingAsync(cursor, pageSize, isGetProfile, cancellationToken);
 
                 if (result.Items.Count == 0)
+                {
                     return NotFound("No accounts found.");
+                }
                 return Ok(result);
-                
             }
             catch (OperationCanceledException ex)
             {
@@ -147,7 +145,7 @@ namespace Identity.Presentation.Controller
         }
 
         #endregion
-        
+
         #region POST
 
         [RequireHttps]
@@ -314,7 +312,7 @@ namespace Identity.Presentation.Controller
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
         }
-        
+
         #endregion
 
         #region DELETE

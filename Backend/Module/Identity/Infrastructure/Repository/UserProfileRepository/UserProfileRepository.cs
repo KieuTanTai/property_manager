@@ -2,10 +2,9 @@ using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Profile;
 using Microsoft.EntityFrameworkCore;
+using Shared.Logging;
 using Shared.Persistence;
 using Shared.Persistence.Record;
-using Shared.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace Identity.Infrastructure.Repository.UserProfileRepository
 {
@@ -14,11 +13,15 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
         ILogger<UserProfileRepository> logger,
         ILogPool logPool) : IUserProfileRepository
     {
+        private const string Module = "Identity";
+
+        private const string Layer = "Infrastructure/Repository/UserProfileRepository";
+
         private readonly IdentityDbContext _db = context;
-        private readonly ILogger<UserProfileRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
-        private const string Module = "identity";
-        private const string Layer = "repository";
+
+        private readonly ILogger<UserProfileRepository> _logger = logger;
 
         #region GET
 
@@ -167,7 +170,7 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
         {
             return await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(profile => profile.UserProfileId == id, cancellationToken);
         }
-        
+
         public async Task<IReadOnlyList<UserProfileModel>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
         {
             return await _db.UserProfiles.AsNoTracking().Where(profile => ids.Contains(profile.UserProfileId)).ToListAsync(cancellationToken);

@@ -21,7 +21,7 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             return await _db.Locations.AsNoTracking()
                 .FirstOrDefaultAsync(location => location.LocationId == id, cancellationToken);
         }
-        
+
         public async Task<IReadOnlyList<LocationModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
             return await _db.Locations.AsNoTracking()

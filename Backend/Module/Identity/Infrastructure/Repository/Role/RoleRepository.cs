@@ -3,7 +3,6 @@ using Identity.Interfaces.IRepository;
 using Identity.Models.Role;
 using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.Role
@@ -13,11 +12,15 @@ namespace Identity.Infrastructure.Repository.Role
         ILogger<RoleRepository> logger,
         ILogPool logPool) : IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid>
     {
+        private const string Module = "Identity";
+
+        private const string Layer = "Infrastructure/Repository/Role";
+
         private readonly IdentityDbContext _db = context;
-        private readonly ILogger<RoleRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
-        private const string Module = "identity";
-        private const string Layer = "repository";
+
+        private readonly ILogger<RoleRepository> _logger = logger;
 
         #region GET
 
@@ -41,7 +44,7 @@ namespace Identity.Infrastructure.Repository.Role
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading roles by ids.");
             return await _db.Roles.AsNoTracking().Where(role => ids.Contains(role.RoleId)).ToListAsync(cancellationToken);
         }
-        
+
         public async Task<RoleModel?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked role.");
@@ -125,12 +128,12 @@ namespace Identity.Infrastructure.Repository.Role
             {
                 throw new InvalidOperationException("RoleModel not found!");
             }
-            
+
             if (existedRole.RoleName == entity.RoleName && existedRole.RoleDescription == entity.RoleDescription && existedRole.RoleIsActive == entity.RoleIsActive)
             {
                 throw new InvalidOperationException("No changes detected in the RoleModel.");
             }
-            
+
             if (existedRole.RoleName != entity.RoleName)
             {
                 var isExisted = await _db.Roles.AnyAsync(role => role.RoleName == entity.RoleName,

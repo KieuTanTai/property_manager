@@ -9,7 +9,7 @@ namespace Identity.Interfaces.IApplication
         #region Role
 
         Task<RoleModel> GetBaseRolesForUserAsync(CancellationToken cancellationToken = default);
-        
+
         Task<RoleModel> GetRoleWithPermissionsAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<RoleModel>> GetAllRolesWithPermissionsAsync(CancellationToken cancellationToken = default);
 
@@ -17,9 +17,9 @@ namespace Identity.Interfaces.IApplication
         Task<int> AddAccountRolesAsync(Guid accountId, IReadOnlyList<Guid> roleIds, CancellationToken cancellationToken = default);
 
         Task<int> UpdateRoleAsync(RoleModel role, CancellationToken cancellationToken = default);
-        
+
         Task<int> UpdateRoleAsync(RoleModel role, IReadOnlyList<Guid> permissionIds, CancellationToken cancellationToken = default);
-        
+
         Task<int> UpdateAccountRolesAsync(Guid accountId, IReadOnlyList<Guid> roleIds, CancellationToken cancellationToken = default);
 
         #endregion

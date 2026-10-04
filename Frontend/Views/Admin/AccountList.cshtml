@@ -1,4 +1,4 @@
-﻿@model IReadOnlyList<Frontend.Models.Admin.AdminAccountRow>
+﻿@model IReadOnlyList<AdminAccountRow>
 @{
     Layout = "_AdminLayout";
     ViewData["Title"] = "Accounts";
@@ -60,7 +60,10 @@
                                 <span></span>@(account.IsActive ? "Active" : "Inactive")
                             </span>
                         </td>
-                        <td><button class="account-more" type="button" aria-label="Actions for @account.Email">•••</button></td>
+                        <td>
+                            <button class="account-more" type="button" aria-label="Actions for @account.Email">•••
+                            </button>
+                        </td>
                     </tr>
                 }
                 </tbody>

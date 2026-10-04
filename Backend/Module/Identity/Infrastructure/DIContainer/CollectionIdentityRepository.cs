@@ -1,5 +1,4 @@
 using Identity.Infrastructure.Persistence.DbContext;
-using Shared.Logging;
 using Identity.Infrastructure.Repository;
 using Identity.Infrastructure.Repository.AccountRepository;
 using Identity.Infrastructure.Repository.Permission;
@@ -12,6 +11,7 @@ using Identity.Models.Role;
 using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces;
+using Shared.Logging;
 
 namespace Identity.Infrastructure.DIContainer
 {

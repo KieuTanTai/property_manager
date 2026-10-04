@@ -1,7 +1,70 @@
-{"Timestamp":"2026-10-04T10:04:41.2801937+00:00","Module":"identity","File":"AccountController.cs","Layer":"controller","Member":"LoginAsync","Level":"Information","Message":"Account login request received.","Exception":null}
-{"Timestamp":"2026-10-04T10:04:41.2828073+00:00","Module":"identity","File":"AccountApplication.cs","Layer":"application","Member":"LoginAsync","Level":"Debug","Message":"Login account operation started.","Exception":null}
-{"Timestamp":"2026-10-04T10:04:41.2894698+00:00","Module":"identity","File":"AccountRepository.cs","Layer":"repository","Member":"GetAccountAndNavigationByEmailAsync","Level":"Debug","Message":"Loading account with navigation properties.","Exception":null}
-{"Timestamp":"2026-10-04T10:04:43.1375155+00:00","Module":"identity","File":"AccountApplication.cs","Layer":"application","Member":"LoginAsync","Level":"Information","Message":"Account login completed.","Exception":null}
-{"Timestamp":"2026-10-04T10:08:24.2002521+00:00","Module":"identity","File":"AccountController.cs","Layer":"controller","Member":"GetAnalyticsAccountAsync","Level":"Debug","Message":"Account analytics request received.","Exception":null}
-{"Timestamp":"2026-10-04T10:08:24.2008821+00:00","Module":"identity","File":"AccountApplication.cs","Layer":"application","Member":"GetApplyPagingAsync","Level":"Debug","Message":"Account paging with profile option operation started.","Exception":null}
-{"Timestamp":"2026-10-04T10:08:24.2065236+00:00","Module":"identity","File":"AccountRepository.cs","Layer":"repository","Member":"GetApplyPagingAsync","Level":"Debug","Message":"Loading account page with profile.","Exception":null}
+{
+  "Timestamp": "2026-10-04T10:04:41.2801937+00:00",
+  "Module": "identity",
+  "File": "AccountController.cs",
+  "Layer": "controller",
+  "Member": "LoginAsync",
+  "Level": "Information",
+  "Message": "Account login request received.",
+  "Exception": null
+}
+{
+  "Timestamp": "2026-10-04T10:04:41.2828073+00:00",
+  "Module": "identity",
+  "File": "AccountApplication.cs",
+  "Layer": "application",
+  "Member": "LoginAsync",
+  "Level": "Debug",
+  "Message": "Login account operation started.",
+  "Exception": null
+}
+{
+  "Timestamp": "2026-10-04T10:04:41.2894698+00:00",
+  "Module": "identity",
+  "File": "AccountRepository.cs",
+  "Layer": "repository",
+  "Member": "GetAccountAndNavigationByEmailAsync",
+  "Level": "Debug",
+  "Message": "Loading account with navigation properties.",
+  "Exception": null
+}
+{
+  "Timestamp": "2026-10-04T10:04:43.1375155+00:00",
+  "Module": "identity",
+  "File": "AccountApplication.cs",
+  "Layer": "application",
+  "Member": "LoginAsync",
+  "Level": "Information",
+  "Message": "Account login completed.",
+  "Exception": null
+}
+{
+  "Timestamp": "2026-10-04T10:08:24.2002521+00:00",
+  "Module": "identity",
+  "File": "AccountController.cs",
+  "Layer": "controller",
+  "Member": "GetAnalyticsAccountAsync",
+  "Level": "Debug",
+  "Message": "Account analytics request received.",
+  "Exception": null
+}
+{
+  "Timestamp": "2026-10-04T10:08:24.2008821+00:00",
+  "Module": "identity",
+  "File": "AccountApplication.cs",
+  "Layer": "application",
+  "Member": "GetApplyPagingAsync",
+  "Level": "Debug",
+  "Message": "Account paging with profile option operation started.",
+  "Exception": null
+}
+{
+  "Timestamp": "2026-10-04T10:08:24.2065236+00:00",
+  "Module": "identity",
+  "File": "AccountRepository.cs",
+  "Layer": "repository",
+  "Member": "GetApplyPagingAsync",
+  "Level": "Debug",
+  "Message": "Loading account page with profile.",
+  "Exception": null
+}

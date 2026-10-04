@@ -2,10 +2,9 @@ using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Microsoft.EntityFrameworkCore;
+using Shared.Logging;
 using Shared.Persistence;
 using Shared.Persistence.Record;
-using Shared.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace Identity.Infrastructure.Repository.AccountRepository
 {
@@ -14,12 +13,15 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         ILogger<AccountRepository> logger,
         ILogPool logPool) : IAccountRepository
     {
+        private const string Module = "Identity";
+
+        private const string Layer = "Infrastructure/Repository/AccountRepository";
+
         private readonly IdentityDbContext _db = context;
-        private readonly ILogger<AccountRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
 
-        private const string Module = "identity";
-        private const string Layer = "repository";
+        private readonly ILogger<AccountRepository> _logger = logger;
 
 
         #region GET
@@ -37,7 +39,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             return await _db.Accounts.AsNoTracking()
                 .FirstOrDefaultAsync(account => account.AccountId == id, cancellationToken);
         }
-        
+
         public async Task<IReadOnlyList<AccountModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading accounts by ids.");
@@ -84,12 +86,12 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             {
                 query = query.Include(account => account.Roles);
             }
-            
+
             if (isGetAdditionalPermission)
             {
                 query = query.Include(account => account.AdditionalPermissions);
             }
-            
+
             if (isGetProfile)
             {
                 query = query.Include(account => account.UserProfile);
@@ -124,7 +126,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             query = query
                 .AsSplitQuery()
                 .Include(account => account.Roles)
-                    .ThenInclude(role => role.Permissions)
+                .ThenInclude(role => role.Permissions)
                 .Include(account => account.AdditionalPermissions);
 
             if (isGetProfile)
@@ -141,9 +143,8 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             var accounts = query.ToAsyncEnumerable();
             return await SharedGetApplyPagingRepository.ApplyPaging(accounts, pageSize, account => account.AccountId,
                 cancellationToken);
-            
         }
-        
+
         public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor,
             int pageSize,
             bool isActive, CancellationToken cancellationToken = default)

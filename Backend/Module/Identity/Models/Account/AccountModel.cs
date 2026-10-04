@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Identity.Models.Permission;
 using Identity.Models.Profile;
 using Identity.Models.Role;
-using Identity.Utils;
 using Shared.ModelHelper;
 
 namespace Identity.Models.Account

@@ -2,25 +2,26 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shared.Logging;
 
-namespace Identity.Presentation.Controller;
-
-public abstract class CustomControllerBase(ILogPool logPool, string module, string layer) : ControllerBase, IAsyncActionFilter
+namespace Identity.Presentation.Controller
 {
-    protected string Module { get; } = module;
-    protected string Layer { get; } = layer;
-
-    [NonAction]
-    public async Task OnActionExecutionAsync(
-        ActionExecutingContext context,
-        ActionExecutionDelegate next)
+    public abstract class CustomControllerBase(ILogPool logPool, string module, string layer) : ControllerBase, IAsyncActionFilter
     {
-        try
+        protected string Module { get; } = module;
+        protected string Layer { get; } = layer;
+
+        [NonAction]
+        public async Task OnActionExecutionAsync(
+            ActionExecutingContext context,
+            ActionExecutionDelegate next)
         {
-            await next();
-        }
-        finally
-        {
-            await logPool.FlushAsync(Module, Layer, CancellationToken.None);
+            try
+            {
+                await next();
+            }
+            finally
+            {
+                await logPool.FlushAsync(Module, Layer, CancellationToken.None);
+            }
         }
     }
 }

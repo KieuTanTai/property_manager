@@ -5,14 +5,12 @@ using Identity.Models.Account;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
-using Microsoft.Extensions.Logging;
 
 namespace Identity.Application
 {
     public class AccountApplication(
         IUnitOfWork unitOfWork,
         IAccountRepository accountRepository,
-        IUserProfileRepository userProfileRepository,
         IBaseAssociativeRepository<AccountRoleModel, Guid> accountRoleRepository,
         IAuthorizationApplication roleApplication,
         IAccountHelper accountHelper,
@@ -20,6 +18,10 @@ namespace Identity.Application
         ILogPool logPool)
         : IAccountApplication
     {
+        private const string Module = "Identity";
+
+        private const string Layer = "Application";
+
         private readonly IAccountHelper _accountHelper = accountHelper;
 
 
@@ -27,16 +29,14 @@ namespace Identity.Application
 
         private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
 
+        private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<AccountApplication> _logger = logger;
+
         private readonly IAuthorizationApplication _roleApplication = roleApplication;
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-        private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
-        private readonly ILogger<AccountApplication> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
-
-        private const string Module = "identity";
-        private const string Layer = "application";
 
         #region USER
 
@@ -159,17 +159,12 @@ namespace Identity.Application
         #endregion
 
         #region ADMIN
-        
+
         public async Task<int> ActiveAccountByAdminAsync(string email, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Admin activate account operation started.");
 
             var result = await _accountRepository.GetAccountByEmailAsync(email, cancellationToken);
-            if (result == null)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Admin account activation rejected because the account was not found.");
-                throw new ArgumentException("Account not found.", nameof(email));
-            }
 
             if (result.AccountIsActive)
             {
@@ -179,7 +174,13 @@ namespace Identity.Application
             result.SetAccountIsActive(true);
             await _accountRepository.UpdateAsync(result, cancellationToken);
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            return affectRows == 0 ? throw new InvalidOperationException("Failed to active account.") : affectRows;
+            if (affectRows == 0)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Failed to active account."), "Account activation failed.");
+                throw new InvalidOperationException("Failed to active account.");
+            }
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Admin account activation completed.");
+            return affectRows;
         }
 
         public async Task<int> InactiveAccountByAdminAsync(Guid accountId, CancellationToken cancellationToken = default)
@@ -210,19 +211,21 @@ namespace Identity.Application
             var result = await _accountRepository.GetApplyPagingAsync(cursor, pageSize, cancellationToken);
             return result;
         }
-        
+
         public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, bool isGetProfile, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account paging with profile option operation started.");
             var result = await _accountRepository.GetApplyPagingAsync(cursor, pageSize, isGetProfile, cancellationToken);
             return result;
         }
-        
+
         public async Task<AccountModel?> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account lookup operation started.");
             if (!_accountHelper.IsEmailValid(email))
+            {
                 throw new InvalidOperationException("Invalid email format.");
+            }
             var accountModel = await _accountRepository.GetAccountAndNavigationByEmailAsync(email, true, true, true, cancellationToken);
             return accountModel;
         }

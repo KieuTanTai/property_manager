@@ -17,7 +17,7 @@ CREATE TABLE `account`
     `account_is_active`  BOOLEAN      NOT NULL DEFAULT TRUE,
 
     UNIQUE INDEX `idx_account_email` (`account_email`),
-    INDEX                `idx_account_is_active_account_id` (`account_is_active`, `account_id`)
+    INDEX `idx_account_is_active_account_id` (`account_is_active`, `account_id`)
 ) ENGINE = InnoDB;
 
 CREATE TABLE `role`
@@ -55,7 +55,7 @@ CREATE TABLE `account_role`
     `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`account_id`, `role_id`),
-    INDEX         `idx_account_role_role_id` (`role_id`),
+    INDEX `idx_account_role_role_id` (`role_id`),
 
     CONSTRAINT `fk_account_role_account`
         FOREIGN KEY (`account_id`) REFERENCES `account` (`account_id`),
@@ -70,7 +70,7 @@ CREATE TABLE `role_permission`
     `assigned_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`role_id`, `permission_id`),
-    INDEX           `idx_role_permission_permission_id` (`permission_id`),
+    INDEX `idx_role_permission_permission_id` (`permission_id`),
 
     CONSTRAINT `fk_role_permission_role`
         FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`),
@@ -85,7 +85,7 @@ CREATE TABLE `account_additional_permission`
     `assigned_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`account_id`, `permission_id`),
-    INDEX           `idx_account_additional_permission_permission_id` (`permission_id`),
+    INDEX `idx_account_additional_permission_permission_id` (`permission_id`),
 
     CONSTRAINT `fk_account_additional_permission_account`
         FOREIGN KEY (`account_id`) REFERENCES `account` (`account_id`),
@@ -95,21 +95,21 @@ CREATE TABLE `account_additional_permission`
 
 CREATE TABLE `user_profile`
 (
-    `user_profile_id`            VARCHAR(12) NOT NULL PRIMARY KEY,
-    `user_profile_account_id`    UUID NOT NULL,
+    `user_profile_id`            VARCHAR(12)                            NOT NULL PRIMARY KEY,
+    `user_profile_account_id`    UUID                                   NOT NULL,
     `user_profile_first_name`    VARCHAR(30),
     `user_profile_last_name`     VARCHAR(30),
     `user_profile_date_of_birth` DATE,
     `user_profile_gender`        ENUM ('male', 'female', 'unspecified') NOT NULL DEFAULT 'unspecified',
     `user_profile_phone_number`  VARCHAR(10),
-    `user_profile_address`       VARCHAR(255) NOT NULL DEFAULT '',
+    `user_profile_address`       VARCHAR(255)                           NOT NULL DEFAULT '',
     `user_profile_avatar_url`    VARCHAR(255),
-    `user_profile_created_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `user_profile_updated_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `user_profile_created_at`    TIMESTAMP                                       DEFAULT CURRENT_TIMESTAMP,
+    `user_profile_updated_at`    TIMESTAMP                                       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     UNIQUE INDEX `idx_user_profile_account_id` (`user_profile_account_id`),
-    INDEX                         `idx_user_profile_phone_number` (`user_profile_phone_number`),
-    INDEX                         `idx_user_profile_date_of_birth` (`user_profile_date_of_birth`),
+    INDEX `idx_user_profile_phone_number` (`user_profile_phone_number`),
+    INDEX `idx_user_profile_date_of_birth` (`user_profile_date_of_birth`),
 
     CONSTRAINT `fk_user_profile_account`
         FOREIGN KEY (`user_profile_account_id`) REFERENCES `account` (`account_id`)
@@ -119,10 +119,10 @@ CREATE TABLE `user_profile`
 # Premise module
 CREATE TABLE `location`
 (
-    `location_id`        UUID PRIMARY KEY DEFAULT (UUID_v7()),
-    `location_address`   VARCHAR(255) NOT NULL,
-    `location_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `location_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `location_id`         UUID PRIMARY KEY DEFAULT (UUID_v7()),
+    `location_address`    VARCHAR(255) NOT NULL,
+    `location_created_at` TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    `location_updated_at` TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_location_address`
@@ -131,23 +131,23 @@ CREATE TABLE `location`
 
 CREATE TABLE `premise`
 (
-    `premise_id`          UUID PRIMARY KEY DEFAULT (UUID_v7()),
+    `premise_id`          UUID PRIMARY KEY     DEFAULT (UUID_v7()),
     `premise_name`        VARCHAR(50) NOT NULL,
-    `premise_location_id` UUID NOT NULL,
+    `premise_location_id` UUID        NOT NULL,
 
-    `premise_status` ENUM (
+    `premise_status`      ENUM (
         'reserved',
         'rented',
         'available',
         'maintenance'
-        ) NOT NULL DEFAULT 'available',
+        )                             NOT NULL DEFAULT 'available',
 
-    `premise_position`     INT NOT NULL,
-    `premise_floor`        INT NOT NULL,
-    `premise_area`         VARCHAR(10) NOT NULL DEFAULT '',
-    `premise_description`  VARCHAR(100),
-    `premise_created_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `premise_updated_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `premise_position`    INT         NOT NULL,
+    `premise_floor`       INT         NOT NULL,
+    `premise_area`        VARCHAR(10) NOT NULL DEFAULT '',
+    `premise_description` VARCHAR(100),
+    `premise_created_at`  TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    `premise_updated_at`  TIMESTAMP            DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_premise_name` (`premise_name`(20)),
@@ -159,12 +159,12 @@ CREATE TABLE `premise`
 
 CREATE TABLE `business_type`
 (
-    `business_type_id`          UUID PRIMARY KEY DEFAULT (UUID_v7()),
+    `business_type_id`          UUID PRIMARY KEY            DEFAULT (UUID_v7()),
     `business_type_name`        VARCHAR(50) UNIQUE NOT NULL,
     `business_type_description` VARCHAR(255),
-    `business_type_is_active`   BOOLEAN NOT NULL DEFAULT TRUE,
-    `business_type_created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `business_type_updated_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `business_type_is_active`   BOOLEAN            NOT NULL DEFAULT TRUE,
+    `business_type_created_at`  TIMESTAMP                   DEFAULT CURRENT_TIMESTAMP,
+    `business_type_updated_at`  TIMESTAMP                   DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_business_type_name`
@@ -175,7 +175,7 @@ CREATE TABLE `premise_business_type`
 (
     `pre_bt_premise_id`       UUID NOT NULL,
     `pre_bt_business_type_id` UUID NOT NULL,
-    `pre_bt_assigned_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `pre_bt_assigned_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`pre_bt_premise_id`, `pre_bt_business_type_id`),
 
@@ -193,8 +193,8 @@ CREATE TABLE `whitelist_product`
     `whitelist_product_id`          UUID PRIMARY KEY DEFAULT (UUID_v7()),
     `whitelist_product_name`        VARCHAR(100) NOT NULL,
     `whitelist_product_description` VARCHAR(255),
-    `whitelist_product_created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `whitelist_product_updated_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `whitelist_product_created_at`  TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    `whitelist_product_updated_at`  TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_whitelist_product_name`
@@ -205,7 +205,7 @@ CREATE TABLE `product_business_type`
 (
     `pbt_product_id`       UUID NOT NULL,
     `pbt_business_type_id` UUID NOT NULL,
-    `pbt_assigned_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `pbt_assigned_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`pbt_product_id`, `pbt_business_type_id`),
 
@@ -221,8 +221,8 @@ CREATE TABLE `product_business_type`
 CREATE TABLE `premise_media`
 (
     `premise_media_id`         INT PRIMARY KEY AUTO_INCREMENT,
-    `premise_media_premise_id` UUID NOT NULL,
-    `premise_media_image_url`      VARCHAR(255) NOT NULL,
+    `premise_media_premise_id` UUID         NOT NULL,
+    `premise_media_image_url`  VARCHAR(255) NOT NULL,
     `premise_media_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `premise_media_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
@@ -235,24 +235,24 @@ CREATE TABLE `premise_media`
 # Contract module
 CREATE TABLE `contract`
 (
-    `contract_id`                  UUID PRIMARY KEY DEFAULT (UUID_v7()),
-    `contract_account_id`          UUID NOT NULL,
-    `contract_deposit`             DECIMAL(18,2) NOT NULL,
-    `contract_rental_price`        DECIMAL(18,2) NOT NULL,
-    `contract_premise_return_date` TIMESTAMP NOT NULL,
+    `contract_id`                  UUID PRIMARY KEY        DEFAULT (UUID_v7()),
+    `contract_account_id`          UUID           NOT NULL,
+    `contract_deposit`             DECIMAL(18, 2) NOT NULL,
+    `contract_rental_price`        DECIMAL(18, 2) NOT NULL,
+    `contract_premise_return_date` TIMESTAMP      NOT NULL,
 
-    `contract_status` ENUM (
+    `contract_status`              ENUM (
         'pending_approval',
         'pending_signature',
         'canceled',
         'expired',
         'signed',
         'terminated'
-        ) NOT NULL DEFAULT 'pending_approval',
+        )                                         NOT NULL DEFAULT 'pending_approval',
 
     `contract_termination_date`    TIMESTAMP,
-    `contract_created_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `contract_updated_at`          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `contract_created_at`          TIMESTAMP               DEFAULT CURRENT_TIMESTAMP,
+    `contract_updated_at`          TIMESTAMP               DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT `fk_contract_account`
@@ -282,13 +282,13 @@ CREATE TABLE `rented_premise`
 #add fine amount, active status
 CREATE TABLE `regulation`
 (
-    `regulation_id`          UUID PRIMARY KEY DEFAULT (UUID_v7()),
+    `regulation_id`          UUID PRIMARY KEY     DEFAULT (UUID_v7()),
     `regulation_name`        VARCHAR(50) NOT NULL,
     `regulation_description` VARCHAR(255),
-    `regulation_fine_amount`       DECIMAL(18,2),
-    `regulation_is_active`   BOOLEAN NOT NULL DEFAULT TRUE,
-    `regulation_created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `regulation_updated_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `regulation_fine_amount` DECIMAL(18, 2),
+    `regulation_is_active`   BOOLEAN     NOT NULL DEFAULT TRUE,
+    `regulation_created_at`  TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    `regulation_updated_at`  TIMESTAMP            DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_regulation_name`
@@ -299,7 +299,7 @@ CREATE TABLE `contract_regulation`
 (
     `regulation_id` UUID NOT NULL,
     `contract_id`   UUID NOT NULL,
-    `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `assigned_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`regulation_id`, `contract_id`),
 
@@ -319,13 +319,13 @@ CREATE TABLE `contract_regulation`
 
 CREATE TABLE `contract_violation`
 (
-    `contract_violation_id`                  UUID PRIMARY KEY DEFAULT (UUID_v7()),
-    `contract_id`          UUID NOT NULL,
-    `violation_content`              VARCHAR(150) NOT NULL,
-    `violation_penalty_amount`  DECIMAL(18,2),
-    `violation_date`                 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `violation_due_date`                  TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 7 DAY),
-    `violation_is_resolved`              BOOLEAN NOT NULL DEFAULT FALSE,
+    `contract_violation_id`    UUID PRIMARY KEY      DEFAULT (UUID_v7()),
+    `contract_id`              UUID         NOT NULL,
+    `violation_content`        VARCHAR(150) NOT NULL,
+    `violation_penalty_amount` DECIMAL(18, 2),
+    `violation_date`           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `violation_due_date`       TIMESTAMP    NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 7 DAY),
+    `violation_is_resolved`    BOOLEAN      NOT NULL DEFAULT FALSE,
 
     INDEX `idx_contract_violation_content`
         (`violation_content`(20)),
@@ -344,18 +344,18 @@ CREATE TABLE `contract_violation`
 
 CREATE TABLE `monthly_invoice`
 (
-    `invoice_id`           UUID PRIMARY KEY DEFAULT (UUID_v7()),
-    `invoice_contract_id`  UUID NOT NULL,
+    `invoice_id`           UUID PRIMARY KEY   DEFAULT (UUID_v7()),
+    `invoice_contract_id`  UUID      NOT NULL,
     `invoice_payment_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `invoice_due_date`     TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL 30 DAY),
-    `invoice_total_amount`  DECIMAL(18,2),
-    `invoice_status` ENUM (
+    `invoice_total_amount` DECIMAL(18, 2),
+    `invoice_status`       ENUM (
         'unpaid',
         'paid',
         'overdue'
-        ) NOT NULL DEFAULT 'unpaid',
-    `invoice_created_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `invoice_updated_at`   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )                            NOT NULL DEFAULT 'unpaid',
+    `invoice_created_at`   TIMESTAMP          DEFAULT CURRENT_TIMESTAMP,
+    `invoice_updated_at`   TIMESTAMP          DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     INDEX `idx_invoice_payment_date`
@@ -377,13 +377,13 @@ CREATE TABLE `monthly_invoice`
 CREATE TABLE `invoice_detail`
 (
     `invoice_detail_id`              INT PRIMARY KEY AUTO_INCREMENT,
-    `invoice_detail_invoice_id`      UUID NOT NULL,
-    `invoice_detail_premise_id`      UUID NOT NULL,
-    `invoice_detail_rental_price`    DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `invoice_detail_electricity_fee` DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `invoice_detail_water_fee`       DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `invoice_detail_garbage_fee`     DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `invoice_detail_total_amount`    DECIMAL(18,2) NOT NULL DEFAULT (
+    `invoice_detail_invoice_id`      UUID           NOT NULL,
+    `invoice_detail_premise_id`      UUID           NOT NULL,
+    `invoice_detail_rental_price`    DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_electricity_fee` DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_water_fee`       DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_garbage_fee`     DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `invoice_detail_total_amount`    DECIMAL(18, 2) NOT NULL DEFAULT (
         `invoice_detail_rental_price` +
         `invoice_detail_electricity_fee` +
         `invoice_detail_water_fee` +
@@ -401,22 +401,22 @@ CREATE TABLE `invoice_detail`
 
 CREATE TABLE IF NOT EXISTS `receipt`
 (
-    `receipt_id`                         UUID PRIMARY KEY DEFAULT (UUID_v7()),
-    `receipt_invoice_id`                UUID NOT NULL,
-    `receipt_created_by_account_id`      UUID NOT NULL,
-    `receipt_payment_method`             ENUM(
+    `receipt_id`                         UUID PRIMARY KEY        DEFAULT (UUID_v7()),
+    `receipt_invoice_id`                 UUID           NOT NULL,
+    `receipt_created_by_account_id`      UUID           NOT NULL,
+    `receipt_payment_method`             ENUM (
         'vnpay',
         'bank',
         'cash'
-        ) NOT NULL DEFAULT 'cash',
-    `receipt_amount`                     DECIMAL(18,2) NOT NULL DEFAULT 0.00,
-    `receipt_payment_date`               TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `receipt_transaction_reference`      VARCHAR(100) NULL,
-    `receipt_gateway_transaction_number` VARCHAR(100) NULL,
-    `receipt_transaction_info`           VARCHAR(250) NULL,
-    `receipt_bank_name`                  VARCHAR(100) NULL,
-    `receipt_created_at`                 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `receipt_updated_at`                 TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )                                               NOT NULL DEFAULT 'cash',
+    `receipt_amount`                     DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    `receipt_payment_date`               TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `receipt_transaction_reference`      VARCHAR(100)   NULL,
+    `receipt_gateway_transaction_number` VARCHAR(100)   NULL,
+    `receipt_transaction_info`           VARCHAR(250)   NULL,
+    `receipt_bank_name`                  VARCHAR(100)   NULL,
+    `receipt_created_at`                 TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `receipt_updated_at`                 TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     UNIQUE KEY `uk_receipt_invoice_id` (`receipt_invoice_id`),
@@ -440,21 +440,21 @@ CREATE TABLE IF NOT EXISTS `receipt`
 # remove old enum column (`ticket_status`) and replace with a boolean column (`ticket_is_resolved`) to indicate whether the ticket has been resolved or not
 CREATE TABLE `ticket`
 (
-    `ticket_id`        UUID PRIMARY KEY DEFAULT (UUID_v7()),
-    `ticket_account_id` UUID NOT NULL,
-    `ticket_content`   VARCHAR(255) NOT NULL,
+    `ticket_id`          UUID PRIMARY KEY      DEFAULT (UUID_v7()),
+    `ticket_account_id`  UUID         NOT NULL,
+    `ticket_content`     VARCHAR(255) NOT NULL,
 
-    `ticket_type` ENUM (
+    `ticket_type`        ENUM (
         'review',
         'complaint',
         'violation',
         'feedback'
-        ) NOT NULL DEFAULT 'feedback',
+        )                             NOT NULL DEFAULT 'feedback',
 
-    `ticket_is_resolved` BOOLEAN NOT NULL DEFAULT FALSE,
+    `ticket_is_resolved` BOOLEAN      NOT NULL DEFAULT FALSE,
 
-    `ticket_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `ticket_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `ticket_created_at`  TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    `ticket_updated_at`  TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT `fk_ticket_account`
@@ -465,8 +465,8 @@ CREATE TABLE `ticket`
 CREATE TABLE `ticket_media`
 (
     `ticket_media_id`        INT PRIMARY KEY AUTO_INCREMENT,
-    `ticket_media_ticket_id` UUID NOT NULL,
-    `ticket_media_image_url`     VARCHAR(255) NOT NULL,
+    `ticket_media_ticket_id` UUID         NOT NULL,
+    `ticket_media_image_url` VARCHAR(255) NOT NULL,
 
     CONSTRAINT `fk_ticket_media_ticket`
         FOREIGN KEY (`ticket_media_ticket_id`)
@@ -477,21 +477,21 @@ CREATE TABLE `ticket_media`
 # move `notification_status` column to `notification_is_read` boolean column to indicate whether the notification has been read or not
 CREATE TABLE `notification`
 (
-    `notification_id` UUID PRIMARY KEY DEFAULT (UUID_v7()),
+    `notification_id`                UUID PRIMARY KEY      DEFAULT (UUID_v7()),
 
-    `notification_sender_account_id` UUID NOT NULL,
+    `notification_sender_account_id` UUID         NOT NULL,
 
-    `notification_type` ENUM (
+    `notification_type`              ENUM (
         'violation',
         'ticket',
         'other'
-        ) NOT NULL DEFAULT 'other',
+        )                                         NOT NULL DEFAULT 'other',
 
-    `notification_content` VARCHAR(255) NOT NULL,
-    `notification_is_read` BOOLEAN NOT NULL DEFAULT FALSE,
+    `notification_content`           VARCHAR(255) NOT NULL,
+    `notification_is_read`           BOOLEAN      NOT NULL DEFAULT FALSE,
 
-    `notification_created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `notification_updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `notification_created_at`        TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    `notification_updated_at`        TIMESTAMP             DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT `fk_notification_sender_account`
@@ -502,7 +502,7 @@ CREATE TABLE `notification`
 CREATE TABLE `notification_recipient`
 (
     `nr_notification_id` UUID NOT NULL,
-    `nr_account_id`      UUID NOT NULL, 
+    `nr_account_id`      UUID NOT NULL,
 
     PRIMARY KEY (`nr_notification_id`, `nr_account_id`),
 

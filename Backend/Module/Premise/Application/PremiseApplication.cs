@@ -1,7 +1,4 @@
 namespace Premise.Application
 {
-    public class PremiseApplication
-    {
-        
-    }
+    public class PremiseApplication {}
 }
