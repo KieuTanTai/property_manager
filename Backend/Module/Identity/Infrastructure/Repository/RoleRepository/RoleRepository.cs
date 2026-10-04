@@ -5,7 +5,7 @@ using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Shared.Logging;
 
-namespace Identity.Infrastructure.Repository.Role
+namespace Identity.Infrastructure.Repository.RoleRepository
 {
     public class RoleRepository(
         IdentityDbContext context,
@@ -98,8 +98,10 @@ namespace Identity.Infrastructure.Repository.Role
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing to add role.");
             if (string.IsNullOrWhiteSpace(entity.RoleName))
             {
-                _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing to update role.");
-                throw new ArgumentException("RoleModel name is required.", nameof(entity.RoleName));
+                var exception = new ArgumentException("RoleModel name is required.", nameof(entity.RoleName));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Role creation rejected because the role name is missing.");
+                throw exception;
             }
 
             var isExisted = await _db.Roles.AnyAsync(existedRole => existedRole.RoleName == entity.RoleName,
@@ -107,7 +109,10 @@ namespace Identity.Infrastructure.Repository.Role
 
             if (isExisted)
             {
-                throw new ArgumentException("RoleModel name is existed.", nameof(entity.RoleName));
+                var exception = new ArgumentException("RoleModel name is existed.", nameof(entity.RoleName));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Role creation rejected because the role already exists.");
+                throw exception;
             }
 
             await _db.Roles.AddAsync(entity, cancellationToken);
@@ -116,9 +121,13 @@ namespace Identity.Infrastructure.Repository.Role
 
         public async Task UpdateAsync(RoleModel entity, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing role update.");
             if (entity.RoleId == Guid.Empty)
             {
-                throw new ArgumentException("RoleModel id is required.", nameof(entity.RoleId));
+                var exception = new ArgumentException("RoleModel id is required.", nameof(entity.RoleId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Role update rejected because the role id is missing.");
+                throw exception;
             }
 
             var existedRole = await _db.Roles.AsNoTracking().FirstOrDefaultAsync(existedRole => existedRole.RoleId == entity.RoleId,
@@ -126,12 +135,18 @@ namespace Identity.Infrastructure.Repository.Role
 
             if (existedRole is null)
             {
-                throw new InvalidOperationException("RoleModel not found!");
+                var exception = new InvalidOperationException("RoleModel not found!");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Role update rejected because the role was not found.");
+                throw exception;
             }
 
             if (existedRole.RoleName == entity.RoleName && existedRole.RoleDescription == entity.RoleDescription && existedRole.RoleIsActive == entity.RoleIsActive)
             {
-                throw new InvalidOperationException("No changes detected in the RoleModel.");
+                var exception = new InvalidOperationException("No changes detected in the RoleModel.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Role update rejected because no changes were detected.");
+                throw exception;
             }
 
             if (existedRole.RoleName != entity.RoleName)
@@ -141,7 +156,10 @@ namespace Identity.Infrastructure.Repository.Role
 
                 if (isExisted)
                 {
-                    throw new ArgumentException("RoleModel name is existed.", nameof(entity.RoleName));
+                    var exception = new ArgumentException("RoleModel name is existed.", nameof(entity.RoleName));
+                    _logger.LogLayerError(_logPool, Module, Layer, exception,
+                        "Role update rejected because the role name already exists.");
+                    throw exception;
                 }
             }
             _db.Roles.Update(entity);

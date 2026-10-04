@@ -5,7 +5,7 @@ using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Shared.Logging;
 
-namespace Identity.Infrastructure.Repository.Permission
+namespace Identity.Infrastructure.Repository.PermissionRepository
 {
     public class PermissionRepository(
         IdentityDbContext context,
@@ -101,8 +101,10 @@ namespace Identity.Infrastructure.Repository.Permission
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing to add permission.");
             if (string.IsNullOrWhiteSpace(entity.PermissionName))
             {
-                _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing to update permission.");
-                throw new ArgumentException("PermissionModel name is required.", nameof(entity.PermissionName));
+                var exception = new ArgumentException("PermissionModel name is required.", nameof(entity.PermissionName));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Permission creation rejected because the permission name is missing.");
+                throw exception;
             }
 
             var isExisted = await context.Permissions.AnyAsync(
@@ -110,7 +112,10 @@ namespace Identity.Infrastructure.Repository.Permission
 
             if (isExisted)
             {
-                throw new ArgumentException("PermissionModel name is already existed.", nameof(entity.PermissionName));
+                var exception = new ArgumentException("PermissionModel name is already existed.", nameof(entity.PermissionName));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Permission creation rejected because the permission already exists.");
+                throw exception;
             }
 
             await context.Permissions.AddAsync(entity, cancellationToken);
@@ -120,9 +125,13 @@ namespace Identity.Infrastructure.Repository.Permission
         public async Task UpdateAsync(PermissionModel entity,
             CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing permission update.");
             if (entity.PermissionId == Guid.Empty)
             {
-                throw new ArgumentException("PermissionModel id is required.", nameof(entity.PermissionId));
+                var exception = new ArgumentException("PermissionModel id is required.", nameof(entity.PermissionId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Permission update rejected because the permission id is missing.");
+                throw exception;
             }
 
             var existedPermission = await context.Permissions.AsNoTracking().FirstOrDefaultAsync(
@@ -130,7 +139,10 @@ namespace Identity.Infrastructure.Repository.Permission
 
             if (existedPermission is null)
             {
-                throw new InvalidOperationException("PermissionModel not found!");
+                var exception = new InvalidOperationException("PermissionModel not found!");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Permission update rejected because the permission was not found.");
+                throw exception;
             }
 
             context.Permissions.Update(entity);

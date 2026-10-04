@@ -60,15 +60,33 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account by email.");
-            return await _db.Accounts.AsNoTracking()
-                       .FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken)
-                   ?? throw new InvalidOperationException("AccountModel not found!");
+            var account = await _db.Accounts.AsNoTracking()
+                .FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken);
+            if (account is null)
+            {
+                var exception = new InvalidOperationException("AccountModel not found!");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account lookup rejected because the account was not found by email.");
+                throw exception;
+            }
+
+            return account;
         }
 
         public async Task<AccountModel> GetTrackedAccountByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked account by email.");
-            return await _db.Accounts.FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken) ?? throw new InvalidOperationException("AccountModel not found!");
+            var account = await _db.Accounts.FirstOrDefaultAsync(
+                account => account.AccountEmail == email, cancellationToken);
+            if (account is null)
+            {
+                var exception = new InvalidOperationException("AccountModel not found!");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Tracked account lookup rejected because the account was not found by email.");
+                throw exception;
+            }
+
+            return account;
         }
 
         public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
@@ -81,7 +99,8 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account with navigation properties.");
-            var query = _db.Accounts.AsNoTracking().AsQueryable().Where(account => account.AccountEmail == email);
+            var query = _db.Accounts.AsNoTracking()
+                .AsSplitQuery().Where(account => account.AccountEmail == email);
             if (isGetRole)
             {
                 query = query.Include(account => account.Roles);
@@ -104,7 +123,9 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account page.");
-            ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
+            SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
+                exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account paging rejected because the page size is invalid."));
             var query = _db.Accounts.AsNoTracking();
 
             if (cursor.HasValue)
@@ -112,7 +133,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
                 query = query.Where(account => account.AccountId < cursor.Value);
             }
 
-            query = query.OrderByDescending(account => account.AccountId);
+            query = query.OrderByDescending(account => account.AccountId).Take(pageSize + 1);
             var accounts = query.ToAsyncEnumerable();
             return await SharedGetApplyPagingRepository.ApplyPaging(accounts, pageSize, account => account.AccountId,
                 cancellationToken);
@@ -121,7 +142,9 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, bool isGetProfile, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account page with profile.");
-            ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
+            SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
+                exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account paging rejected because the page size is invalid."));
             var query = _db.Accounts.AsNoTracking();
             query = query
                 .AsSplitQuery()
@@ -150,7 +173,9 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             bool isActive, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account page by status.");
-            ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
+            SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
+                exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account paging rejected because the page size is invalid."));
             var query = _db.Accounts.AsNoTracking();
             query = query.Include(account => account.Roles)
                 .Include(account => account.UserProfile)
@@ -161,7 +186,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             }
 
             query = query.Where(account => account.AccountIsActive == isActive);
-            query = query.OrderByDescending(account => account.AccountId);
+            query = query.OrderByDescending(account => account.AccountId).Take(pageSize + 1);
             var accounts = query.ToAsyncEnumerable();
             return await SharedGetApplyPagingRepository.ApplyPaging(accounts, pageSize, account => account.AccountId,
                 cancellationToken);
@@ -176,8 +201,10 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account creation.");
             if (string.IsNullOrWhiteSpace(accountModel.AccountEmail))
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account creation rejected because the account identifier is missing.");
-                throw new ArgumentException("AccountModel email is required.", nameof(accountModel.AccountEmail));
+                var exception = new ArgumentException("AccountModel email is required.", nameof(accountModel.AccountEmail));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account creation rejected because the account identifier is missing.");
+                throw exception;
             }
 
             var isExisted = await _db.Accounts.AnyAsync(
@@ -186,8 +213,10 @@ namespace Identity.Infrastructure.Repository.AccountRepository
 
             if (isExisted)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account creation rejected because the account already exists.");
-                throw new InvalidOperationException($"Already existed! \n {accountModel.AccountEmail}");
+                var exception = new InvalidOperationException($"Already existed! \n {accountModel.AccountEmail}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account creation rejected because the account already exists.");
+                throw exception;
             }
             await _db.Accounts.AddAsync(accountModel, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account staged for creation.");
@@ -199,8 +228,10 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account update.");
             if (accountModel.AccountId == Guid.Empty)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account update rejected because the account identifier is missing.");
-                throw new ArgumentException("AccountModel id is required.", nameof(accountModel.AccountId));
+                var exception = new ArgumentException("AccountModel id is required.", nameof(accountModel.AccountId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account update rejected because the account identifier is missing.");
+                throw exception;
             }
 
             var existedAccount =
@@ -209,8 +240,10 @@ namespace Identity.Infrastructure.Repository.AccountRepository
 
             if (existedAccount is null)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account update rejected because the account was not found.");
-                throw new InvalidOperationException($"AccountModel not found! \n {accountModel.AccountId}");
+                var exception = new InvalidOperationException($"AccountModel not found! \n {accountModel.AccountId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account update rejected because the account was not found.");
+                throw exception;
             }
             _db.Accounts.Update(accountModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account staged for update.");

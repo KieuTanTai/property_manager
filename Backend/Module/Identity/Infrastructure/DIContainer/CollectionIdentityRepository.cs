@@ -1,8 +1,8 @@
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Infrastructure.Repository;
 using Identity.Infrastructure.Repository.AccountRepository;
-using Identity.Infrastructure.Repository.Permission;
-using Identity.Infrastructure.Repository.Role;
+using Identity.Infrastructure.Repository.PermissionRepository;
+using Identity.Infrastructure.Repository.RoleRepository;
 using Identity.Infrastructure.Repository.UserProfileRepository;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;

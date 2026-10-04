@@ -28,16 +28,22 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account role association creation.");
             if (entity.AccountId == Guid.Empty || entity.RoleId == Guid.Empty)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account role association rejected because an id is missing.");
-                throw new ArgumentException("AccountModel and RoleModel id is required.", nameof(entity));
+                var exception = new ArgumentException("AccountModel and RoleModel id is required.", nameof(entity));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account role association rejected because an id is missing.");
+                throw exception;
             }
             var existedAccountRole = await GetByIdAsync(entity.AccountId, entity.RoleId, cancellationToken);
             if (existedAccountRole is not null)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account role association rejected because it already exists.");
-                throw new InvalidOperationException("AccountModel role already exist!");
+                var exception = new InvalidOperationException("AccountModel role already exist!");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account role association rejected because it already exists.");
+                throw exception;
             }
             await _db.AccountRoles.AddAsync(entity, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Account role association staged for creation.");
         }
 
         public async Task AddRangeAsync(List<AccountRoleModel> entities, CancellationToken cancellationToken = default)
@@ -45,8 +51,10 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account role association batch creation.");
             if (entities.Count == 0)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account role association batch rejected because it is empty.");
-                throw new ArgumentException("Entities is required.", nameof(entities));
+                var exception = new ArgumentException("Entities is required.", nameof(entities));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account role association batch rejected because it is empty.");
+                throw exception;
             }
             // var filteredAccountRoles = await GetNotExistedEntitiesList(entities, cancellationToken);
             // if (!filteredAccountRoles.Any())
@@ -54,8 +62,9 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             //     throw new InvalidOperationException("All account roles already exist!");
             // }
             // await _db.AccountRoles.AddRangeAsync(filteredAccountRoles, cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Account role associations staged for creation.");
             await _db.AccountRoles.AddRangeAsync(entities, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Account role associations staged for creation.");
         }
 
         #endregion
@@ -76,17 +85,22 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all account role associations.");
             if (firstForeignId == Guid.Empty || secondForeignId == Guid.Empty)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account role lookup rejected because an id is missing.");
-                throw new ArgumentException("First foreign id and second foreign id is required.", nameof(firstForeignId));
+                var exception = new ArgumentException("First foreign id and second foreign id is required.", nameof(firstForeignId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account role lookup rejected because an id is missing.");
+                throw exception;
             }
             var existedAccountRole = await GetByIdAsync(firstForeignId, secondForeignId, cancellationToken);
             if (existedAccountRole is null)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account role association was not found.");
-                throw new InvalidOperationException("AccountModel role not found!");
+                var exception = new InvalidOperationException("AccountModel role not found!");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account role association was not found.");
+                throw exception;
             }
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account role association deletion.");
             _db.AccountRoles.Remove(existedAccountRole);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Account role association staged for deletion.");
         }
 
         public async Task DeleteByFirstForeignIdAsync(Guid firstForeignId, CancellationToken cancellationToken = default)
@@ -94,22 +108,31 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role association.");
             if (firstForeignId == Guid.Empty)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account role deletion rejected because an id is missing.");
-                throw new ArgumentException("First foreign id is required.", nameof(firstForeignId));
+                var exception = new ArgumentException("First foreign id is required.", nameof(firstForeignId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account role deletion rejected because an id is missing.");
+                throw exception;
             }
             var accountRolesToDelete = await _db.AccountRoles.Where(ar => ar.AccountId == firstForeignId).ToListAsync(cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Account role association staged for deletion.");
             _db.AccountRoles.RemoveRange(accountRolesToDelete);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Account role associations staged for deletion.");
         }
 
         public async Task DeleteBySecondForeignIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role association by role.");
             if (secondForeignId == Guid.Empty)
             {
-                throw new ArgumentException("Second foreign id is required.", nameof(secondForeignId));
+                var exception = new ArgumentException("Second foreign id is required.", nameof(secondForeignId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Account role deletion rejected because an id is missing.");
+                throw exception;
             }
             var accountRolesToDelete = await _db.AccountRoles.Where(ar => ar.RoleId == secondForeignId).ToListAsync(cancellationToken);
             _db.AccountRoles.RemoveRange(accountRolesToDelete);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Account role associations staged for deletion.");
         }
 
         #endregion
@@ -118,26 +141,31 @@ namespace Identity.Infrastructure.Repository.AccountRepository
 
         public async Task<IReadOnlyList<AccountRoleModel>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all account role associations.");
             return await _db.AccountRoles.AsNoTracking().ToListAsync(cancellationToken);
         }
 
         public async Task<IReadOnlyList<AccountRoleModel>> GetByFirstForeignIdAsync(Guid firstForeignId, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role associations by account.");
             return await _db.AccountRoles.AsNoTracking().Where(ar => ar.AccountId == firstForeignId).ToListAsync(cancellationToken);
         }
 
         public async Task<IReadOnlyList<AccountRoleModel>> GetBySecondForeignIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role associations by role.");
             return await _db.AccountRoles.AsNoTracking().Where(ar => ar.RoleId == secondForeignId).ToListAsync(cancellationToken);
         }
 
         public async Task<AccountRoleModel?> GetByIdAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role association by account and role.");
             return await _db.AccountRoles.AsNoTracking().FirstOrDefaultAsync(ar => ar.AccountId == firstForeignId && ar.RoleId == secondForeignId, cancellationToken);
         }
 
         public async Task<bool> ExistsAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Checking account role association existence.");
             return await _db.AccountRoles.AnyAsync(ar => ar.AccountId == firstForeignId && ar.RoleId == secondForeignId, cancellationToken);
         }
 
