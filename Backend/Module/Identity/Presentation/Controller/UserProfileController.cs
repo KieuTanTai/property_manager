@@ -14,16 +14,13 @@ namespace Identity.Presentation.Controller
         IUserProfileApplication userProfileApplication,
         IApiHelper apiHelper,
         ILogger<ProfileController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, Module, Layer)
+        ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
         private readonly IApiHelper _apiHelper = apiHelper;
 
         private readonly IUserProfileApplication _userProfileApplication = userProfileApplication;
         private readonly ILogger<ProfileController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
-
-        private const string Module = "identity";
-        private const string Layer = "controller";
 
         #region GET
 

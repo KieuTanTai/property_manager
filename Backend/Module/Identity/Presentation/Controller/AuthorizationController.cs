@@ -15,14 +15,11 @@ namespace Identity.Presentation.Controller
     public class AuthorizationController(
         IAuthorizationApplication authorizationApplication,
         ILogger<AuthorizationController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, Module, Layer)
+        ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
         private readonly IAuthorizationApplication _authorizationApplication = authorizationApplication;
         private readonly ILogger<AuthorizationController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
-
-        private const string Module = "identity";
-        private const string Layer = "controller";
 
         #region GET
 

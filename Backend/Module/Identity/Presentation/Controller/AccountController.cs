@@ -19,7 +19,7 @@ namespace Identity.Presentation.Controller
         IAccountHelper helper,
         IApiHelper apiHelper,
         ILogger<AccountController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, Module, Layer)
+        ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
         private readonly IAccountApplication _accountApplication = accountApplication;
 
@@ -30,9 +30,6 @@ namespace Identity.Presentation.Controller
         private readonly IUserProfileApplication _userProfileApplication = userProfileApplication;
         private readonly ILogger<AccountController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
-
-        private const string Module = "identity";
-        private const string Layer = "controller";
 
         #region PRIVATE
 
