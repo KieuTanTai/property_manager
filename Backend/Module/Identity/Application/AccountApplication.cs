@@ -2,6 +2,7 @@ using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
+using Identity.Models.Profile;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
@@ -14,6 +15,8 @@ namespace Identity.Application
         IBaseAssociativeRepository<AccountRoleModel, Guid> accountRoleRepository,
         IAuthorizationApplication roleApplication,
         IAccountHelper accountHelper,
+        IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> accountAdditionalPermissionRepository,
+        IUserProfileRepository userProfileRepository,
         ILogger<AccountApplication> logger,
         ILogPool logPool)
         : IAccountApplication
@@ -28,6 +31,10 @@ namespace Identity.Application
         private readonly IAccountRepository _accountRepository = accountRepository;
 
         private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
+        
+        private readonly IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> _accountAdditionalPermissionRepository = accountAdditionalPermissionRepository;
+        
+        private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
 
         private readonly ILogPool _logPool = logPool;
 
@@ -235,6 +242,66 @@ namespace Identity.Application
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account status paging operation started.");
             var result = await _accountRepository.GetApplyPagingByStatusAsync(cursor, pageSize, isActive, cancellationToken);
             return result;
+        }
+
+        public async Task<int> ImportAsync(IEnumerable<AccountModel> entities, IEnumerable<AccountRoleModel> accountRoleModels, 
+            IEnumerable<AccountAdditionalPermissionModel>? accountAdditionalPermissionModels, IEnumerable<UserProfileModel>? userProfiles, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Account import operation started.");
+            var accountModels = entities.ToList();
+            if (!accountModels.Any())
+            {
+                throw new ArgumentException("AccountModel collection is required.", nameof(entities));
+            }
+            
+            await _accountRepository.AddRangeAsync(accountModels, cancellationToken);
+            await _accountRoleRepository.AddRangeAsync([.. accountRoleModels], cancellationToken);
+            if (userProfiles != null)
+            {
+                var userProfileModels = userProfiles.ToList();
+                if (userProfileModels.Count != accountModels.Count)
+                {
+                    _logger.LogLayerWarning(_logPool, Module, Layer, "UserProfileModel collection count does not match AccountModel collection count.");
+                    throw new ArgumentException("UserProfileModel collection must have the same count as AccountModel collection.", nameof(userProfiles));
+                }
+                if (userProfileModels.Any())
+                {
+                    await _userProfileRepository.AddRangeAsync([.. userProfileModels], cancellationToken);
+                }
+            }
+            
+            if (accountAdditionalPermissionModels != null)
+            {
+                await _accountAdditionalPermissionRepository.AddRangeAsync([.. accountAdditionalPermissionModels], cancellationToken);
+            }
+            
+            var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (affectRows == 0)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Account import saved no rows."), "Account import failed.");
+                throw new InvalidOperationException("Failed to import accounts.");
+            }
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Account import completed.");
+            return affectRows;
+        }
+
+        public async Task<int> UpdateRange(IEnumerable<AccountModel> entities, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Account update range operation started.");
+            var accountModels = entities.ToList();
+            if (!accountModels.Any())
+            {
+                throw new ArgumentException("AccountModel collection is required.", nameof(entities));
+            }
+            _accountRepository.UpdateRange(accountModels, cancellationToken);
+            var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (affectRows == 0)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Account update range saved no rows."), "Account update range failed.");
+                throw new InvalidOperationException("Failed to update accounts.");
+            }
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Account update range completed.");
+            return affectRows;
         }
 
         #endregion

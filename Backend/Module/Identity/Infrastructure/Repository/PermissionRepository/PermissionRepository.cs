@@ -122,6 +122,24 @@ namespace Identity.Infrastructure.Repository.PermissionRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Permission staged for creation.");
         }
 
+        public async Task AddRangeAsync(IEnumerable<PermissionModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing permission range creation.");
+            var permissionModels = entities.ToList();
+            if (!permissionModels.Any())
+            {
+                var exception = new ArgumentException("PermissionModel collection is required.", nameof(entities));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Permission range creation rejected because the collection is empty.");
+                throw exception;
+            }
+
+            await context.Permissions.AddRangeAsync(permissionModels, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Permission range staged for creation.");
+        }
+
         public async Task UpdateAsync(PermissionModel entity,
             CancellationToken cancellationToken = default)
         {
@@ -147,6 +165,24 @@ namespace Identity.Infrastructure.Repository.PermissionRepository
 
             context.Permissions.Update(entity);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Permission staged for update.");
+        }
+
+        public void UpdateRange(IEnumerable<PermissionModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing permission range update.");
+            var permissionModels = entities.ToList();
+            if (!permissionModels.Any())
+            {
+                var exception = new ArgumentException("PermissionModel collection is required.", nameof(entities));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Permission range update rejected because the collection is empty.");
+                throw exception;
+            }
+
+            context.Permissions.UpdateRange(permissionModels);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Permission range staged for update.");
         }
 
         #endregion

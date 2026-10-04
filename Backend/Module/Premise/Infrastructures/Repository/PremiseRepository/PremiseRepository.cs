@@ -258,6 +258,16 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Premise staged for creation.");
         }
 
+        public async Task AddRangeAsync(IEnumerable<PremiseModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise range creation.");
+            var premiseModels = entities.ToList();
+            await _db.Premises.AddRangeAsync(premiseModels, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Premise range staged for creation.");
+        }
+
         public async Task UpdateAsync(PremiseModel premiseModel, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise update.");
@@ -283,6 +293,16 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
 
             _db.Premises.Update(premiseModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Premise staged for update.");
+        }
+
+        public void UpdateRange(IEnumerable<PremiseModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise range update.");
+            var premiseModels = entities.ToList();
+            _db.Premises.UpdateRange(premiseModels);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Premise range staged for update.");
         }
 
         #endregion

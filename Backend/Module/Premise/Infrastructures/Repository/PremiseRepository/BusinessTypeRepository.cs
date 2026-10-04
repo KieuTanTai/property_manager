@@ -90,6 +90,13 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
                 "Business type staged for creation.");
         }
 
+        public async Task AddRangeAsync(IEnumerable<BusinessTypeModel> entities, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing business type range update.");
+            var businessTypeModels = entities.ToList();
+            await _db.BusinessTypes.AddRangeAsync(businessTypeModels, cancellationToken);
+        }
+
         public async Task UpdateAsync(BusinessTypeModel entity, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing business type update.");
@@ -130,6 +137,13 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             _db.BusinessTypes.Update(entity);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Business type staged for update.");
+        }
+        
+        public void UpdateRange(IEnumerable<BusinessTypeModel> entities, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing business type range update.");
+            var businessTypeModels = entities.ToList();
+            _db.BusinessTypes.UpdateRange(businessTypeModels);
         }
 
         #endregion

@@ -2,6 +2,7 @@ using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Microsoft.EntityFrameworkCore;
+using Shared.Interfaces;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.AccountRepository
@@ -49,13 +50,6 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         public async Task AddRangeAsync(List<AccountAdditionalPermissionModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account permission associations by account.");
-            if (entities.Count == 0)
-            {
-                var exception = new ArgumentException("Entities is required.", nameof(entities));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Account permission association batch rejected because it is empty.");
-                throw exception;
-            }
             await _db.AccountPermissions.AddRangeAsync(entities, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Account permission associations staged for creation.");

@@ -76,6 +76,14 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
             await _db.Locations.AddAsync(entity, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Location staged for creation.");
         }
+        
+        public async Task AddRangeAsync(IEnumerable<LocationModel> entities, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing location range creation.");
+            var locationModels = entities.ToList();
+            await _db.Locations.AddRangeAsync(locationModels, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Location range staged for creation.");
+        }
 
         public async Task UpdateAsync(LocationModel entity, CancellationToken cancellationToken = default)
         {
@@ -101,6 +109,12 @@ namespace Premise.Infrastructures.Repository.PremiseRepository
 
             _db.Locations.Update(entity);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Location staged for update.");
+        }
+
+        public void UpdateRange(IEnumerable<LocationModel> entities, CancellationToken cancellationToken = default)
+        {
+            var locationModels = entities.ToList();
+            _db.Locations.UpdateRange(locationModels);
         }
 
         #endregion

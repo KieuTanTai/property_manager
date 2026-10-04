@@ -1,4 +1,5 @@
 using Identity.Models.Account;
+using Identity.Models.Profile;
 using Shared.Persistence.Record;
 
 namespace Identity.Interfaces.IApplication
@@ -19,5 +20,9 @@ namespace Identity.Interfaces.IApplication
 
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize, bool isActive, CancellationToken cancellationToken = default);
         Task<AccountModel?> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default);
+
+        Task<int> ImportAsync(IEnumerable<AccountModel> entities, IEnumerable<AccountRoleModel> accountRoleModels, 
+            IEnumerable<AccountAdditionalPermissionModel>? accountAdditionalPermissionModels, IEnumerable<UserProfileModel>? userProfiles, CancellationToken cancellationToken = default);
+        Task<int> UpdateRange(IEnumerable<AccountModel> entities, CancellationToken cancellationToken = default);
     }
 }

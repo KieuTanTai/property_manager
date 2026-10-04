@@ -122,6 +122,34 @@ namespace Identity.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation completed.");
             return baseProfile;
         }
+        
+        public async Task<int> UpdateRangeAsync(IEnumerable<UserProfileModel> userProfiles, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation started.");
+            var userProfileModels = userProfiles.ToList();
+            if (!userProfileModels.Any())
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update range operation rejected because the input collection is null or empty.");
+                throw new ArgumentException("User profiles collection cannot be null or empty.", nameof(userProfiles));
+            }
+            _userProfileRepository.UpdateRange(userProfileModels, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation completed.");
+            return await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<int> ImportAsync(IEnumerable<UserProfileModel> userProfiles, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile import operation started.");
+            var userProfileModels = userProfiles.ToList();
+            if (!userProfileModels.Any())
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile import operation rejected because the input collection is null or empty.");
+                throw new ArgumentException("User profiles collection cannot be null or empty.", nameof(userProfiles));
+            }
+            await _userProfileRepository.AddRangeAsync(userProfileModels, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile import operation completed.");
+            return await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
 
         #endregion
 

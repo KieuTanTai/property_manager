@@ -119,6 +119,16 @@ namespace Identity.Infrastructure.Repository.RoleRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Role staged for creation.");
         }
 
+        public async Task AddRangeAsync(IEnumerable<RoleModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing role range creation.");
+            var roleModels = entities.ToList();
+            await _db.Roles.AddRangeAsync(roleModels, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Role range staged for creation.");
+        }
+
         public async Task UpdateAsync(RoleModel entity, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing role update.");
@@ -164,6 +174,16 @@ namespace Identity.Infrastructure.Repository.RoleRepository
             }
             _db.Roles.Update(entity);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Role staged for update.");
+        }
+
+        public void UpdateRange(IEnumerable<RoleModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing role range update.");
+            var roleModels = entities.ToList();
+            _db.Roles.UpdateRange(roleModels);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Role range staged for update.");
         }
 
         #endregion

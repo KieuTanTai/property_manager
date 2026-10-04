@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
+using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
@@ -312,7 +313,73 @@ namespace Identity.Presentation.Controller
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
         }
+        
+        [RequireHttps]
+        [HttpPost("import")]
+        public async Task<IActionResult> ImportAccountsAsync([FromBody] RecordImportAccountRequest requestDto, CancellationToken cancellationToken = default)
+        {
+            if (!requestDto.Accounts.Any())
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no accounts were provided.");
+                return BadRequest("No accounts to import.");
+            }
+            
+            if (!requestDto.AccountRoles.Any())
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no account roles were provided.");
+                return BadRequest("No account roles to import.");
+            }
+            
+            try
+            {
+                var result = await _accountApplication.ImportAsync(requestDto.Accounts, requestDto.AccountRoles, requestDto.AccountAdditionalPermissions, requestDto.UserProfiles, cancellationToken);
+                if (result == 0)
+                {
+                    return BadRequest("Could not import accounts.");
+                }
+                return Ok(result);
+            }
+            catch (OperationCanceledException ex)
+            {
+                return BadRequest($"request canceled! \n {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Account import request failed.");
+                return BadRequest($"An error occurred \n {ex.Message}");
+            }
+        }
 
+        [RequireHttps]
+        [HttpPost("update-range")]
+        public async Task<IActionResult> UpdateAccountsRangeAsync([FromBody] List<AccountModel> accounts, CancellationToken cancellationToken = default)
+        {
+            if (!accounts.Any())
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account update range request rejected because no accounts were provided.");
+                return BadRequest("No accounts to update.");
+            }
+
+            try
+            {
+                var result = await _accountApplication.UpdateRange(accounts, cancellationToken);
+                if (result == 0)
+                {
+                    return BadRequest("Could not update accounts.");
+                }
+                return Ok(result);
+            }
+            catch (OperationCanceledException ex)
+            {
+                return BadRequest($"request canceled! \n {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Account update range request failed.");
+                return BadRequest($"An error occurred \n {ex.Message}");
+            }
+        }
+        
         #endregion
 
         #region DELETE

@@ -2,6 +2,7 @@ using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Microsoft.EntityFrameworkCore;
+using Shared.Interfaces;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.AccountRepository
@@ -49,13 +50,6 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         public async Task AddRangeAsync(List<AccountRoleModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account role association batch creation.");
-            if (entities.Count == 0)
-            {
-                var exception = new ArgumentException("Entities is required.", nameof(entities));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Account role association batch rejected because it is empty.");
-                throw exception;
-            }
             // var filteredAccountRoles = await GetNotExistedEntitiesList(entities, cancellationToken);
             // if (!filteredAccountRoles.Any())
             // {

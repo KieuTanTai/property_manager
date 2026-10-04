@@ -72,15 +72,15 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
             var regulation = await _db.Regulations.AsNoTracking()
                 .FirstOrDefaultAsync(regulation => regulation.RegulationName == regulationName,
                     cancellationToken);
-            if (regulation is null)
+            if (regulation is not null)
             {
-                var exception = new InvalidOperationException("RegulationModel not found!");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Regulation lookup rejected because the regulation was not found by name.");
-                throw exception;
+                return regulation;
             }
+            var exception = new InvalidOperationException("RegulationModel not found!");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Regulation lookup rejected because the regulation was not found by name.");
+            throw exception;
 
-            return regulation;
         }
 
         public async Task<RegulationModel> GetTrackedRegulationByNameAsync(string regulationName,
@@ -89,15 +89,15 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked regulation by name.");
             var regulation = await _db.Regulations.FirstOrDefaultAsync(
                 regulation => regulation.RegulationName == regulationName, cancellationToken);
-            if (regulation is null)
+            if (regulation is not null)
             {
-                var exception = new InvalidOperationException("RegulationModel not found!");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Tracked regulation lookup rejected because the regulation was not found by name.");
-                throw exception;
+                return regulation;
             }
+            var exception = new InvalidOperationException("RegulationModel not found!");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Tracked regulation lookup rejected because the regulation was not found by name.");
+            throw exception;
 
-            return regulation;
         }
 
         public async Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
@@ -240,6 +240,16 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Regulation staged for creation.");
         }
 
+        public async Task AddRangeAsync(IEnumerable<RegulationModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing regulation range creation.");
+            var regulationModels = entities.ToList();
+            await _db.Regulations.AddRangeAsync(regulationModels, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Regulation range staged for creation.");
+        }
+
         public async Task UpdateAsync(RegulationModel regulationModel,
             CancellationToken cancellationToken = default)
         {
@@ -286,6 +296,16 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
 
             _db.Regulations.Update(regulationModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Regulation staged for update.");
+        }
+
+        public void UpdateRange(IEnumerable<RegulationModel> entities,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing regulation range update.");
+            var regulationModels = entities.ToList();
+            _db.Regulations.UpdateRange(regulationModels);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Regulation range staged for update.");
         }
 
         #endregion

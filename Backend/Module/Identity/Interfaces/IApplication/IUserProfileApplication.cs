@@ -8,5 +8,7 @@ namespace Identity.Interfaces.IApplication
 
         Task<UserProfileModel> UpdateProfileInfoAsync(UserProfileModel userProfile, CancellationToken cancellationToken = default);
         Task<UserProfileModel> CreateBaseProfileInfoAsync(string identityCode, Guid accountId, CancellationToken cancellationToken = default);
+        Task<int> ImportAsync(IEnumerable<UserProfileModel> userProfiles, CancellationToken cancellationToken = default);
+        Task<int> UpdateRangeAsync(IEnumerable<UserProfileModel> userProfiles, CancellationToken cancellationToken = default);
     }
 }
