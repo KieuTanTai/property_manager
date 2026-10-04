@@ -8,26 +8,38 @@
 </head>
 <body class="admin-body">
 <div class="admin-shell">
-    <aside class="admin-sidebar" aria-label="Admin navigation">
+    <aside class="admin-sidebar" aria-label="ManagerSpace navigation">
         <div class="admin-brand">
-            <span class="admin-brand-mark">DS</span>
-            <span>Demo Shop</span>
+            <span class="admin-brand-mark">M</span>
+            <div>
+                <strong>ManagerSpace</strong>
+                <small>Quản lý mặt bằng</small>
+            </div>
         </div>
         <nav class="admin-nav">
-            <a class="admin-nav-item" href="#" aria-label="Dashboard">
-                <span class="admin-nav-icon">⌂</span><span>Dashboard</span>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Dashboard" ? "is-active" : "")" href="/manager/dashboard">
+                <span class="admin-nav-icon">TQ</span><span>Tổng quan</span>
             </a>
-            <a class="admin-nav-item is-active" href="/admin/account/list" aria-current="page">
-                <span class="admin-nav-icon">♙</span><span>Accounts</span>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "AccountList" ? "is-active" : "")" href="/manager/accounts/list" aria-current="page">
+                <span class="admin-nav-icon">TK</span><span>Tài khoản</span>
             </a>
-            <a class="admin-nav-item" href="#" aria-label="Roles">
-                <span class="admin-nav-icon">◇</span><span>Roles</span>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Statistics" ? "is-active" : "")" href="/manager/statistics">
+                <span class="admin-nav-icon">TK</span><span>Thống kê</span>
             </a>
-            <a class="admin-nav-item" href="#" aria-label="Permissions">
-                <span class="admin-nav-icon">◈</span><span>Permissions</span>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Contracts" ? "is-active" : "")" href="/manager/contracts">
+                <span class="admin-nav-icon">HD</span><span>Hợp đồng</span>
             </a>
-            <a class="admin-nav-item" href="#" aria-label="Settings">
-                <span class="admin-nav-icon">⚙</span><span>Settings</span>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Invoices" ? "is-active" : "")" href="/manager/invoices">
+                <span class="admin-nav-icon">HD</span><span>Hóa đơn</span>
+            </a>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Violations" ? "is-active" : "")" href="/manager/violations">
+                <span class="admin-nav-icon">VP</span><span>Vi phạm</span>
+            </a>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Tickets" ? "is-active" : "")" href="/manager/tickets">
+                <span class="admin-nav-icon">YC</span><span>Yêu cầu</span>
+            </a>
+            <a class="admin-nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Premises" ? "is-active" : "")" href="/manager/premises">
+                <span class="admin-nav-icon">MB</span><span>Mặt bằng</span>
             </a>
         </nav>
         <div class="admin-sidebar-footer">
@@ -39,6 +51,8 @@
         @RenderBody()
     </main>
 </div>
+<partial name="_ManagerModal" />
+<script src="~/js/manager/modal.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", false)
 </body>
 </html>

@@ -1,0 +1,94 @@
+@model Frontend.Models.Manager.ManagerDashboardViewModel
+@using Frontend.Models.Manager
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Dashboard";
+    var rented = Model.Premises.Count(p => p.Status == ManagerPremiseStatus.Rented);
+    var available = Model.Premises.Count(p => p.Status == ManagerPremiseStatus.Available);
+    var statuses = new[]
+    {
+        (ManagerPremiseStatus.Available, "Còn trống", "dashboard-bar-green"),
+        (ManagerPremiseStatus.Rented, "Đang thuê", "dashboard-bar-blue"),
+        (ManagerPremiseStatus.Reserved, "Đã đặt cọc", "dashboard-bar-amber"),
+        (ManagerPremiseStatus.Maintenance, "Bảo trì", "dashboard-bar-red")
+    };
+}
+
+<section class="manager-dashboard" data-manager-dashboard>
+    <div class="manager-page-heading">
+        <div>
+            <p class="admin-eyebrow">Management overview</p>
+            <h1>Tổng quan hệ thống</h1>
+            <p class="admin-description">Cập nhật lần cuối: @DateTime.Today.ToString("dd/MM/yyyy")</p>
+        </div>
+        <div class="manager-heading-actions">
+            <button class="admin-filter-button" type="button" data-dashboard-refresh>Làm mới</button>
+            <button class="admin-primary-button" type="button" data-manager-modal-open data-modal-title="Tạo nhanh" data-modal-form="quick-action">Thêm mới</button>
+        </div>
+    </div>
+
+    <div class="dashboard-stats-grid">
+        <article class="dashboard-stat-card">
+            <div class="dashboard-stat-label"><span class="dashboard-stat-accent dashboard-accent-blue"></span>Mặt bằng đang thuê</div>
+            <strong>@rented</strong><small>@available còn trống</small>
+        </article>
+        <article class="dashboard-stat-card">
+            <div class="dashboard-stat-label"><span class="dashboard-stat-accent dashboard-accent-green"></span>Hợp đồng hiệu lực</div>
+            <strong>@Model.ActiveContracts</strong><small>Đã ký kết</small>
+        </article>
+        <article class="dashboard-stat-card">
+            <div class="dashboard-stat-label"><span class="dashboard-stat-accent dashboard-accent-purple"></span>Doanh thu tháng</div>
+            <strong>@Model.PaidRevenue.ToString("N0") ₫</strong><small>Đã thu</small>
+        </article>
+        <article class="dashboard-stat-card">
+            <div class="dashboard-stat-label"><span class="dashboard-stat-accent dashboard-accent-red"></span>Hóa đơn quá hạn</div>
+            <strong>@Model.OverdueInvoices</strong><small>@Model.UnresolvedViolations vi phạm chưa xử lý</small>
+        </article>
+    </div>
+
+    <div class="dashboard-panels">
+        <article class="dashboard-panel">
+            <div class="dashboard-panel-heading"><h2>Trạng thái mặt bằng</h2><span>@Model.Premises.Count tổng số</span></div>
+            @foreach (var status in statuses)
+            {
+                var count = Model.Premises.Count(p => p.Status == status.Item1);
+                var percentage = Model.Premises.Count == 0 ? 0 : count * 100 / Model.Premises.Count;
+                <div class="dashboard-breakdown-row">
+                    <div><span>@status.Item2</span><strong>@count / @Model.Premises.Count</strong></div>
+                    <div class="dashboard-progress"><span class="@status.Item3" style="width: @percentage%"></span></div>
+                </div>
+            }
+        </article>
+        <article class="dashboard-panel">
+            <div class="dashboard-panel-heading"><h2>Hoạt động gần đây</h2><button type="button" class="dashboard-link" data-manager-modal-open data-modal-title="Hoạt động gần đây" data-modal-message="Danh sách hoạt động đầy đủ sẽ được triển khai cùng module nhật ký.">Xem tất cả</button></div>
+            <div class="dashboard-activity-list">
+                <div><span class="dashboard-activity-marker marker-amber"></span><strong>Hợp đồng CTR-2024-004 chờ ký</strong><small>2 giờ trước</small></div>
+                <div><span class="dashboard-activity-marker marker-red"></span><strong class="dashboard-danger">Vi phạm mới cần xử lý</strong><small>5 giờ trước</small></div>
+                <div><span class="dashboard-activity-marker marker-blue"></span><strong class="dashboard-info">Ticket mới: Sự cố điều hòa tầng 1</strong><small>8 giờ trước</small></div>
+                <div><span class="dashboard-activity-marker marker-red"></span><strong class="dashboard-danger">Hóa đơn INV-2024-004 quá hạn</strong><small>1 ngày trước</small></div>
+                <div><span class="dashboard-activity-marker marker-green"></span><strong class="dashboard-success">Hợp đồng CTR-2024-001 đã ký</strong><small>3 ngày trước</small></div>
+            </div>
+        </article>
+    </div>
+
+    <article class="dashboard-panel dashboard-alert-panel">
+        <div class="dashboard-panel-heading"><h2>Cần xử lý</h2><span>Ưu tiên hôm nay</span></div>
+        <div class="dashboard-alert-list">
+            <a href="/manager/invoices" class="dashboard-alert dashboard-alert-red">● @Model.OverdueInvoices hóa đơn quá hạn thanh toán <span>→</span></a>
+            <a href="/manager/violations" class="dashboard-alert dashboard-alert-orange">● @Model.UnresolvedViolations vi phạm chưa xử lý <span>→</span></a>
+            <a href="/manager/tickets" class="dashboard-alert dashboard-alert-amber">● @Model.OpenTickets yêu cầu chờ phản hồi <span>→</span></a>
+        </div>
+    </article>
+
+    <article class="dashboard-panel dashboard-quick-actions">
+        <div class="dashboard-panel-heading"><h2>Thao tác nhanh</h2><span>Quản lý dữ liệu</span></div>
+        <div class="dashboard-quick-action-list">
+            <button type="button" data-manager-modal-open data-modal-title="Thêm mặt bằng" data-modal-form="premise">Thêm mặt bằng</button>
+            <button type="button" data-manager-modal-open data-modal-title="Tạo hợp đồng" data-modal-form="contract">Tạo hợp đồng</button>
+            <button type="button" data-manager-modal-open data-modal-title="Tạo hóa đơn" data-modal-form="invoice">Tạo hóa đơn</button>
+            <button type="button" data-manager-modal-open data-modal-title="Tạo yêu cầu" data-modal-form="ticket">Tạo yêu cầu</button>
+        </div>
+    </article>
+</section>
+
+<script src="~/js/manager/dashboard.js" asp-append-version="true"></script>

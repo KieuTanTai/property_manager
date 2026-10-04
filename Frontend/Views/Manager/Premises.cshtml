@@ -1,0 +1,6 @@
+@model Frontend.Models.Manager.ManagerListViewModel<Frontend.Models.Manager.ManagerPremise>
+@{ Layout = "_AdminLayout"; ViewData["Title"] = Model.Title; }
+<partial name="_ManagerListHeader" model="Model" />
+<div class="manager-table-card"><table class="manager-table"><thead><tr><th>Mã / Tên</th><th>Vị trí</th><th>Diện tích</th><th>Địa chỉ</th><th>Trạng thái</th></tr></thead><tbody>
+@foreach (var item in Model.Items) { <tr><td><strong>@item.Name</strong><small>@item.Id</small></td><td>Tầng @item.Floor</td><td>@item.Area</td><td>@item.Location</td><td><span class="manager-badge manager-status-@item.Status.ToString().ToLowerInvariant()">@item.Status</span></td></tr> }
+</tbody></table></div>

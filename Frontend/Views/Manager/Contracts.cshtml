@@ -1,0 +1,6 @@
+@model Frontend.Models.Manager.ManagerListViewModel<Frontend.Models.Manager.ManagerContract>
+@{ Layout = "_AdminLayout"; ViewData["Title"] = Model.Title; }
+<partial name="_ManagerListHeader" model="Model" />
+<div class="manager-table-card"><table class="manager-table"><thead><tr><th>Mã hợp đồng</th><th>Khách thuê</th><th>Mặt bằng</th><th>Giá thuê</th><th>Kết thúc</th><th>Trạng thái</th></tr></thead><tbody>
+@foreach (var item in Model.Items) { <tr><td>@item.Id</td><td>@item.Tenant</td><td>@item.PremiseName</td><td>@item.RentalPrice.ToString("N0") ₫</td><td>@item.ReturnDate.ToString("dd/MM/yyyy")</td><td><span class="manager-badge">@item.Status</span></td></tr> }
+</tbody></table></div>

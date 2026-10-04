@@ -1,0 +1,6 @@
+@model Frontend.Models.Manager.ManagerListViewModel<Frontend.Models.Manager.ManagerTicket>
+@{ Layout = "_AdminLayout"; ViewData["Title"] = Model.Title; }
+<partial name="_ManagerListHeader" model="Model" />
+<div class="manager-table-card"><table class="manager-table"><thead><tr><th>Mã</th><th>Tài khoản</th><th>Nội dung</th><th>Loại</th><th>Ngày tạo</th><th>Trạng thái</th></tr></thead><tbody>
+@foreach (var item in Model.Items) { <tr><td>@item.Id</td><td>@item.Account</td><td>@item.Content</td><td>@item.Type</td><td>@item.CreatedAt.ToString("dd/MM/yyyy")</td><td><span class="manager-badge">@(item.Resolved ? "Đã xử lý" : "Đang mở")</span></td></tr> }
+</tbody></table></div>

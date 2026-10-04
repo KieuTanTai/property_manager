@@ -71,6 +71,8 @@
         <_ContentIncludedByDefault Remove="wwwroot\lib\bootstrap\LICENSE"/>
         <_ContentIncludedByDefault Remove="wwwroot\js\auth\auth.js"/>
         <_ContentIncludedByDefault Remove="wwwroot\js\auth\auth.js.map"/>
+        <_ContentIncludedByDefault Remove="User management app interface\package.json" />
+        <_ContentIncludedByDefault Remove="User management app interface\tsconfig.json" />
     </ItemGroup>
 
     <ItemGroup>

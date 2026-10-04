@@ -1,0 +1,28 @@
+@model Frontend.Models.Manager.ManagerStatisticsViewModel
+@{ Layout = "_AdminLayout"; ViewData["Title"] = "Statistics"; }
+<section class="manager-dashboard" data-statistics-page>
+    <div class="manager-page-heading"><div><p class="admin-eyebrow">Management analytics</p><h1>Thống kê</h1><p class="admin-description">Tổng hợp chỉ số vận hành hiện tại.</p></div></div>
+    <div class="statistics-tabs" role="tablist" aria-label="Nhóm thống kê">
+        <button type="button" class="statistics-tab is-active" data-statistics-tab="financial">Tài chính</button>
+        <button type="button" class="statistics-tab" data-statistics-tab="accounts">Tài khoản</button>
+        <button type="button" class="statistics-tab" data-statistics-tab="premises">Mặt bằng</button>
+        <button type="button" class="statistics-tab" data-statistics-tab="contracts">Hợp đồng</button>
+        <button type="button" class="statistics-tab" data-statistics-tab="violations">Vi phạm</button>
+    </div>
+    <div class="dashboard-stats-grid">
+        <article class="dashboard-stat-card"><div class="dashboard-stat-label">Tổng mặt bằng</div><strong>@Model.TotalPremises</strong><small>@Model.RentedPremises đang thuê</small></article>
+        <article class="dashboard-stat-card"><div class="dashboard-stat-label">Mặt bằng còn trống</div><strong>@Model.AvailablePremises</strong><small>Sẵn sàng khai thác</small></article>
+        <article class="dashboard-stat-card"><div class="dashboard-stat-label">Doanh thu đã thu</div><strong>@Model.PaidRevenue.ToString("N0") ₫</strong><small>Trong kỳ hiện tại</small></article>
+        <article class="dashboard-stat-card"><div class="dashboard-stat-label">Yêu cầu mở</div><strong>@Model.OpenTickets</strong><small>@Model.OutstandingInvoices hóa đơn cần theo dõi</small></article>
+    </div>
+    <div class="statistics-content" data-statistics-content="financial">
+        <article class="dashboard-panel statistics-chart-panel"><div class="dashboard-panel-heading"><h2>Doanh thu và công nợ</h2><span>6 tháng gần nhất</span></div><div class="statistics-bars"><span style="height:45%"></span><span style="height:62%"></span><span style="height:52%"></span><span style="height:78%"></span><span style="height:68%"></span><span style="height:90%"></span></div><div class="statistics-months"><span>Tháng 5</span><span>Tháng 6</span><span>Tháng 7</span><span>Tháng 8</span><span>Tháng 9</span><span>Tháng 10</span></div></article>
+        <div class="statistics-detail-grid"><div class="dashboard-panel"><h2>Đã thu</h2><strong class="statistics-number">@Model.PaidRevenue.ToString("N0") ₫</strong><p>Doanh thu từ hóa đơn đã thanh toán.</p></div><div class="dashboard-panel"><h2>Cần thu</h2><strong class="statistics-number">23.600.000 ₫</strong><p>Gồm hóa đơn chưa thanh toán và quá hạn.</p></div></div>
+    </div>
+    <div class="statistics-content" data-statistics-content="accounts" hidden><div class="statistics-detail-grid"><div class="dashboard-panel"><h2>Tổng tài khoản</h2><strong class="statistics-number">20</strong><p>6 tài khoản quản trị và 14 tài khoản khách thuê.</p></div><div class="dashboard-panel"><h2>Đang hoạt động</h2><strong class="statistics-number">16</strong><p>80% tài khoản đang ở trạng thái hoạt động.</p></div></div></div>
+    <div class="statistics-content" data-statistics-content="premises" hidden><div class="statistics-detail-grid"><div class="dashboard-panel"><h2>Tổng mặt bằng</h2><strong class="statistics-number">@Model.TotalPremises</strong><p>@Model.RentedPremises đang thuê, @Model.AvailablePremises còn trống.</p></div><div class="dashboard-panel"><h2>Tỷ lệ khai thác</h2><strong class="statistics-number">33%</strong><p>Căn cứ trên số mặt bằng đang có hợp đồng.</p></div></div></div>
+    <div class="statistics-content" data-statistics-content="contracts" hidden><div class="statistics-detail-grid"><div class="dashboard-panel"><h2>Hợp đồng hiệu lực</h2><strong class="statistics-number">@Model.ActiveContracts</strong><p>Hợp đồng đã ký và đang còn hiệu lực.</p></div><div class="dashboard-panel"><h2>Chờ xử lý</h2><strong class="statistics-number">2</strong><p>Hợp đồng đang chờ duyệt hoặc chờ ký.</p></div></div></div>
+    <div class="statistics-content" data-statistics-content="violations" hidden><div class="statistics-detail-grid"><div class="dashboard-panel"><h2>Chưa xử lý</h2><strong class="statistics-number">2</strong><p>Vi phạm cần được nhân viên quản lý xử lý.</p></div><div class="dashboard-panel"><h2>Tổng tiền phạt</h2><strong class="statistics-number">2.700.000 ₫</strong><p>Tổng mức phạt của các vi phạm đã ghi nhận.</p></div></div></div>
+    <div class="statistics-actions"><button class="admin-primary-button" type="button" data-manager-modal-open data-modal-title="Tạo báo cáo thống kê" data-modal-form="report">Tạo báo cáo</button></div>
+</section>
+<script src="~/js/manager/statistics.js" asp-append-version="true"></script>
