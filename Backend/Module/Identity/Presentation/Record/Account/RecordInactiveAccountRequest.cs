@@ -11,6 +11,7 @@ namespace Identity.Presentation.Record.Account
         string Password,
         [Required]
         [DataType(DataType.Password)]
+        [property: Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         string ConfirmPassword
     );
 }

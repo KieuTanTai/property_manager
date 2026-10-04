@@ -4,21 +4,32 @@ using Identity.Models.Profile;
 using Microsoft.EntityFrameworkCore;
 using Shared.Persistence;
 using Shared.Persistence.Record;
+using Shared.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Identity.Infrastructure.Repository.UserProfileRepository
 {
-    public class UserProfileRepository(IdentityDbContext context) : IUserProfileRepository
+    public class UserProfileRepository(
+        IdentityDbContext context,
+        ILogger<UserProfileRepository> logger,
+        ILogPool logPool) : IUserProfileRepository
     {
         private readonly IdentityDbContext _db = context;
+        private readonly ILogger<UserProfileRepository> _logger = logger;
+        private readonly ILogPool _logPool = logPool;
+        private const string Module = "identity";
+        private const string Layer = "repository";
 
         #region GET
 
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfilePagingByFirstNameAsync(Guid? cursor, string firstName, int pageSize, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by first name.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by last name.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.Where(profile => profile.UserProfileFirstName != null && profile.UserProfileFirstName.Contains(firstName));
@@ -30,10 +41,12 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
 
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfilePagingByLastNameAsync(Guid? cursor, string lastName, int pageSize, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by name.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles with paging.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.Where(profile => profile.UserProfileLastName != null && profile.UserProfileLastName.Contains(lastName));
@@ -45,10 +58,12 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
 
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfilePagingByNameAsync(Guid? cursor, string name, int pageSize, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by birthday.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by gender.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.Where(profile => profile.UserProfileFirstName != null && profile.UserProfileLastName != null && (profile.UserProfileFirstName + profile.UserProfileLastName).Contains(name));
@@ -60,10 +75,12 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
 
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfilePagingAsync(Guid? cursor, int pageSize, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by phone number.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by address.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.OrderByDescending(profile => profile.UserProfileId);
@@ -74,10 +91,12 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
 
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfileByUserBirthdayAsync(Guid? cursor, DateTime birthday, int pageSize, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all profiles.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profile by id.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.Where(profile => profile.UserProfileDateOfBirth == birthday);
@@ -89,10 +108,12 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
 
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfileByUserGenderAsync(Guid? cursor, string gender, int pageSize, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by ids.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profile by account.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.Where(profile => profile.UserProfileGender.ToString() == gender);
@@ -105,10 +126,12 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfileByPhoneNumberAsync(Guid? cursor, string phoneNumber, int pageSize,
             CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked profile.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Checking profile existence.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.Where(profile => profile.UserProfilePhoneNumber != null && profile.UserProfilePhoneNumber.Contains(phoneNumber));
@@ -120,10 +143,12 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
 
         public async Task<RecordBaseCursorPage<UserProfileModel>> GetProfileByAddressAsync(Guid? cursor, string address, int pageSize, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading profiles by address.");
             ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
             var query = _db.UserProfiles.AsNoTracking();
             if (cursor.HasValue)
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Applying profile paging cursor.");
                 query = query.Where(profile => profile.UserProfileAccountId < cursor.Value);
             }
             query = query.Where(profile => profile.UserProfileAddress != null && profile.UserProfileAddress.Contains(address));

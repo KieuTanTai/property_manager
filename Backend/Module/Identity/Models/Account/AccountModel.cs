@@ -33,7 +33,7 @@ namespace Identity.Models.Account
             AccountIsActive = accountIsActive;
         }
 
-        public AccountModel(Guid accountId, string? accountEmail, string? accountPassword, bool accountIsActive)
+        public AccountModel(Guid accountId, string accountEmail, string? accountPassword, bool accountIsActive)
         {
             AccountId = accountId;
             AccountEmail = accountEmail;
@@ -51,7 +51,7 @@ namespace Identity.Models.Account
 
         public Guid AccountId { get; init; }
 
-        [MaxLength(255)] public string? AccountEmail { get; private set; } = string.Empty;
+        [MaxLength(255)] public string AccountEmail { get; private set; } = string.Empty;
 
         [MaxLength(255)] public string? AccountPassword { get; private set; } = string.Empty;
 

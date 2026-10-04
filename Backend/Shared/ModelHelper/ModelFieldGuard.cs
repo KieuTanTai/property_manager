@@ -22,5 +22,10 @@ namespace Shared.ModelHelper
 
             return value;
         }
+
+        public static bool ValidateIds(Guid id, IReadOnlyList<Guid>? ids)
+        {
+            return id != Guid.Empty && ids is { Count: > 0 } && ids.All(gid => gid != Guid.Empty);
+        }
     }
 }

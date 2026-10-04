@@ -12,6 +12,7 @@ namespace Identity.Interfaces.IApplication
         Task<int> InactiveAccountAsync(string email, string password, CancellationToken cancellationToken = default);
 
         // Methods for admins
+        Task<int> ActiveAccountByAdminAsync(string email, CancellationToken cancellationToken = default);
         Task<int> InactiveAccountByAdminAsync(Guid accountId, CancellationToken cancellationToken = default);
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, CancellationToken cancellationToken = default);
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, bool isGetProfile, CancellationToken cancellationToken = default);

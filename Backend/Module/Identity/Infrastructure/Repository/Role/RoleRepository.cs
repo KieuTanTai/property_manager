@@ -3,17 +3,27 @@ using Identity.Interfaces.IRepository;
 using Identity.Models.Role;
 using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.Role
 {
-    public class RoleRepository(IdentityDbContext context) : IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid>
+    public class RoleRepository(
+        IdentityDbContext context,
+        ILogger<RoleRepository> logger,
+        ILogPool logPool) : IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid>
     {
         private readonly IdentityDbContext _db = context;
+        private readonly ILogger<RoleRepository> _logger = logger;
+        private readonly ILogPool _logPool = logPool;
+        private const string Module = "identity";
+        private const string Layer = "repository";
 
         #region GET
 
         public async Task<IReadOnlyList<RoleModel>> GetAllAsync(CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all roles.");
             return await _db.Roles
                 .Include(role => role.Permissions)
                 .AsNoTracking()
@@ -22,32 +32,38 @@ namespace Identity.Infrastructure.Repository.Role
 
         public async Task<RoleModel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading role by id.");
             return await _db.Roles.AsNoTracking().FirstOrDefaultAsync(role => role.RoleId == id, cancellationToken);
         }
 
         public async Task<IReadOnlyList<RoleModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading roles by ids.");
             return await _db.Roles.AsNoTracking().Where(role => ids.Contains(role.RoleId)).ToListAsync(cancellationToken);
         }
         
         public async Task<RoleModel?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked role.");
             return await _db.Roles.FirstOrDefaultAsync(role => role.RoleId == id, cancellationToken);
         }
 
         public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Checking role existence.");
             return await _db.Roles.AnyAsync(role => role.RoleId == id, cancellationToken);
         }
 
         public async Task<IReadOnlyList<RoleModel>> GetByNameAsync(string name,
             CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading roles by name.");
             return await _db.Roles.AsNoTracking().Where(role => role.RoleName == name).ToListAsync(cancellationToken);
         }
 
         public async Task<RoleModel?> GetByCodeAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading role by code.");
             var code = roleCode.ToString().ToLower();
             return await _db.Roles
                 .Include(role => role.Permissions)
@@ -57,6 +73,7 @@ namespace Identity.Infrastructure.Repository.Role
         public async Task<IReadOnlyList<RoleModel>> GetByDescriptionAsync(string description,
             CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading roles by description.");
             return await _db.Roles.AsNoTracking().Where(role => role.RoleDescription == description)
                 .ToListAsync(cancellationToken);
         }
@@ -64,6 +81,7 @@ namespace Identity.Infrastructure.Repository.Role
         public async Task<IReadOnlyList<RoleModel>> GetByActiveStatus(bool isActive,
             CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading roles by active status.");
             return await _db.Roles.AsNoTracking().Where(role => role.RoleIsActive == isActive)
                 .ToListAsync(cancellationToken);
         }
@@ -74,8 +92,10 @@ namespace Identity.Infrastructure.Repository.Role
 
         public async Task AddAsync(RoleModel entity, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing to add role.");
             if (string.IsNullOrWhiteSpace(entity.RoleName))
             {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing to update role.");
                 throw new ArgumentException("RoleModel name is required.", nameof(entity.RoleName));
             }
 
@@ -88,6 +108,7 @@ namespace Identity.Infrastructure.Repository.Role
             }
 
             await _db.Roles.AddAsync(entity, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Role staged for creation.");
         }
 
         public async Task UpdateAsync(RoleModel entity, CancellationToken cancellationToken = default)
@@ -121,6 +142,7 @@ namespace Identity.Infrastructure.Repository.Role
                 }
             }
             _db.Roles.Update(entity);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Role staged for update.");
         }
 
         #endregion

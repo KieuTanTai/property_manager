@@ -4,27 +4,44 @@ using Identity.Interfaces.IRepository;
 using Identity.Models.Profile;
 using Shared.Enum;
 using Shared.Interfaces;
+using Shared.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Identity.Application
 {
-    public partial class UserProfileApplication(IUnitOfWork unitOfWork, IUserProfileRepository userProfileRepository) : IUserProfileApplication
+    public partial class UserProfileApplication(
+        IUnitOfWork unitOfWork,
+        IUserProfileRepository userProfileRepository,
+        ILogger<UserProfileApplication> logger,
+        ILogPool logPool) : IUserProfileApplication
     {
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
+        private readonly ILogger<UserProfileApplication> _logger = logger;
+        private readonly ILogPool _logPool = logPool;
+
+        private const string Module = "identity";
+        private const string Layer = "application";
 
 
         #region GET
 
         public async Task<UserProfileModel> GetProfileInfoAsync<T>(T id, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup operation started.");
             var result = id switch
             {
                 string identityCode => await _userProfileRepository.GetByIdAsync(identityCode, cancellationToken),
                 Guid accountId => await _userProfileRepository.GetUserProfileAsync(accountId, cancellationToken),
-                _ => throw new ArgumentException("Invalid id type")
+                _ => throw InvalidIdType()
             };
-            return result ?? throw new Exception("fail to get profile");
+            if (result is null)
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup returned no profile.");
+                throw new InvalidOperationException("Profile was not found.");
+            }
+            return result;
         }
 
         #endregion
@@ -33,8 +50,10 @@ namespace Identity.Application
 
         public async Task<UserProfileModel> UpdateProfileInfoAsync(UserProfileModel userProfile, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update operation started.");
             if (string.IsNullOrWhiteSpace(userProfile.UserProfileId) || userProfile.UserProfileId.Length != 12)
             {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update rejected because the identity code is invalid.");
                 throw new ArgumentException("identity code is required and must be 12 digits");
             }
             if (!string.IsNullOrWhiteSpace(userProfile.UserProfilePhoneNumber))
@@ -46,35 +65,64 @@ namespace Identity.Application
                 }
                 else
                 {
+                    _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update rejected because the phone number is invalid.");
                     throw new ArgumentException("Invalid phone number format.");
                 }
             }
 
             try
             {
-                Console.WriteLine(userProfile.UserProfileGender is ESystemUserGender.Male);
                 await _userProfileRepository.UpdateAsync(userProfile, cancellationToken);
                 var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-                Console.WriteLine(affectRows);
-                return affectRows == 0 ? throw new ArgumentException("Failed to update user profile.") : userProfile;
+                if (affectRows == 0)
+                {
+                    _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Profile update saved no rows."), "Profile update persistence failed.");
+                    throw new InvalidOperationException("Failed to update user profile.");
+                }
+                _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update completed.");
+                return userProfile;
+            }
+            catch (OperationCanceledException canceledException)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Profile update operation was canceled.");
+                throw new OperationCanceledException("Profile update was canceled.", canceledException);
+            }
+            catch (ArgumentException argumentException)
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update operation rejected by validation.");
+                throw new ArgumentException("Profile update request is invalid.", argumentException);
             }
             catch (Exception ex)
             {
-                throw new ArgumentException($"Failed to update user profile. \n {ex.Message}", ex);
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Profile update operation failed.");
+                throw new InvalidOperationException("Failed to update user profile.", ex);
             }
         }
 
         public async Task<UserProfileModel> CreateBaseProfileInfoAsync(string identityCode, Guid accountId, CancellationToken cancellationToken = default)
         {
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation operation started.");
             // method will raise an argument exception or argument null exception if failed to create a user profile. (check on constructor)
             var baseProfile = new UserProfileModel(identityCode, accountId);
             await _userProfileRepository.AddAsync(baseProfile, cancellationToken);
 
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            return affectRows == 0 ? throw new Exception("Failed to create user profile.") : baseProfile;
+            if (affectRows == 0)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Profile creation saved no rows."), "Profile creation persistence failed.");
+                throw new InvalidOperationException("Failed to create user profile.");
+            }
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation completed.");
+            return baseProfile;
         }
 
         #endregion
+
+        private ArgumentException InvalidIdType()
+        {
+            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup rejected because the identifier type is invalid.");
+            return new ArgumentException("Invalid id type");
+        }
 
         #region PRIVATE
 

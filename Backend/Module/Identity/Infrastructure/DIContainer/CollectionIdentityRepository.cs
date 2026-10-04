@@ -1,4 +1,5 @@
 using Identity.Infrastructure.Persistence.DbContext;
+using Shared.Logging;
 using Identity.Infrastructure.Repository;
 using Identity.Infrastructure.Repository.AccountRepository;
 using Identity.Infrastructure.Repository.Permission;
@@ -43,6 +44,7 @@ namespace Identity.Infrastructure.DIContainer
 
             #region REPOSITORY
 
+            services.AddSingleton<ILogPool, LogPool>();
             services.AddScoped<IUnitOfWork, EfIdentityUnitOfWork>();
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid>, RoleRepository>();
