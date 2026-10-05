@@ -1,4 +1,5 @@
 using Contract.Models.Contract;
+using Contract.Models.Regulation;
 using Shared.Interfaces;
 using Shared.Persistence.Record;
 

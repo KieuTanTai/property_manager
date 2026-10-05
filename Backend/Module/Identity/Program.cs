@@ -3,11 +3,11 @@ using Identity.Infrastructure.DIContainer;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddIdentityRepositoryCollection(builder.Configuration, builder.Environment);
-builder.Services.AddIdentityApplicationCollection(builder.Configuration, builder.Environment);
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddIdentityRepositoryCollection(builder.Configuration, builder.Environment);
+builder.Services.AddIdentityApplicationCollection(builder.Configuration);
 
 if (builder.Environment.IsDevelopment())
 {

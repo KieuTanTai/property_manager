@@ -1,6 +1,7 @@
 using Contract.Infrastructure.Persistence.DbContext;
 using Contract.Interfaces.IRepository;
 using Contract.Models.Contract;
+using Contract.Models.Regulation;
 using Microsoft.EntityFrameworkCore;
 using Shared.Logging;
 using Shared.Persistence;

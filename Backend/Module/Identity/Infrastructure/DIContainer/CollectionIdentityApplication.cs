@@ -10,7 +10,7 @@ namespace Identity.Infrastructure.DIContainer
 {
     public static class CollectionIdentityApplication
     {
-        public static IServiceCollection AddIdentityApplicationCollection(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+        public static IServiceCollection AddIdentityApplicationCollection(this IServiceCollection services, IConfiguration configuration)
         {
             #region CONFIG
 

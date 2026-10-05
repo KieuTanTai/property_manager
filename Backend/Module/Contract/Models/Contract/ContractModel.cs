@@ -1,4 +1,5 @@
 using Contract.Models.Invoice;
+using Contract.Models.Regulation;
 using Contract.Utils.Enum;
 
 namespace Contract.Models.Contract

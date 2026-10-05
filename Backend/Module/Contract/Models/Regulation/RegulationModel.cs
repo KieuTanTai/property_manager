@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Contract.Models.Contract
+namespace Contract.Models.Regulation
 {
     public class RegulationModel
     {

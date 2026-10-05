@@ -1,5 +1,6 @@
 using Contract.Models.Contract;
 using Contract.Models.Invoice;
+using Contract.Models.Regulation;
 using Microsoft.EntityFrameworkCore;
 using MySql.EntityFrameworkCore.Extensions;
 using MySqlModelBuilderExtensions=
