@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using Premise.Infrastructures.Persistence.DbContext;
+using Premise.Infrastructure.Persistence.DbContext;
 using Premise.Interfaces.Location;
 using Premise.Models.Premise;
 using Shared.Logging;
 
-namespace Premise.Infrastructures.Repository.PremiseRepository
+namespace Premise.Infrastructure.Repository.PremiseRepository
 {
     public class LocationRepository(
         PremiseDbContext context,

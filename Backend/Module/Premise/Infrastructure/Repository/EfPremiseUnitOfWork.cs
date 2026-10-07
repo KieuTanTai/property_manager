@@ -1,8 +1,8 @@
-using Premise.Infrastructures.Persistence.DbContext;
+using Premise.Infrastructure.Persistence.DbContext;
 using Shared.Interfaces;
 using Shared.Logging;
 
-namespace Premise.Infrastructures.Repository
+namespace Premise.Infrastructure.Repository
 {
     public class EfPremiseUnitOfWork(
         PremiseDbContext context,

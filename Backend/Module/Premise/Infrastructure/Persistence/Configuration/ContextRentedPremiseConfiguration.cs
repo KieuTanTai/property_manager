@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Premise.Models.Premise;
 
-namespace Premise.Infrastructures.Persistence.Configuration
+namespace Premise.Infrastructure.Persistence.Configuration
 {
     public sealed class ContextRentedPremiseConfiguration : IEntityTypeConfiguration<RentedPremiseModel>
     {

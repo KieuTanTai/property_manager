@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Premise.Infrastructures.Persistence.DbContext;
+using Premise.Infrastructure.Persistence.DbContext;
 using Premise.Interfaces.IRepository;
 using Premise.Models.Premise;
 using Shared.Enum;
@@ -7,7 +7,7 @@ using Shared.Logging;
 using Shared.Persistence;
 using Shared.Persistence.Record;
 
-namespace Premise.Infrastructures.Repository.PremiseRepository
+namespace Premise.Infrastructure.Repository.PremiseRepository
 {
     public class PremiseRepository(
         PremiseDbContext context,

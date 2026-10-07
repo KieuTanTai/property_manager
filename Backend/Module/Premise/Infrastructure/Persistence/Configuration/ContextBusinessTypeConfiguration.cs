@@ -5,7 +5,7 @@ using Premise.Models.Business;
 using Premise.Models.Premise;
 using Premise.Models.Product;
 
-namespace Premise.Infrastructures.Persistence.Configuration
+namespace Premise.Infrastructure.Persistence.Configuration
 {
     public sealed class ContextBusinessTypeConfiguration : IEntityTypeConfiguration<BusinessTypeModel>
     {

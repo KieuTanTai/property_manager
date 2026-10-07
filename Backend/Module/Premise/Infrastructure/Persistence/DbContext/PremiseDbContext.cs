@@ -6,7 +6,7 @@ using Premise.Models.Product;
 using MySqlModelBuilderExtensions=
     MySql.EntityFrameworkCore.Extensions.MySQLModelBuilderExtensions;
 
-namespace Premise.Infrastructures.Persistence.DbContext
+namespace Premise.Infrastructure.Persistence.DbContext
 {
     public sealed class PremiseDbContext(DbContextOptions<PremiseDbContext> contextOptions)
         : Microsoft.EntityFrameworkCore.DbContext(contextOptions)

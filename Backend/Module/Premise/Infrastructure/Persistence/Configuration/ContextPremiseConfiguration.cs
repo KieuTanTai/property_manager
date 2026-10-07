@@ -4,7 +4,7 @@ using MySql.EntityFrameworkCore.Extensions;
 using Premise.Models.Business;
 using Premise.Models.Premise;
 
-namespace Premise.Infrastructures.Persistence.Configuration
+namespace Premise.Infrastructure.Persistence.Configuration
 {
     public sealed class ContextPremiseConfiguration : IEntityTypeConfiguration<PremiseModel>
     {
