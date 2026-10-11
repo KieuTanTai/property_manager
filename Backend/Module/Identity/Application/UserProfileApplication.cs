@@ -53,7 +53,7 @@ namespace Identity.Application
             return new ArgumentException("Invalid id type");
         }
 
-        #region POST
+        #region UPSERT
 
         public async Task<UserProfileModel> UpdateProfileInfoAsync(UserProfileModel userProfile, CancellationToken cancellationToken = default)
         {

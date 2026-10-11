@@ -85,7 +85,7 @@ namespace Contract.Application
 
         #endregion
 
-        #region WRITE
+        #region UPSERT
 
         public async Task<RegulationModel> AddAsync(RegulationModel regulation,
             CancellationToken cancellationToken = default)
@@ -154,7 +154,7 @@ namespace Contract.Application
 
         #endregion
 
-        #region Private
+        #region PRIVATE
 
         private async Task<RecordBaseCursorPage<RegulationModel>> GetApplyingAsync(Func<Guid?, int, CancellationToken, Task<RecordBaseCursorPage<RegulationModel>>> getPageFunc, Guid? cursor, int pageSize, CancellationToken cancellationToken)
         {
