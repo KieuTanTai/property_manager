@@ -34,7 +34,7 @@ namespace Identity.Infrastructure.Repository.RoleRepository
                     "Role permission association rejected because an id is missing.");
                 throw exception;
             }
-            var existedRolePermission = await GetByIdAsync(entity.RoleId, entity.PermissionId, cancellationToken);
+            var existedRolePermission = await GetByIdsAsync(entity.RoleId, entity.PermissionId, cancellationToken);
             if (existedRolePermission is not null)
             {
                 var exception = new InvalidOperationException("RoleModel permission already exist!");
@@ -86,7 +86,7 @@ namespace Identity.Infrastructure.Repository.RoleRepository
                     "Role permission deletion rejected because an id is missing.");
                 throw exception;
             }
-            var existedRolePermission = await GetByIdAsync(firstForeignId, secondForeignId, cancellationToken);
+            var existedRolePermission = await GetByIdsAsync(firstForeignId, secondForeignId, cancellationToken);
             if (existedRolePermission is null)
             {
                 var exception = new InvalidOperationException("RoleModel permission not found!");
@@ -153,7 +153,7 @@ namespace Identity.Infrastructure.Repository.RoleRepository
             return await _db.RolePermissions.AsNoTracking().Where(rolePermission => rolePermission.PermissionId == secondForeignId).ToListAsync(cancellationToken);
         }
 
-        public async Task<RolePermissionModel?> GetByIdAsync(Guid firstForeignId, Guid secondForeignId,
+        public async Task<RolePermissionModel?> GetByIdsAsync(Guid firstForeignId, Guid secondForeignId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading role permission association by first and second foreign id.");

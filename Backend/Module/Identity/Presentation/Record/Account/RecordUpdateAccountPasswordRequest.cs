@@ -8,9 +8,9 @@ namespace Identity.Presentation.Record.Account
         string Email,
         [Required]
         [DataType(DataType.Password)]
-        string NewPassword,
+        string OldPassword,
         [Required]
         [DataType(DataType.Password)]
-        string OldPassword
+        string NewPassword
     );
 }

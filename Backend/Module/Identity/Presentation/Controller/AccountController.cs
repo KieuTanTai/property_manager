@@ -154,13 +154,6 @@ namespace Identity.Presentation.Controller
         public async Task<ActionResult<RecordAuthResponse>> RegisterAsync([FromBody] RecordAuthRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account registration request received.");
-            var (isValid, errorMessage) = _helper.ValidateEmailAndPassword(requestDto.Email, requestDto.Password);
-            if (!isValid)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account registration request rejected because validation failed.");
-                return BadRequest(errorMessage);
-            }
-
             try
             {
                 var result = await _accountApplication.RegisterAsync(requestDto.Email, requestDto.Password, cancellationToken);
@@ -184,12 +177,6 @@ namespace Identity.Presentation.Controller
         public async Task<IActionResult> LoginAsync([FromBody] RecordAuthRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account login request received.");
-            var (isValid, errorMessage) = _helper.ValidateEmailAndPassword(requestDto.Email, requestDto.Password);
-            if (!isValid)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account login request rejected because validation failed.");
-                return BadRequest(errorMessage);
-            }
             try
             {
                 var result = await _accountApplication.LoginAsync(requestDto.Email, requestDto.Password, cancellationToken);
@@ -244,27 +231,10 @@ namespace Identity.Presentation.Controller
         }
 
         [RequireHttps]
-        [HttpPost("password/change")]
+        [HttpPut("password/change")]
         public async Task<IActionResult> ChangePasswordAsync([FromBody] RecordUpdateAccountPasswordRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account password change request received.");
-            var (isValid, errorMessage) = _helper.ValidateEmailAndPassword(requestDto.Email, requestDto.OldPassword);
-            if (!isValid)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Password change request rejected because validation failed.");
-                return BadRequest(errorMessage);
-            }
-            if (string.IsNullOrWhiteSpace(requestDto.NewPassword))
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Password change request rejected because the new password is missing.");
-                return BadRequest("New password is required.");
-            }
-            if (string.CompareOrdinal(requestDto.OldPassword, requestDto.NewPassword) == 0)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Password change request rejected because passwords are equal.");
-                return BadRequest("New password must be different from old password.");
-            }
-
             try
             {
                 var result = await _accountApplication.ChangePasswordAsync(requestDto.Email, requestDto.OldPassword, requestDto.NewPassword, cancellationToken);
@@ -286,7 +256,7 @@ namespace Identity.Presentation.Controller
         }
 
         [RequireHttps]
-        [HttpPost("active")]
+        [HttpPut("active")]
         public async Task<IActionResult> ActiveAccountByAdminAsync([FromBody] string email, CancellationToken cancellationToken = default)
         {
             if (!_helper.IsEmailValid(email))
@@ -351,7 +321,7 @@ namespace Identity.Presentation.Controller
         }
 
         [RequireHttps]
-        [HttpPost("update-range")]
+        [HttpPut("update-range")]
         public async Task<IActionResult> UpdateAccountsRangeAsync([FromBody] List<AccountModel> accounts, CancellationToken cancellationToken = default)
         {
             if (!accounts.Any())
@@ -388,18 +358,6 @@ namespace Identity.Presentation.Controller
         [HttpDelete("delete")]
         public async Task<IActionResult> InactiveAccountAsync([FromBody] RecordInactiveAccountRequest requestDto, CancellationToken cancellationToken = default)
         {
-            var (isValid, errorMessage) = _helper.ValidateEmailAndPassword(requestDto.Email, requestDto.Password);
-            if (!isValid)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account deactivation request rejected because validation failed.");
-                return BadRequest(errorMessage);
-            }
-            if (string.CompareOrdinal(requestDto.Password, requestDto.ConfirmPassword) != 0)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account deactivation request rejected because confirmation failed.");
-                return BadRequest("Password and confirm password do not match.");
-            }
-
             try
             {
                 var result = await _accountApplication.InactiveAccountAsync(requestDto.Email, requestDto.Password, cancellationToken);

@@ -264,7 +264,7 @@ Chứa kiểu dữ liệu hoặc placeholder liên quan credential/secret khi mo
 
 ## 6. Shared project
 
-`Backend/Shared` là project chứa các extension, abstraction và thành phần dùng chung cho nhiều module. Shared không chứa nghiệp vụ riêng của Identity, Premise, Contract hay TicketAndNotification.
+`../../CSharp/Monolith_To_MicroService/Backend/Shared` là project chứa các extension, abstraction và thành phần dùng chung cho nhiều module. Shared không chứa nghiệp vụ riêng của Identity, Premise, Contract hay TicketAndNotification.
 
 ```text
 Shared/

@@ -53,7 +53,7 @@ namespace Identity.Application
             await IsValidForRegisterAsync(email, password, cancellationToken);
 
             var accountModel = new AccountModel(email, password, true, true);
-            var hashedPassword = _accountHelper.GetPasswordHash(accountModel, password);
+            var hashedPassword = _accountHelper.GetHashPassword(accountModel, password);
             accountModel.SetHashedPassword(hashedPassword);
 
             var baseRole = await _roleApplication.GetBaseRolesForUserAsync(cancellationToken);
@@ -81,7 +81,7 @@ namespace Identity.Application
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Login rejected because the account is inactive.");
                 throw new InvalidOperationException("Account is not active.");
             }
-            var result = !_accountHelper.PasswordVerify(accountModel, password, accountModel.AccountPassword!)
+            var result = !_accountHelper.VerifyPassword(accountModel, password, accountModel.AccountPassword!)
                 ? throw InvalidPassword()
                 : accountModel;
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account login completed.");
@@ -117,13 +117,13 @@ namespace Identity.Application
                 throw new InvalidOperationException("Account is not active.");
             }
 
-            if (!_accountHelper.PasswordVerify(accountModel, oldPassword, accountModel.AccountPassword!))
+            if (!_accountHelper.VerifyPassword(accountModel, oldPassword, accountModel.AccountPassword!))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Password change rejected because the current password is invalid.");
                 throw new InvalidOperationException("Account password is invalid.");
             }
 
-            var hashedPassword = _accountHelper.GetPasswordHash(accountModel, newPassword);
+            var hashedPassword = _accountHelper.GetHashPassword(accountModel, newPassword);
             accountModel.SetHashedPassword(hashedPassword);
             await _accountRepository.UpdateAsync(accountModel, cancellationToken);
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -141,7 +141,7 @@ namespace Identity.Application
             _logger.LogLayerDebug(_logPool, Module, Layer, "Self-deactivate account operation started.");
             CheckValidEmailAndPassword(email, password);
             var accountModel = await GetAccountByEmailAsync(email, true, cancellationToken);
-            if (!_accountHelper.PasswordVerify(accountModel, password, accountModel.AccountPassword!))
+            if (!_accountHelper.VerifyPassword(accountModel, password, accountModel.AccountPassword!))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account deactivation rejected because the password is invalid.");
                 throw new InvalidOperationException("Account password is invalid.");

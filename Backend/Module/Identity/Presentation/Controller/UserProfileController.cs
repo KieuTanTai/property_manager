@@ -71,12 +71,6 @@ namespace Identity.Presentation.Controller
             CancellationToken cancellationToken)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation request received.");
-            if (string.IsNullOrWhiteSpace(requestDto.IdentityCode) || requestDto.IdentityCode.Length != 12)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile creation request rejected because the identity code is invalid.");
-                return BadRequest("identity code is required and must be 12 digits");
-            }
-
             try
             {
                 var result = await _userProfileApplication.CreateBaseProfileInfoAsync(requestDto.IdentityCode, requestDto.AccountId, cancellationToken);
@@ -96,7 +90,7 @@ namespace Identity.Presentation.Controller
         }
 
         [RequireHttps]
-        [HttpPost("update")]
+        [HttpPut("update")]
         public async Task<ActionResult<RecordProfileResponse>> UpdateUserProfileAsync([FromBody] RecordUpdateProfileRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update request received.");
