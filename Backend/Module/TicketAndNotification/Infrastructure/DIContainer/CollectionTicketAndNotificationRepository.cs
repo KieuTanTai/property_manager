@@ -7,6 +7,7 @@ using TicketAndNotification.Infrastructure.Repository;
 using TicketAndNotification.Infrastructure.Repository.NotificationRepository;
 using TicketAndNotification.Infrastructure.Repository.TicketRepository;
 using TicketAndNotification.Interfaces.Repository;
+using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Infrastructure.DIContainer
 {
@@ -40,8 +41,7 @@ namespace TicketAndNotification.Infrastructure.DIContainer
             services.AddScoped<ITicketRepository, TicketRepository>();
             services.AddScoped<ITicketMediaRepository, TicketMediaRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
-            services.AddScoped<INotificationRecipientRepository,
-                NotificationRecipientRepository>();
+            services.AddScoped<IBaseAssociativeRepository<NotificationRecipientModel, Guid>, NotificationRecipientRepository>();
 
             return services;
         }

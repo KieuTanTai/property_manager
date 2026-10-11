@@ -5,7 +5,7 @@ using Shared.Persistence.Record;
 
 namespace Contract.Interfaces.IRepository
 {
-    public interface IMonthlyInvoiceRepository : IBaseReadRepository<MonthlyInvoiceModel, Guid>, IBasePostRepository<MonthlyInvoiceModel>
+    public interface IMonthlyInvoiceRepository : IBaseReadRepository<MonthlyInvoiceModel, Guid>, IBaseUpsertRepository<MonthlyInvoiceModel>
     {
         Task<IReadOnlyList<MonthlyInvoiceModel>> GetByContractIdAsync(Guid contractId,
             CancellationToken cancellationToken = default);

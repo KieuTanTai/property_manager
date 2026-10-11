@@ -5,7 +5,7 @@ using Shared.Persistence.Record;
 
 namespace Premise.Interfaces.IRepository
 {
-    public interface IPremiseRepository : IBaseReadRepository<PremiseModel, Guid>, IBasePostRepository<PremiseModel>
+    public interface IPremiseRepository : IBaseReadRepository<PremiseModel, Guid>, IBaseUpsertRepository<PremiseModel>
     {
         Task<RecordBaseCursorPage<PremiseModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
             CancellationToken cancellationToken = default);

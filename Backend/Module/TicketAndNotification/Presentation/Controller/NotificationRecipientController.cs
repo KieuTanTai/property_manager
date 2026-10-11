@@ -118,13 +118,7 @@ namespace TicketAndNotification.Presentation.Controller
                     request.NotificationId, request.AccountId);
                 var result = await _recipientApplication.AddAsync(
                     recipient, cancellationToken);
-                return CreatedAtAction(nameof(GetByIdAsync),
-                    new
-                    {
-                        notificationId = result.NotificationId,
-                        accountId = result.AccountId
-                    },
-                    result);
+                return Ok(result);
             }
             catch (Exception exception)
             {
@@ -147,9 +141,9 @@ namespace TicketAndNotification.Presentation.Controller
                 var recipients = requests.Select(request =>
                     new NotificationRecipientModel(
                         request.NotificationId, request.AccountId));
-                var count = await _recipientApplication.AddRangeAsync(
+                var affectedRows = await _recipientApplication.AddRangeAsync(
                     recipients, cancellationToken);
-                return Ok(new { affectedRows = count });
+                return Ok(affectedRows);
             }
             catch (Exception exception)
             {

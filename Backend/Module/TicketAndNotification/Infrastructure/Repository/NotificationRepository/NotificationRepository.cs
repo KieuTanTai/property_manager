@@ -178,6 +178,23 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<bool> ExistsAsync(
+            Guid notificationId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Checking if notification exists by id.");
+            return await _db.Notifications.AsNoTracking()
+                .AnyAsync(notification => notification.NotificationId == notificationId,
+                    cancellationToken);
+        }
+
+        public Task<NotificationModel?> GetTrackedByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked notification by id.");
+            return _db.Notifications.FirstOrDefaultAsync(notification => notification.NotificationId == id, cancellationToken);
+        }
+
         #endregion
     }
 }

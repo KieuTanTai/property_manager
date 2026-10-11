@@ -9,7 +9,7 @@ namespace TicketAndNotification.Application
 {
     public class NotificationRecipientApplication(
         IUnitOfWork unitOfWork,
-        INotificationRecipientRepository recipientRepository,
+        IBaseAssociativeRepository<NotificationRecipientModel, Guid> recipientRepository,
         INotificationRepository notificationRepository,
         INotificationRealtimePublisher notificationPublisher,
         ILogger<NotificationRecipientApplication> logger,
@@ -19,7 +19,7 @@ namespace TicketAndNotification.Application
         private const string Layer = "Application";
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly INotificationRecipientRepository _recipientRepository = recipientRepository;
+        private readonly IBaseAssociativeRepository<NotificationRecipientModel, Guid> _recipientRepository = recipientRepository;
         private readonly INotificationRepository _notificationRepository = notificationRepository;
         private readonly INotificationRealtimePublisher _notificationPublisher = notificationPublisher;
         private readonly ILogger<NotificationRecipientApplication> _logger = logger;
@@ -34,19 +34,19 @@ namespace TicketAndNotification.Application
         public Task<IReadOnlyList<NotificationRecipientModel>> GetByNotificationIdAsync(
             Guid notificationId,
             CancellationToken cancellationToken = default) =>
-            _recipientRepository.GetByNotificationIdAsync(
+            _recipientRepository.GetByFirstForeignIdAsync(
                 notificationId, cancellationToken);
 
         public Task<IReadOnlyList<NotificationRecipientModel>> GetByAccountIdAsync(
             Guid accountId,
             CancellationToken cancellationToken = default) =>
-            _recipientRepository.GetByAccountIdAsync(accountId, cancellationToken);
+            _recipientRepository.GetBySecondForeignIdAsync(accountId, cancellationToken);
 
         public Task<NotificationRecipientModel?> GetByIdAsync(
             Guid notificationId,
             Guid accountId,
             CancellationToken cancellationToken = default) =>
-            _recipientRepository.GetByIdAsync(
+            _recipientRepository.GetByIdsAsync(
                 notificationId, accountId, cancellationToken);
 
         #endregion

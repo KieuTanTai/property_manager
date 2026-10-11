@@ -1,36 +1,11 @@
 using Shared.Enum;
+using Shared.Interfaces;
 using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Interfaces.Repository
 {
-    public interface INotificationRepository
+    public interface INotificationRepository : IBaseReadRepository<NotificationModel, Guid>, IBaseUpsertRepository<NotificationModel>
     {
-        Task AddAsync(
-            NotificationModel notification,
-            CancellationToken cancellationToken = default);
-
-        Task AddRangeAsync(
-            IEnumerable<NotificationModel> notifications,
-            CancellationToken cancellationToken = default);
-
-        Task UpdateAsync(
-            NotificationModel notification,
-            CancellationToken cancellationToken = default);
-
-        void UpdateRange(
-            IEnumerable<NotificationModel> notifications,
-            CancellationToken cancellationToken = default);
-
-        Task<IReadOnlyList<NotificationModel>> GetAllAsync(
-            CancellationToken cancellationToken = default);
-
-        Task<NotificationModel?> GetByIdAsync(
-            Guid notificationId,
-            CancellationToken cancellationToken = default);
-
-        Task<IReadOnlyList<NotificationModel>> GetByIdsAsync(
-            IEnumerable<Guid> notificationIds,
-            CancellationToken cancellationToken = default);
 
         Task<IReadOnlyList<NotificationModel>> GetBySenderAccountIdAsync(
             Guid senderAccountId,

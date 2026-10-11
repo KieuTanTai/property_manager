@@ -162,8 +162,7 @@ namespace TicketAndNotification.Presentation.Controller
             {
                 var ticket = new TicketModel(request.AccountId, request.Content, request.Type);
                 var result = await _ticketApplication.AddAsync(ticket, cancellationToken);
-                return CreatedAtAction(nameof(GetByIdAsync),
-                    new { ticketId = result.TicketId }, result);
+                return Ok(result);
             }
             catch (Exception exception)
             {
@@ -185,8 +184,8 @@ namespace TicketAndNotification.Presentation.Controller
             {
                 var tickets = requests.Select(request =>
                     new TicketModel(request.AccountId, request.Content, request.Type));
-                var count = await _ticketApplication.AddRangeAsync(tickets, cancellationToken);
-                return Ok(new { affectedRows = count });
+                var affectRows = await _ticketApplication.AddRangeAsync(tickets, cancellationToken);
+                return Ok(affectRows);
             }
             catch (Exception exception)
             {
@@ -237,9 +236,9 @@ namespace TicketAndNotification.Presentation.Controller
                     request.Content,
                     request.Type,
                     request.IsResolved));
-                var count = await _ticketApplication.UpdateRangeAsync(
+                var affectedRows = await _ticketApplication.UpdateRangeAsync(
                     tickets, cancellationToken);
-                return Ok(new { affectedRows = count });
+                return Ok(affectedRows);
             }
             catch (Exception exception)
             {

@@ -171,8 +171,7 @@ namespace TicketAndNotification.Presentation.Controller
                     request.SenderAccountId, request.Content, request.Type);
                 var result = await _notificationApplication.AddAsync(
                     notification, cancellationToken);
-                return CreatedAtAction(nameof(GetByIdAsync),
-                    new { notificationId = result.NotificationId }, result);
+                return Ok(result);
             }
             catch (Exception exception)
             {
@@ -195,9 +194,9 @@ namespace TicketAndNotification.Presentation.Controller
                 var notifications = requests.Select(request =>
                     new NotificationModel(
                         request.SenderAccountId, request.Content, request.Type));
-                var count = await _notificationApplication.AddRangeAsync(
+                var affectedRows = await _notificationApplication.AddRangeAsync(
                     notifications, cancellationToken);
-                return Ok(new { affectedRows = count });
+                return Ok(affectedRows);
             }
             catch (Exception exception)
             {
@@ -250,9 +249,9 @@ namespace TicketAndNotification.Presentation.Controller
                         request.Type,
                         request.Content,
                         request.IsRead));
-                var count = await _notificationApplication.UpdateRangeAsync(
+                var affectedRows = await _notificationApplication.UpdateRangeAsync(
                     notifications, cancellationToken);
-                return Ok(new { affectedRows = count });
+                return Ok(affectedRows);
             }
             catch (Exception exception)
             {

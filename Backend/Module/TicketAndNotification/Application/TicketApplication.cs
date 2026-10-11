@@ -128,16 +128,16 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken)
         {
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            if (affectedRows == 0)
+            if (affectedRows != 0)
             {
-                var exception = new InvalidOperationException(
-                    $"Ticket persistence returned zero affected rows while attempting to {operation}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    $"Ticket operation failed to {operation}.");
-                throw exception;
+                return affectedRows;
             }
+            var exception = new InvalidOperationException(
+                $"Ticket persistence returned zero affected rows while attempting to {operation}.");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                $"Ticket operation failed to {operation}.");
+            throw exception;
 
-            return affectedRows;
         }
 
         private List<TicketModel> RequireItems(
@@ -145,16 +145,16 @@ namespace TicketAndNotification.Application
             string parameterName)
         {
             var ticketModels = tickets.ToList();
-            if (ticketModels.Count == 0)
+            if (ticketModels.Count != 0)
             {
-                var exception = new ArgumentException(
-                    "Ticket collection cannot be empty.", parameterName);
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    "Ticket batch operation rejected because the collection is empty.");
-                throw exception;
+                return ticketModels;
             }
+            var exception = new ArgumentException(
+                "Ticket collection cannot be empty.", parameterName);
+            _logger.LogLayerWarning(_logPool, Module, Layer,
+                "Ticket batch operation rejected because the collection is empty.");
+            throw exception;
 
-            return ticketModels;
         }
     }
 }

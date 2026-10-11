@@ -131,16 +131,16 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken)
         {
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            if (affectedRows == 0)
+            if (affectedRows != 0)
             {
-                var exception = new InvalidOperationException(
-                    $"Notification persistence returned zero affected rows while attempting to {operation}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    $"Notification operation failed to {operation}.");
-                throw exception;
+                return affectedRows;
             }
+            var exception = new InvalidOperationException(
+                $"Notification persistence returned zero affected rows while attempting to {operation}.");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                $"Notification operation failed to {operation}.");
+            throw exception;
 
-            return affectedRows;
         }
 
         private List<NotificationModel> RequireItems(
@@ -148,16 +148,16 @@ namespace TicketAndNotification.Application
             string parameterName)
         {
             var notificationModels = notifications.ToList();
-            if (notificationModels.Count == 0)
+            if (notificationModels.Count != 0)
             {
-                var exception = new ArgumentException(
-                    "Notification collection cannot be empty.", parameterName);
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    "Notification batch operation rejected because the collection is empty.");
-                throw exception;
+                return notificationModels;
             }
+            var exception = new ArgumentException(
+                "Notification collection cannot be empty.", parameterName);
+            _logger.LogLayerWarning(_logPool, Module, Layer,
+                "Notification batch operation rejected because the collection is empty.");
+            throw exception;
 
-            return notificationModels;
         }
     }
 }

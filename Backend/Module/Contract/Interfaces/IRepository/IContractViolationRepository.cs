@@ -6,7 +6,7 @@ namespace Contract.Interfaces.IRepository
 {
     public interface IContractViolationRepository :
         IBaseReadRepository<ContractViolationModel, Guid>,
-        IBasePostRepository<ContractViolationModel>
+        IBaseUpsertRepository<ContractViolationModel>
     {
         Task<IReadOnlyList<ContractViolationModel>> GetByContractIdAsync(Guid contractId,
             CancellationToken cancellationToken = default);

@@ -112,16 +112,16 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken)
         {
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            if (affectedRows == 0)
+            if (affectedRows != 0)
             {
-                var exception = new InvalidOperationException(
-                    $"Ticket media persistence returned zero affected rows while attempting to {operation}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    $"Ticket media operation failed to {operation}.");
-                throw exception;
+                return affectedRows;
             }
+            var exception = new InvalidOperationException(
+                $"Ticket media persistence returned zero affected rows while attempting to {operation}.");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                $"Ticket media operation failed to {operation}.");
+            throw exception;
 
-            return affectedRows;
         }
 
         private List<TicketMediaModel> RequireItems(
@@ -129,16 +129,16 @@ namespace TicketAndNotification.Application
             string parameterName)
         {
             var ticketMediaModels = ticketMedias.ToList();
-            if (ticketMediaModels.Count == 0)
+            if (ticketMediaModels.Count != 0)
             {
-                var exception = new ArgumentException(
-                    "Ticket media collection cannot be empty.", parameterName);
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    "Ticket media batch operation rejected because the collection is empty.");
-                throw exception;
+                return ticketMediaModels;
             }
+            var exception = new ArgumentException(
+                "Ticket media collection cannot be empty.", parameterName);
+            _logger.LogLayerWarning(_logPool, Module, Layer,
+                "Ticket media batch operation rejected because the collection is empty.");
+            throw exception;
 
-            return ticketMediaModels;
         }
     }
 }

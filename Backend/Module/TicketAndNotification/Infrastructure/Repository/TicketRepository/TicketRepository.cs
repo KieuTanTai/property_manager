@@ -16,8 +16,8 @@ namespace TicketAndNotification.Infrastructure.Repository.TicketRepository
         private const string Module = "TicketAndNotification";
         private const string Layer = "Infrastructure/Repository/TicketRepository";
         private readonly TicketAndNotificationDbContext _db = context;
-        private ILogger<TicketRepository> _logger = logger;
-        private ILogPool _logPool = logPool;
+        private readonly ILogger<TicketRepository> _logger = logger;
+        private readonly ILogPool _logPool = logPool;
 
         #region POST
 
@@ -170,6 +170,24 @@ namespace TicketAndNotification.Infrastructure.Repository.TicketRepository
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        public async Task<TicketModel?> GetTrackedByIdAsync(
+            Guid ticketId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked ticket by id.");
+            return await _db.Tickets
+                .FirstOrDefaultAsync(ticket => ticket.TicketId == ticketId, cancellationToken);
+        }
+        
+        public async Task<bool> ExistsAsync(
+            Guid ticketId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Checking if ticket exists by id.");
+            return await _db.Tickets.AsNoTracking()
+                .AnyAsync(ticket => ticket.TicketId == ticketId, cancellationToken);
+        }
+        
         #endregion
     }
 }

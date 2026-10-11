@@ -4,7 +4,7 @@ using Shared.Persistence.Record;
 
 namespace Identity.Interfaces.IRepository
 {
-    public interface IUserProfileRepository : IBaseReadRepository<UserProfileModel, string>, IBasePostRepository<UserProfileModel>
+    public interface IUserProfileRepository : IBaseReadRepository<UserProfileModel, string>, IBaseUpsertRepository<UserProfileModel>
     {
         Task<UserProfileModel?> GetUserProfileAsync(Guid accountId, CancellationToken cancellationToken = default);
         Task<RecordBaseCursorPage<UserProfileModel>> GetProfilePagingByFirstNameAsync(Guid? cursor, string firstName, int pageSize, CancellationToken cancellationToken = default);

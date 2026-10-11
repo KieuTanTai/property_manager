@@ -116,8 +116,7 @@ namespace TicketAndNotification.Presentation.Controller
                 var ticketMedia = new TicketMediaModel(request.TicketId, request.ImageUrl);
                 var result = await _ticketMediaApplication.AddAsync(
                     ticketMedia, cancellationToken);
-                return CreatedAtAction(nameof(GetByIdAsync),
-                    new { ticketMediaId = result.TicketMediaId }, result);
+                return Ok(result);
             }
             catch (Exception exception)
             {
@@ -139,9 +138,9 @@ namespace TicketAndNotification.Presentation.Controller
             {
                 var ticketMedias = requests.Select(request =>
                     new TicketMediaModel(request.TicketId, request.ImageUrl));
-                var count = await _ticketMediaApplication.AddRangeAsync(
+                var affectRows = await _ticketMediaApplication.AddRangeAsync(
                     ticketMedias, cancellationToken);
-                return Ok(new { affectedRows = count });
+                return Ok(affectRows);
             }
             catch (Exception exception)
             {
@@ -186,9 +185,9 @@ namespace TicketAndNotification.Presentation.Controller
                 var ticketMedias = requests.Select(request =>
                     new TicketMediaModel(
                         request.TicketMediaId, request.TicketId, request.ImageUrl));
-                var count = await _ticketMediaApplication.UpdateRangeAsync(
+                var affectRows = await _ticketMediaApplication.UpdateRangeAsync(
                     ticketMedias, cancellationToken);
-                return Ok(new { affectedRows = count });
+                return Ok(affectRows);
             }
             catch (Exception exception)
             {

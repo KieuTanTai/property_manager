@@ -1,6 +1,6 @@
 namespace Shared.Interfaces
 {
-    public interface IBasePostRepository<in T> where T : class
+    public interface IBaseUpsertRepository<in T> where T : class
     {
         // 
         Task AddAsync(T entity, CancellationToken cancellationToken = default);

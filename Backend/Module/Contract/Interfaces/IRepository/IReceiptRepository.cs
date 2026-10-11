@@ -5,7 +5,7 @@ using Shared.Persistence.Record;
 
 namespace Contract.Interfaces.IRepository
 {
-    public interface IReceiptRepository : IBaseReadRepository<ReceiptModel, Guid>, IBasePostRepository<ReceiptModel>
+    public interface IReceiptRepository : IBaseReadRepository<ReceiptModel, Guid>, IBaseUpsertRepository<ReceiptModel>
     {
         Task<ReceiptModel?> GetByInvoiceIdAsync(Guid invoiceId,
             CancellationToken cancellationToken = default);

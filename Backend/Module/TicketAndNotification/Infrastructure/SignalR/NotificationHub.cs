@@ -19,7 +19,7 @@ namespace TicketAndNotification.Infrastructure.SignalR
                 || accountId == Guid.Empty)
             {
                 logger.LogWarning(
-                    "SignalR notification connection rejected because the authenticated user has no valid account id claim.");
+                    "SignalR notification connection rejected because the authenticated user has no valid account id claim");
                 Context.Abort();
                 return;
             }

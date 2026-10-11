@@ -3,5 +3,5 @@ using Shared.Interfaces;
 
 namespace Premise.Interfaces.BusinessType
 {
-    public interface IBusinessTypeRepository : IBaseReadRepository<BusinessTypeModel, Guid>, IBasePostRepository<BusinessTypeModel> {}
+    public interface IBusinessTypeRepository : IBaseReadRepository<BusinessTypeModel, Guid>, IBaseUpsertRepository<BusinessTypeModel> {}
 }

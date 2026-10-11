@@ -144,6 +144,45 @@ namespace TicketAndNotification.Infrastructure.Repository.TicketRepository
                 .ToListAsync(cancellationToken);
         }
 
+        
+        public async Task<bool> ExistsAsync(
+            int ticketMediaId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Checking if ticket media exists by id.");
+            return await _db.TicketMedias.AsNoTracking()
+                .AnyAsync(ticketMedia => ticketMedia.TicketMediaId == ticketMediaId,
+                    cancellationToken);
+        }
+
+        public Task<TicketMediaModel?> GetTrackedByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,"Loading ticket media by id.");
+            return _db.TicketMedias
+                .FirstOrDefaultAsync(ticketMedia => ticketMedia.TicketMediaId == id, cancellationToken);
+        }
+
+        #endregion
+
+        #region Delete
+
+        public async Task DeleteByTicketIdAsync(Guid ticketId, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,"Deleting ticket media by ticket id.");
+            var ticketMedias = await _db.TicketMedias.Where(ticketMedia => ticketMedia.TicketMediaTicketId == ticketId)
+                .ToListAsync(cancellationToken);
+            if (ticketMedias.Count >= 0)
+            {
+                _db.TicketMedias.RemoveRange(ticketMedias);
+                _logger.LogLayerInformation(_logPool, Module, Layer,
+                    $"Ticket media deleted for ticket id: {ticketId}.");
+                return;
+            }
+            _logger.LogLayerWarning(_logPool, Module, Layer,
+                $"No ticket media found for ticket id: {ticketId}. Nothing to delete.");
+        }
+
         #endregion
     }
 }
