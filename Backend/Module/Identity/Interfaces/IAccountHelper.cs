@@ -8,9 +8,9 @@ namespace Identity.Interfaces
         bool IsPasswordValid(string password);
 
 
-        string GetPasswordHash(AccountModel account, string password);
+        string GetHashPassword(AccountModel account, string password);
 
-        bool PasswordVerify(AccountModel account, string password, string hash);
+        bool VerifyPassword(AccountModel account, string password, string hash);
 
         public Tuple<bool, string> ValidateEmailAndPassword(string email, string password);
     }

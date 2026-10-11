@@ -34,7 +34,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
                     "Account role association rejected because an id is missing.");
                 throw exception;
             }
-            var existedAccountRole = await GetByIdAsync(entity.AccountId, entity.RoleId, cancellationToken);
+            var existedAccountRole = await GetByIdsAsync(entity.AccountId, entity.RoleId, cancellationToken);
             if (existedAccountRole is not null)
             {
                 var exception = new InvalidOperationException("AccountModel role already exist!");
@@ -84,7 +84,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
                     "Account role lookup rejected because an id is missing.");
                 throw exception;
             }
-            var existedAccountRole = await GetByIdAsync(firstForeignId, secondForeignId, cancellationToken);
+            var existedAccountRole = await GetByIdsAsync(firstForeignId, secondForeignId, cancellationToken);
             if (existedAccountRole is null)
             {
                 var exception = new InvalidOperationException("AccountModel role not found!");
@@ -151,7 +151,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             return await _db.AccountRoles.AsNoTracking().Where(ar => ar.RoleId == secondForeignId).ToListAsync(cancellationToken);
         }
 
-        public async Task<AccountRoleModel?> GetByIdAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
+        public async Task<AccountRoleModel?> GetByIdsAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role association by account and role.");
             return await _db.AccountRoles.AsNoTracking().FirstOrDefaultAsync(ar => ar.AccountId == firstForeignId && ar.RoleId == secondForeignId, cancellationToken);

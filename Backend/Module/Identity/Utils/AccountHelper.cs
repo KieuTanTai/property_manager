@@ -54,12 +54,12 @@ namespace Identity.Utils
             return !_rules.RequiredSpecialCharacter || password.Any(char.IsPunctuation);
         }
 
-        public string GetPasswordHash(AccountModel account, string password)
+        public string GetHashPassword(AccountModel account, string password)
         {
             return _hasher.HashPassword(account, password);
         }
 
-        public bool PasswordVerify(AccountModel account, string password, string hash)
+        public bool VerifyPassword(AccountModel account, string password, string hash)
         {
             return _hasher.VerifyHashedPassword(account, hash, password) == PasswordVerificationResult.Success;
         }

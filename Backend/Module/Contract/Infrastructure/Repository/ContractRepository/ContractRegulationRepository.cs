@@ -53,7 +53,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<ContractRegulationModel?> GetByIdAsync(Guid contractId, Guid regulationId,
+        public async Task<ContractRegulationModel?> GetByIdsAsync(Guid contractId, Guid regulationId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
@@ -95,7 +95,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 throw exception;
             }
             
-            var existedAssociation = await GetByIdAsync(
+            var existedAssociation = await GetByIdsAsync(
                 entity.ContractId, entity.RegulationId, cancellationToken);
             if (existedAssociation is not null)
             {
@@ -190,7 +190,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 throw exception;
             }
 
-            var association = await GetByIdAsync(contractId, regulationId, cancellationToken);
+            var association = await GetByIdsAsync(contractId, regulationId, cancellationToken);
             if (association is null)
             {
                 var exception = new InvalidOperationException(

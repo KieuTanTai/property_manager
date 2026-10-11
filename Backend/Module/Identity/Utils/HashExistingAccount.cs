@@ -45,7 +45,7 @@ namespace Identity.Utils
                     var plainPassword = account.AccountPassword;
 
                     var hashedPassword =
-                        accountHelper.GetPasswordHash(
+                        accountHelper.GetHashPassword(
                             account,
                             plainPassword);
 

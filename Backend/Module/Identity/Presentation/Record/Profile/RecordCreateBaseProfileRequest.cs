@@ -6,7 +6,7 @@ namespace Identity.Presentation.Record.Profile
         [Required]
         Guid AccountId,
         [Required]
-        [StringLength(12)]
+        [RegularExpression("^\\d{12}$", ErrorMessage = "Identity code must contain exactly 12 digits.")]
         [DataType(DataType.Text)]
         string IdentityCode);
 }

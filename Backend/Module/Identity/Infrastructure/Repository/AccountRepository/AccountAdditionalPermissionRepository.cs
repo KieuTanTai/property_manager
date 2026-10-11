@@ -34,7 +34,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
                     "Account permission association rejected because an id is missing.");
                 throw exception;
             }
-            var existedAccountPermission = await GetByIdAsync(entity.AccountId, entity.PermissionId, cancellationToken);
+            var existedAccountPermission = await GetByIdsAsync(entity.AccountId, entity.PermissionId, cancellationToken);
             if (existedAccountPermission is not null)
             {
                 var exception = new InvalidOperationException("AccountModel permission already exist!");
@@ -77,7 +77,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             return await _db.AccountPermissions.AsNoTracking().Where(ap => ap.PermissionId == secondForeignId).ToListAsync(cancellationToken);
         }
 
-        public async Task<AccountAdditionalPermissionModel?> GetByIdAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
+        public async Task<AccountAdditionalPermissionModel?> GetByIdsAsync(Guid firstForeignId, Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account permission association.");
             return await _db.AccountPermissions.AsNoTracking().FirstOrDefaultAsync(ap => ap.AccountId == firstForeignId && ap.PermissionId == secondForeignId, cancellationToken);
@@ -135,7 +135,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
                     "Account permission deletion rejected because an id is missing.");
                 throw exception;
             }
-            var existedAccountPermission = await GetByIdAsync(firstForeignId, secondForeignId, cancellationToken);
+            var existedAccountPermission = await GetByIdsAsync(firstForeignId, secondForeignId, cancellationToken);
             if (existedAccountPermission is null)
             {
                 var exception = new InvalidOperationException("AccountModel permission not found!");

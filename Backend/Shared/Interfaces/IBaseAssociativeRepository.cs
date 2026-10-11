@@ -10,7 +10,7 @@ namespace Shared.Interfaces
         Task<IReadOnlyList<T>> GetBySecondForeignIdAsync(TTypeId secondForeignId,
             CancellationToken cancellationToken = default);
 
-        Task<T?> GetByIdAsync(TTypeId firstForeignId, TTypeId secondForeignId,
+        Task<T?> GetByIdsAsync(TTypeId firstForeignId, TTypeId secondForeignId,
             CancellationToken cancellationToken = default);
 
         Task<bool> ExistsAsync(TTypeId firstForeignId, TTypeId secondForeignId,
