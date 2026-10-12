@@ -65,6 +65,7 @@ namespace TicketAndNotification.Application
             TicketModel ticket,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidTicketModel(ticket);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket creation operation started.");
             await _ticketRepository.AddAsync(ticket, cancellationToken);
@@ -79,6 +80,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var ticketModels = RequireItems(tickets, nameof(tickets));
+            ticketModels.ForEach(ticketModel => ThrowIfInvalidTicketModel(ticketModel));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket range creation operation started.");
             await _ticketRepository.AddRangeAsync(ticketModels, cancellationToken);
@@ -97,6 +99,7 @@ namespace TicketAndNotification.Application
             TicketModel ticket,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidTicketModel(ticket, requireId: true);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket update operation started.");
             await _ticketRepository.UpdateAsync(ticket, cancellationToken);
@@ -111,6 +114,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var ticketModels = RequireItems(tickets, nameof(tickets));
+            ticketModels.ForEach(ticketModel => ThrowIfInvalidTicketModel(ticketModel, requireId: true));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket range update operation started.");
             _ticketRepository.UpdateRange(ticketModels, cancellationToken);
@@ -122,6 +126,8 @@ namespace TicketAndNotification.Application
         }
 
         #endregion
+
+        #region PRIVATE
 
         private async Task<int> SaveChangesOrThrowAsync(
             string operation,
@@ -156,5 +162,20 @@ namespace TicketAndNotification.Application
             throw exception;
 
         }
+
+        private static void ThrowIfInvalidTicketModel(TicketModel ticket, bool requireId = false)
+        {
+            ArgumentNullException.ThrowIfNull(ticket);
+            if (requireId && ticket.TicketId == Guid.Empty)
+                throw new ArgumentException("Ticket id is required.", nameof(ticket));
+            if (ticket.TicketAccountId == Guid.Empty)
+                throw new ArgumentException("Ticket account id is required.", nameof(ticket));
+            if (string.IsNullOrWhiteSpace(ticket.TicketContent) || ticket.TicketContent.Length > 255)
+                throw new ArgumentException("Ticket content is required and must not exceed 255 characters.", nameof(ticket));
+            if (!Enum.IsDefined(ticket.TicketType))
+                throw new ArgumentException("Ticket type is invalid.", nameof(ticket));
+        }
+
+        #endregion
     }
 }

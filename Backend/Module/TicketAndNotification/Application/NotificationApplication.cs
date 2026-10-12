@@ -67,6 +67,7 @@ namespace TicketAndNotification.Application
             NotificationModel notification,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidNotificationModel(notification);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification creation operation started.");
             await _notificationRepository.AddAsync(notification, cancellationToken);
@@ -81,6 +82,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var notificationModels = RequireItems(notifications, nameof(notifications));
+            notificationModels.ForEach(notificationModel => ThrowIfInvalidNotificationModel(notificationModel));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification range creation operation started.");
             await _notificationRepository.AddRangeAsync(
@@ -100,6 +102,7 @@ namespace TicketAndNotification.Application
             NotificationModel notification,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidNotificationModel(notification, requireId: true);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification update operation started.");
             await _notificationRepository.UpdateAsync(notification, cancellationToken);
@@ -114,6 +117,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var notificationModels = RequireItems(notifications, nameof(notifications));
+            notificationModels.ForEach(notification => ThrowIfInvalidNotificationModel(notification, requireId: true));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification range update operation started.");
             _notificationRepository.UpdateRange(notificationModels, cancellationToken);
@@ -125,6 +129,8 @@ namespace TicketAndNotification.Application
         }
 
         #endregion
+
+        #region PRIVATE
 
         private async Task<int> SaveChangesOrThrowAsync(
             string operation,
@@ -159,5 +165,20 @@ namespace TicketAndNotification.Application
             throw exception;
 
         }
+
+        private static void ThrowIfInvalidNotificationModel(NotificationModel notification, bool requireId = false)
+        {
+            ArgumentNullException.ThrowIfNull(notification);
+            if (requireId && notification.NotificationId == Guid.Empty)
+                throw new ArgumentException("Notification id is required.", nameof(notification));
+            if (notification.NotificationSenderAccountId == Guid.Empty)
+                throw new ArgumentException("Notification sender account id is required.", nameof(notification));
+            if (!Enum.IsDefined(notification.NotificationType))
+                throw new ArgumentException("Notification type is invalid.", nameof(notification));
+            if (string.IsNullOrWhiteSpace(notification.NotificationContent) || notification.NotificationContent.Length > 255)
+                throw new ArgumentException("Notification content is required and must not exceed 255 characters.", nameof(notification));
+        }
+
+        #endregion
     }
 }

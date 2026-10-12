@@ -49,6 +49,7 @@ namespace TicketAndNotification.Application
             TicketMediaModel ticketMedia,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidTicketMediaModel(ticketMedia);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket media creation operation started.");
             await _ticketMediaRepository.AddAsync(ticketMedia, cancellationToken);
@@ -63,6 +64,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var ticketMediaModels = RequireItems(ticketMedias, nameof(ticketMedias));
+            ticketMediaModels.ForEach(ticketMediaModel => ThrowIfInvalidTicketMediaModel(ticketMediaModel));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket media range creation operation started.");
             await _ticketMediaRepository.AddRangeAsync(ticketMediaModels, cancellationToken);
@@ -81,6 +83,7 @@ namespace TicketAndNotification.Application
             TicketMediaModel ticketMedia,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidTicketMediaModel(ticketMedia, requireId: true);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket media update operation started.");
             await _ticketMediaRepository.UpdateAsync(ticketMedia, cancellationToken);
@@ -95,6 +98,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var ticketMediaModels = RequireItems(ticketMedias, nameof(ticketMedias));
+            ticketMediaModels.ForEach(ticketMediaModel => ThrowIfInvalidTicketMediaModel(ticketMediaModel, requireId: true));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket media range update operation started.");
             _ticketMediaRepository.UpdateRange(ticketMediaModels, cancellationToken);
@@ -106,6 +110,8 @@ namespace TicketAndNotification.Application
         }
 
         #endregion
+
+        #region PRIVATE
 
         private async Task<int> SaveChangesOrThrowAsync(
             string operation,
@@ -140,5 +146,18 @@ namespace TicketAndNotification.Application
             throw exception;
 
         }
+
+        private static void ThrowIfInvalidTicketMediaModel(TicketMediaModel ticketMedia, bool requireId = false)
+        {
+            ArgumentNullException.ThrowIfNull(ticketMedia);
+            if (requireId && ticketMedia.TicketMediaId <= 0)
+                throw new ArgumentException("Ticket media id is required.", nameof(ticketMedia));
+            if (ticketMedia.TicketMediaTicketId == Guid.Empty)
+                throw new ArgumentException("Ticket id is required.", nameof(ticketMedia));
+            if (string.IsNullOrWhiteSpace(ticketMedia.TicketMediaImageUrl) || ticketMedia.TicketMediaImageUrl.Length > 255)
+                throw new ArgumentException("Ticket media image URL is required and must not exceed 255 characters.", nameof(ticketMedia));
+        }
+
+        #endregion
     }
 }

@@ -57,6 +57,7 @@ namespace TicketAndNotification.Application
             NotificationRecipientModel recipient,
             CancellationToken cancellationToken = default)
         {
+            ThrowIfInvalidNotificationRecipientModel(recipient);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification recipient creation operation started.");
             await _recipientRepository.AddAsync(recipient, cancellationToken);
@@ -81,6 +82,7 @@ namespace TicketAndNotification.Application
                     "Notification recipient batch creation rejected because the collection is empty.");
                 throw exception;
             }
+            recipientModels.ForEach(recipientModel => ThrowIfInvalidNotificationRecipientModel(recipientModel));
 
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification recipient range creation operation started.");
@@ -94,6 +96,8 @@ namespace TicketAndNotification.Application
         }
 
         #endregion
+
+        #region PRIVATE
 
         private async Task PublishNotificationsAsync(
             IReadOnlyCollection<NotificationRecipientModel> recipients,
@@ -159,5 +163,16 @@ namespace TicketAndNotification.Application
 
             return affectedRows;
         }
+
+        private static void ThrowIfInvalidNotificationRecipientModel(NotificationRecipientModel recipient)
+        {
+            ArgumentNullException.ThrowIfNull(recipient);
+            if (recipient.NotificationId == Guid.Empty)
+                throw new ArgumentException("Notification id is required.", nameof(recipient));
+            if (recipient.AccountId == Guid.Empty)
+                throw new ArgumentException("Recipient account id is required.", nameof(recipient));
+        }
+
+        #endregion
     }
 }

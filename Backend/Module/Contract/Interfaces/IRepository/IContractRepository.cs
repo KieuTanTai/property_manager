@@ -7,10 +7,12 @@ namespace Contract.Interfaces.IRepository
 {
     public interface IContractRepository : IBaseReadRepository<ContractModel, Guid>, IBaseUpsertRepository<ContractModel>
     {
-        Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
+        Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, 
+            bool isGetViolations, bool isGetInvoices, bool isGetRegulations, 
             CancellationToken cancellationToken = default);
 
         Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize,
+            bool isGetViolations, bool isGetInvoices, bool isGetRegulations,
             EContractStatus status, CancellationToken cancellationToken = default);
 
         Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingWithNavigationAsync(Guid? cursor, int pageSize,

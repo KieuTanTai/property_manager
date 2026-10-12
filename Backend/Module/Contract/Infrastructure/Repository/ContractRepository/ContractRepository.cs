@@ -97,19 +97,17 @@ namespace Contract.Infrastructure.Repository.ContractRepository
         }
 
         public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingAsync(Guid? cursor,
-            int pageSize, CancellationToken cancellationToken = default)
+            int pageSize, bool isGetViolations, bool isGetInvoices, bool isGetRegulations, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract page.");
             SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
                 exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Contract paging rejected because the page size is invalid."));
-            var query = _db.Contracts.AsNoTracking();
-
+            var query = GetIncludeQuery(isGetViolations, isGetInvoices, isGetRegulations);
             if (cursor.HasValue)
             {
                 query = query.Where(contract => contract.ContractId < cursor.Value);
             }
-
             query = query.OrderByDescending(contract => contract.ContractId).Take(pageSize + 1);
             var contracts = query.ToAsyncEnumerable();
             return await SharedGetApplyPagingRepository.ApplyPaging(
@@ -117,20 +115,19 @@ namespace Contract.Infrastructure.Repository.ContractRepository
         }
 
         public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByStatusAsync(Guid? cursor,
-            int pageSize, EContractStatus status, CancellationToken cancellationToken = default)
+            int pageSize, bool isGetViolations, bool isGetInvoices, bool isGetRegulations, 
+            EContractStatus status, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract page by status.");
             SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
                 exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Contract paging rejected because the page size is invalid."));
-            var query = _db.Contracts.AsNoTracking()
+            var query = GetIncludeQuery(isGetViolations, isGetInvoices, isGetRegulations)
                 .Where(contract => contract.ContractStatus == status);
-
             if (cursor.HasValue)
             {
                 query = query.Where(contract => contract.ContractId < cursor.Value);
             }
-
             query = query.OrderByDescending(contract => contract.ContractId).Take(pageSize + 1);
             var contracts = query.ToAsyncEnumerable();
             return await SharedGetApplyPagingRepository.ApplyPaging(
@@ -146,22 +143,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
                 exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Contract paging rejected because the page size is invalid."));
-            var query = _db.Contracts.AsNoTracking().AsSplitQuery();
-
-            if (isGetViolations)
-            {
-                query = query.Include(contract => contract.ContractViolations);
-            }
-
-            if (isGetInvoices)
-            {
-                query = query.Include(contract => contract.ContractInvoices);
-            }
-
-            if (isGetRegulations)
-            {
-                query = query.Include(contract => contract.ContractRegulations);
-            }
+            var query = GetIncludeQuery(isGetViolations, isGetInvoices, isGetRegulations);
 
             if (cursor.HasValue)
             {
@@ -244,6 +226,32 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             _db.Contracts.UpdateRange(contractModels);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Contract range staged for update.");
+        }
+
+        #endregion
+
+        #region PRIVATE
+
+        private IQueryable<ContractModel> GetIncludeQuery(bool isGetViolations, bool isGetInvoices, bool isGetRegulations)
+        {
+            var query = _db.Contracts.AsNoTracking().AsSplitQuery();
+
+            if (isGetViolations)
+            {
+                query = query.Include(contract => contract.ContractViolations);
+            }
+
+            if (isGetInvoices)
+            {
+                query = query.Include(contract => contract.ContractInvoices);
+            }
+
+            if (isGetRegulations)
+            {
+                query = query.Include(contract => contract.ContractRegulations);
+            }
+
+            return query;
         }
 
         #endregion
