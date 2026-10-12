@@ -11,7 +11,7 @@ namespace Contract.Models.Invoice
             ReceiptCreatedByAccountId = createdByAccountId;
             ReceiptAmount = amount;
         }
-
+        
         public ReceiptModel(
             Guid receiptId,
             Guid invoiceId,

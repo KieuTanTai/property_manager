@@ -2,7 +2,6 @@ using Contract.Interfaces.IApplication;
 using Contract.Interfaces.IRepository;
 using Contract.Models.Invoice;
 using Contract.Utils.Enum;
-using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
@@ -13,7 +12,6 @@ namespace Contract.Application
         IUnitOfWork unitOfWork,
         IMonthlyInvoiceRepository invoiceRepository,
         IInvoiceDetailRepository invoiceDetailRepository,
-        IReceiptRepository receiptRepository,
         ILogger<InvoiceApplication> logger,
         ILogPool logPool)
         : IInvoiceApplication
@@ -21,7 +19,6 @@ namespace Contract.Application
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly IMonthlyInvoiceRepository _invoiceRepository = invoiceRepository;
         private readonly IInvoiceDetailRepository _invoiceDetailRepository = invoiceDetailRepository;
-        private readonly IReceiptRepository _receiptRepository = receiptRepository;
         private readonly ILogger<InvoiceApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
         
@@ -106,26 +103,6 @@ namespace Contract.Application
             return invoice;
         }
         
-        public async Task<ReceiptModel> AddReceiptAsync(ReceiptModel receipt,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Creating receipt.");
-            ThrowIfInvalidReceiptModel(receipt);
-            var invoice = await _invoiceRepository.GetByIdAsync(
-                receipt.ReceiptInvoiceId, cancellationToken);
-            if (invoice is null)
-                throw new ArgumentException("Invoice was not found.", nameof(receipt));
-
-            await _receiptRepository.AddAsync(receipt, cancellationToken);
-            invoice.SetStatus(EInvoiceStatus.Paid);
-            invoice.SetPaymentDate(receipt.ReceiptPaymentDate);
-            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-            await SaveChangesOrThrowAsync("create receipt", cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Receipt created: {receipt.ReceiptId} for invoice {receipt.ReceiptInvoiceId}.");
-            return receipt;
-        }
-
         #endregion
 
         #region UPDATE
@@ -139,8 +116,6 @@ namespace Contract.Application
             var invoiceDetails = details?.ToList() ?? [];
             foreach (var detail in invoiceDetails)
                 ThrowIfInvalidInvoiceDetailModel(detail, invoice.InvoiceId);
-
-            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
             foreach (var detail in invoiceDetails)
             {
                 if (detail.InvoiceDetailId > 0)
@@ -148,30 +123,11 @@ namespace Contract.Application
                 else
                     await _invoiceDetailRepository.AddAsync(detail, cancellationToken);
             }
+            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
             await SaveChangesOrThrowAsync("update invoice", cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 $"Invoice updated: {invoice.InvoiceId} with {invoiceDetails.Count} details.");
             return invoice;
-        }
-
-        public async Task<ReceiptModel> UpdateReceiptAsync(ReceiptModel receipt,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Updating receipt.");
-            ThrowIfInvalidReceiptModel(receipt, requireId: true);
-            var invoice = await _invoiceRepository.GetTrackedByIdAsync(
-                receipt.ReceiptInvoiceId, cancellationToken);
-            if (invoice is null)
-                throw new ArgumentException("Invoice was not found.", nameof(receipt));
-
-            await _receiptRepository.UpdateAsync(receipt, cancellationToken);
-            invoice.SetStatus(EInvoiceStatus.Paid);
-            invoice.SetPaymentDate(receipt.ReceiptPaymentDate);
-            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-            await SaveChangesOrThrowAsync("update receipt", cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Receipt updated: {receipt.ReceiptId} for invoice {receipt.ReceiptInvoiceId}.");
-            return receipt;
         }
 
         #endregion
@@ -224,23 +180,6 @@ namespace Contract.Application
             if (detail.InvoiceDetailRentalPrice < 0 || detail.InvoiceDetailElectricityFee < 0 ||
                 detail.InvoiceDetailWaterFee < 0 || detail.InvoiceDetailGarbageFee < 0)
                 throw new ArgumentException("Invoice detail amounts cannot be negative.", nameof(detail));
-        }
-
-        private static void ThrowIfInvalidReceiptModel(ReceiptModel receipt, bool requireId = false)
-        {
-            ArgumentNullException.ThrowIfNull(receipt);
-            if (requireId && receipt.ReceiptId == Guid.Empty)
-                throw new ArgumentException("Receipt id is required.", nameof(receipt));
-            if (receipt.ReceiptInvoiceId == Guid.Empty || receipt.ReceiptCreatedByAccountId == Guid.Empty)
-                throw new ArgumentException("Invoice and creator account ids are required.", nameof(receipt));
-            if (receipt.ReceiptAmount <= 0)
-                throw new ArgumentException("Receipt amount must be greater than zero.", nameof(receipt));
-            if (!Enum.IsDefined(receipt.ReceiptPaymentMethod))
-                throw new ArgumentException("Receipt payment method is invalid.", nameof(receipt));
-            if (receipt.ReceiptTransactionReference?.Length > 100 ||
-                receipt.ReceiptGatewayTransactionNumber?.Length > 100 ||
-                receipt.ReceiptTransactionInfo?.Length > 250 || receipt.ReceiptBankName?.Length > 100)
-                throw new ArgumentException("One or more receipt fields exceed their maximum length.", nameof(receipt));
         }
 
         #endregion

@@ -10,6 +10,7 @@ namespace Contract.Infrastructure.DIContainer
             services.AddScoped<IRegulationApplication, RegulationApplication>();
             services.AddScoped<IContractApplication, ContractApplication>();
             services.AddScoped<IInvoiceApplication, InvoiceApplication>();
+            services.AddScoped<IReceiptApplication, ReceiptApplication>();
             return services;
         }   
     }

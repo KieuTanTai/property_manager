@@ -25,10 +25,5 @@ namespace Contract.Interfaces.IApplication
             IReadOnlyCollection<InvoiceDetailModel>? details = null,
             CancellationToken cancellationToken = default);
         
-        Task<ReceiptModel> AddReceiptAsync(ReceiptModel receipt,
-            CancellationToken cancellationToken = default);
-
-        Task<ReceiptModel> UpdateReceiptAsync(ReceiptModel receipt,
-            CancellationToken cancellationToken = default);
     }
 }

@@ -518,6 +518,40 @@ CREATE TABLE `notification_recipient`
 # Triggers to enforce immutability of certain fields
 DELIMITER //
 
+CREATE TRIGGER `trigger_role_generate_code`
+    BEFORE INSERT
+    ON `role`
+    FOR EACH ROW
+BEGIN
+    IF NEW.`role_code` IS NULL OR TRIM(NEW.`role_code`) = '' THEN
+        SET NEW.`role_code` = LOWER(
+            TRIM(BOTH '_' FROM REGEXP_REPLACE(TRIM(NEW.`role_name`), '[^[:alnum:]]+', '_'))
+        );
+    END IF;
+
+    IF NEW.`role_code` = '' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Role code could not be generated from role name';
+    END IF;
+END //
+
+CREATE TRIGGER `trigger_permission_generate_code`
+    BEFORE INSERT
+    ON `permission`
+    FOR EACH ROW
+BEGIN
+    IF NEW.`permission_code` IS NULL OR TRIM(NEW.`permission_code`) = '' THEN
+        SET NEW.`permission_code` = LOWER(
+            TRIM(BOTH '_' FROM REGEXP_REPLACE(TRIM(NEW.`permission_name`), '[^[:alnum:]]+', '_'))
+        );
+    END IF;
+
+    IF NEW.`permission_code` = '' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Permission code could not be generated from permission name';
+    END IF;
+END //
+
 CREATE TRIGGER `trigger_permission_code_immutable`
     BEFORE UPDATE
     ON `permission`
