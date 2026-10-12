@@ -153,6 +153,8 @@ namespace Contract.Application
         private async Task<IReadOnlyList<RegulationModel>> ResolveRegulationsAsync(
             IReadOnlyCollection<Guid>? regulationIds, bool useAllWhenEmpty, CancellationToken cancellationToken)
         {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Resolving regulations for contract operation.");
             var allRegulations = regulationIds is null || (useAllWhenEmpty && regulationIds.Count == 0);
             var regulations = allRegulations
                 ? await _regulationRepository.GetAllAsync(cancellationToken)
@@ -160,10 +162,18 @@ namespace Contract.Application
 
             if (allRegulations)
             {
+                _logger.LogLayerInformation(_logPool, Module, Layer,
+                    $"Regulations resolved: {regulations.Count} records.");
                 return regulations;
             }
             var requestedIds = regulationIds!.Distinct().ToHashSet();
-            return regulations.Count != requestedIds.Count ? throw new ArgumentException("One or more regulation ids were not found.", nameof(regulationIds)) : regulations;
+            if (regulations.Count != requestedIds.Count)
+            {
+                throw new ArgumentException("One or more regulation ids were not found.", nameof(regulationIds));
+            }
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Requested regulations resolved: {regulations.Count} records.");
+            return regulations;
         }
 
         private async Task SaveChangesOrThrowAsync(string operation, CancellationToken cancellationToken)

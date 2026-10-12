@@ -30,49 +30,67 @@ namespace Contract.Infrastructure.Repository.ReceiptRepository
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all receipts.");
-            return await _db.Receipts.AsNoTracking().ToListAsync(cancellationToken);
+            var result = await _db.Receipts.AsNoTracking().ToListAsync(cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"All receipts loaded: {result.Count} records.");
+            return result;
         }
 
         public async Task<ReceiptModel?> GetByIdAsync(Guid id,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading receipt by id.");
-            return await _db.Receipts.AsNoTracking()
+            var result = await _db.Receipts.AsNoTracking()
                 .FirstOrDefaultAsync(receipt => receipt.ReceiptId == id, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt lookup completed for {id}: {(result is null ? "not found" : "found")}.");
+            return result;
         }
 
         public async Task<IReadOnlyList<ReceiptModel>> GetByIdsAsync(IEnumerable<Guid> ids,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading receipts by ids.");
-            return await _db.Receipts.AsNoTracking()
+            var result = await _db.Receipts.AsNoTracking()
                 .Where(receipt => ids.Contains(receipt.ReceiptId))
                 .ToListAsync(cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt lookup by ids completed: {result.Count} records.");
+            return result;
         }
 
         public async Task<ReceiptModel?> GetTrackedByIdAsync(Guid id,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked receipt by id.");
-            return await _db.Receipts.FirstOrDefaultAsync(
+            var result = await _db.Receipts.FirstOrDefaultAsync(
                 receipt => receipt.ReceiptId == id, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Tracked receipt lookup completed for {id}: {(result is null ? "not found" : "found")}.");
+            return result;
         }
 
         public async Task<bool> ExistsAsync(Guid id,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Checking receipt existence.");
-            return await _db.Receipts.AnyAsync(
+            var result = await _db.Receipts.AnyAsync(
                 receipt => receipt.ReceiptId == id, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt existence check completed for {id}: {result}.");
+            return result;
         }
 
         public async Task<ReceiptModel?> GetByInvoiceIdAsync(Guid invoiceId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading receipt by invoice id.");
-            return await _db.Receipts.AsNoTracking()
+            var result = await _db.Receipts.AsNoTracking()
                 .FirstOrDefaultAsync(receipt => receipt.ReceiptInvoiceId == invoiceId,
                     cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt lookup by invoice {invoiceId} completed: {(result is null ? "not found" : "found")}.");
+            return result;
         }
 
         public async Task<IReadOnlyList<ReceiptModel>> GetByAccountIdAsync(Guid accountId,
@@ -80,9 +98,12 @@ namespace Contract.Infrastructure.Repository.ReceiptRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Loading receipts by created by account id.");
-            return await _db.Receipts.AsNoTracking()
+            var result = await _db.Receipts.AsNoTracking()
                 .Where(receipt => receipt.ReceiptCreatedByAccountId == accountId)
                 .ToListAsync(cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt lookup by account {accountId} completed: {result.Count} records.");
+            return result;
         }
 
         public async Task<IReadOnlyList<ReceiptModel>> GetByPaymentMethodAsync(
@@ -91,9 +112,12 @@ namespace Contract.Infrastructure.Repository.ReceiptRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Loading receipts by payment method.");
-            return await _db.Receipts.AsNoTracking()
+            var result = await _db.Receipts.AsNoTracking()
                 .Where(receipt => receipt.ReceiptPaymentMethod == paymentMethod)
                 .ToListAsync(cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt lookup by payment method {paymentMethod} completed: {result.Count} records.");
+            return result;
         }
 
         public async Task<RecordBaseCursorPage<ReceiptModel>> GetApplyPagingByPaymentDateAsync(
@@ -122,8 +146,11 @@ namespace Contract.Infrastructure.Repository.ReceiptRepository
                 .ThenByDescending(receipt => receipt.ReceiptId)
                 .Take(pageSize + 1);
             var receipts = query.ToAsyncEnumerable();
-            return await SharedGetApplyPagingRepository.ApplyPaging(
+            var result = await SharedGetApplyPagingRepository.ApplyPaging(
                 receipts, pageSize, receipt => receipt.ReceiptId, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt page by payment date loaded: {result.Items.Count} records.");
+            return result;
         }
 
         #endregion
