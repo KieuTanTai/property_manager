@@ -1,22 +1,12 @@
 import { useCallback, useEffect, useState } from "react"
 import type { FormEvent } from "react"
-import { identityApi } from "../../api/identity"
-import type { AccountModel, PermissionModel, RoleModel } from "../../api/identity"
+import { identityApi } from "@/api/identity.ts"
+import type { AccountModel, PermissionModel, RoleModel } from "@/api/identity.ts"
 import { FormField, Modal, inputCls, selectCls } from "./shared"
+import { accountName, dateLabel } from "../../scripts/identity"
 
 const PAGE_SIZE = 10
 const buttonCls = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-
-function accountName(account: AccountModel) {
-  const profile = account.userProfile
-  return [profile?.userProfileFirstName, profile?.userProfileLastName]
-    .filter(Boolean)
-    .join(" ") || account.accountEmail
-}
-
-function dateLabel(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(new Date(value))
-}
 
 export function AccountsModule() {
   const [accounts, setAccounts] = useState<AccountModel[]>([])
@@ -161,7 +151,7 @@ export function AccountsModule() {
 
   return (
     <div className="-m-8 flex min-h-[calc(100vh-49px)] flex-col bg-[#f8fafc]">
-      <header className="flex min-h-[72px] items-center justify-between border-b border-[#e2e8f0] bg-white px-8">
+      <header className="flex min-h-18 items-center justify-between border-b border-[#e2e8f0] bg-white px-8">
         <div>
           <h1 className="text-lg font-bold text-[#0f172a]">Quản lý Định danh &amp; Tài khoản</h1>
           <p className="mt-1 text-xs text-[#64748b]">Dữ liệu trực tiếp từ Identity API · tài khoản, vai trò và quyền</p>
@@ -200,7 +190,7 @@ export function AccountsModule() {
               <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-600">Identity AccountModel</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-sm">
+              <table className="w-full min-w-190 text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3 font-semibold">Tài khoản</th><th className="px-5 py-3 font-semibold">Vai trò</th><th className="px-5 py-3 font-semibold">Ngày tạo</th><th className="px-5 py-3 font-semibold">Trạng thái</th><th className="px-5 py-3" /></tr></thead>
                 <tbody className="divide-y divide-slate-100">
                   {loading ? <tr><td colSpan={5} className="px-5 py-10 text-center text-slate-500">Đang tải dữ liệu...</td></tr> : visibleAccounts.map((account) => (
@@ -234,7 +224,7 @@ export function AccountsModule() {
             </FormField>
             {selectedRole ? <>
               <div className="mb-3 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Permission</p><span className="text-xs text-slate-500">{permissionIds.length} đã chọn</span></div>
-              <div className="max-h-[390px] space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
+              <div className="max-h-97.5 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
                 {permissions.map((permission) => <label key={permission.permissionId} className="flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-slate-50"><input type="checkbox" className="mt-0.5 accent-blue-600" checked={permissionIds.includes(permission.permissionId)} onChange={(event) => setPermissionIds((ids) => event.target.checked ? [...ids, permission.permissionId] : ids.filter((id) => id !== permission.permissionId))} /><span><span className="block text-xs font-medium text-slate-800">{permission.permissionName}</span><span className="text-[11px] text-slate-500">{permission.permissionCode}</span></span></label>)}
                 {permissions.length === 0 && <p className="p-3 text-xs text-slate-500">Backend chưa trả về permission.</p>}
               </div>

@@ -1,12 +1,4 @@
-import type { PremisesSubTab } from "./types"
-
-interface Props {
-  activeTab: PremisesSubTab
-  locationCount: number
-  businessTypeCount: number
-  premiseCount: number
-  onChange: (tab: PremisesSubTab) => void
-}
+import type { PremisesSubTabsProps as Props } from "./types"
 
 export function PremisesSubTabs({
   activeTab,

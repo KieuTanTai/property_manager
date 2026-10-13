@@ -1,55 +1,10 @@
 import { useState } from "react"
-import { FormField, Modal, fmt, inputCls } from "./shared"
-
-interface Regulation {
-  regulationId: string
-  regulationName: string
-  regulationDescription: string | null
-  regulationFineAmount: number | null
-  regulationIsActive: boolean
-  regulationCreatedAt: string
-  regulationUpdatedAt: string
-}
-
-interface RegulationForm {
-  name: string
-  description: string
-  fineAmount: string
-  active: boolean
-}
-
-const REGULATIONS: Regulation[] = [
-  {
-    regulationId: "0195c8f4-ad30-7111-8111-100000000001",
-    regulationName: "Giữ gìn vệ sinh chung",
-    regulationDescription:
-      "Không xả rác tại hành lang, lối đi và khu vực sinh hoạt chung.",
-    regulationFineAmount: 200000,
-    regulationIsActive: true,
-    regulationCreatedAt: "2024-01-08T08:30:00",
-    regulationUpdatedAt: "2024-01-08T08:30:00",
-  },
-  {
-    regulationId: "0195c8f4-ad31-7222-8222-200000000002",
-    regulationName: "Quy định tiếng ồn",
-    regulationDescription:
-      "Không gây tiếng ồn ảnh hưởng đến các mặt bằng khác sau 22:00.",
-    regulationFineAmount: 500000,
-    regulationIsActive: true,
-    regulationCreatedAt: "2024-01-10T09:15:00",
-    regulationUpdatedAt: "2024-06-15T11:20:00",
-  },
-  {
-    regulationId: "0195c8f4-ad32-7333-8333-300000000003",
-    regulationName: "Cải tạo mặt bằng",
-    regulationDescription:
-      "Mọi hoạt động sửa chữa, cải tạo phải được ban quản lý chấp thuận trước.",
-    regulationFineAmount: null,
-    regulationIsActive: false,
-    regulationCreatedAt: "2024-02-05T13:45:00",
-    regulationUpdatedAt: "2024-09-01T16:10:00",
-  },
-]
+import { FormField, Modal, inputCls } from "./shared"
+import { MOCK_REGULATIONS } from "../../mocks/regulations"
+import { fmt } from "../../scripts/format"
+import type { Regulation, RegulationForm } from "../../types/regulations"
+import { createUuidV7 } from "../../scripts/ids"
+import { formatDateTime } from "../../scripts/format"
 
 const EMPTY_FORM: RegulationForm = {
   name: "",
@@ -58,27 +13,8 @@ const EMPTY_FORM: RegulationForm = {
   active: true,
 }
 
-const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value))
-
-const createUuidV7 = () => {
-  const bytes = crypto.getRandomValues(new Uint8Array(16))
-  const timestamp = Date.now()
-  for (let index = 5; index >= 0; index--)
-    bytes[index] = Math.floor(timestamp / 2 ** ((5 - index) * 8)) & 0xff
-  bytes[6] = (bytes[6] & 0x0f) | 0x70
-  bytes[8] = (bytes[8] & 0x3f) | 0x80
-  const hex = Array.from(bytes, (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("")
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
-}
-
 export function RegulationsModule() {
-  const [regulations, setRegulations] = useState<Regulation[]>(REGULATIONS)
+  const [regulations, setRegulations] = useState<Regulation[]>(MOCK_REGULATIONS)
   const [modal, setModal] = useState<"add" | "view" | null>(null)
   const [selected, setSelected] = useState<Regulation | null>(null)
   const [form, setForm] = useState<RegulationForm>(EMPTY_FORM)

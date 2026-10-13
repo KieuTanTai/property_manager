@@ -1,16 +1,5 @@
-import type { Location } from "./types"
-
-interface Props {
-  locations: Location[]
-  onEdit: (location: Location) => void
-  onDelete: (location: Location) => void
-}
-
-const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value))
+import type { LocationsTabProps as Props } from "./types"
+import { formatDateTime } from "../../scripts/format"
 
 export function LocationsTab({ locations, onEdit, onDelete }: Props) {
   return (

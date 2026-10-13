@@ -4,6 +4,7 @@ using Contract.Presentation.Record.Contract;
 using Contract.Utils.Enum;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 
 namespace Contract.Presentation.Controller
 {
@@ -12,11 +13,8 @@ namespace Contract.Presentation.Controller
     public class ContractController(
         IContractApplication contractApplication,
         ILogger<ContractController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
     {
-        private const string Module = "Contract";
-        private const string Layer = "Presentation/Controller";
-
         private readonly IContractApplication _contractApplication = contractApplication;
         private readonly ILogger<ContractController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
@@ -217,5 +215,48 @@ namespace Contract.Presentation.Controller
 
         #endregion
 
+        #region DELETE
+
+        [RequireHttps]
+        [HttpDelete("{contractId:guid}")]
+        public async Task<IActionResult> TerminateContractAsync(
+            [FromRoute] Guid contractId,
+            [FromQuery] DateTime terminationDate,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                $"Contract termination request received for {contractId}.");
+            if (contractId == Guid.Empty)
+                return BadRequest("Contract id is required.");
+
+            try
+            {
+                var result = await _contractApplication.TerminateContractAsync(
+                    contractId, terminationDate, cancellationToken);
+                _logger.LogLayerInformation(_logPool, Module, Layer,
+                    $"Contract terminated: {contractId}.");
+                return Ok(result);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer,
+                    "Contract termination request was canceled.");
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer,
+                    "Contract termination request was rejected.");
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex,
+                    "Contract termination request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
+            }
+        }
+
+        #endregion
     }
 }

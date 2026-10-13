@@ -4,6 +4,7 @@ using Contract.Presentation.Record.Invoice;
 using Contract.Utils.Enum;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 
 namespace Contract.Presentation.Controller
 {
@@ -12,11 +13,8 @@ namespace Contract.Presentation.Controller
     public class InvoiceController(
         IInvoiceApplication invoiceApplication,
         ILogger<InvoiceController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
     {
-        private const string Module = "Contract";
-        private const string Layer = "Presentation/Controller";
-
         private readonly IInvoiceApplication _invoiceApplication = invoiceApplication;
         private readonly ILogger<InvoiceController> _logger = logger;
         private readonly ILogPool _logPool = logPool;

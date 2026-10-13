@@ -1,43 +1,23 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
-  ACCOUNTS,
-  CONTRACTS,
-  INVOICES,
-  LOCATIONS,
-  PREMISES,
-  TICKETS,
-  VIOLATIONS,
-  BUSINESS_TYPES,
-  PREMISE_MEDIA,
-  WHITELIST_PRODUCTS,
-  ContractStatusBadge,
   FormField,
-  InvoiceStatusBadge,
   Modal,
   PremiseStatusBadge,
-  TicketTypeBadge,
-  fmt,
   inputCls,
-  selectCls,
+  premiseStatusSurface,
+  selectCls
 } from "./shared"
-import type {
-  Contract,
-  ContractStatus,
-  Invoice,
-  InvoiceStatus,
-  Location,
-  Ticket,
-  TicketType,
-  Violation,
-  BusinessType,
-  WhitelistProduct,
-} from "./shared"
+import { LOCATIONS, PREMISES, BUSINESS_TYPES, PREMISE_MEDIA, WHITELIST_PRODUCTS } from "@/mocks/shared.ts"
+import type { BusinessType, Location, WhitelistProduct } from "@/types/modules.ts"
 import type {
   Premise,
   PremiseMedia,
   PremisesSubTab,
   PremiseStatus,
 } from "../premises/types"
+
+import { createUuidV7 } from "@/scripts/ids.ts"
+import { formatDateTime } from "@/scripts/format"
 
 import { BusinessTypesTab } from "../premises/BusinessTypesTab"
 import { LocationsTab } from "../premises/LocationsTab"
@@ -67,6 +47,7 @@ export function PremisesModule() {
   const [businessIsEditing, setBusinessIsEditing] = useState(false)
   const [selected, setSelected] = useState<Premise | null>(null)
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
+  const [isImageFullscreen, setIsImageFullscreen] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null,
   )
@@ -92,6 +73,20 @@ export function PremisesModule() {
 
   const filtered =
     filter === "all" ? premises : premises.filter((p) => p.status === filter)
+  const selectedPremiseMedia = selected
+    ? premiseMedia.filter((media) => media.premiseMediaPremiseId === selected.id)
+    : []
+
+  useEffect(() => {
+    if (!isImageFullscreen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsImageFullscreen(false)
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isImageFullscreen])
 
   const openAdd = () => {
     if (!locations.length) {
@@ -167,19 +162,6 @@ export function PremisesModule() {
     setPremises(premises.map((p) => (p.id === selected.id ? updated : p)))
     setSelected(updated)
     setPremiseIsEditing(false)
-  }
-
-  const createUuidV7 = () => {
-    const bytes = crypto.getRandomValues(new Uint8Array(16))
-    const timestamp = Date.now()
-    for (let index = 5; index >= 0; index--)
-      bytes[index] = Math.floor(timestamp / 2 ** ((5 - index) * 8)) & 0xff
-    bytes[6] = (bytes[6] & 0x0f) | 0x70
-    bytes[8] = (bytes[8] & 0x3f) | 0x80
-    const hex = Array.from(bytes, (byte) =>
-      byte.toString(16).padStart(2, "0"),
-    ).join("")
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
   }
 
   const handleSaveLocation = () => {
@@ -297,11 +279,7 @@ export function PremisesModule() {
     )
   }
 
-  const formatDateTime = (value: string) =>
-    new Intl.DateTimeFormat("vi-VN", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(value))
+
 
   return (
     <div>
@@ -763,6 +741,7 @@ export function PremisesModule() {
               : `Chỉnh sửa: ${selected?.name ?? ""}`
           }
           onClose={() => setModal(null)}
+          panelClassName={premiseStatusSurface[form.status]}
         >
           <div className="grid grid-cols-2 gap-x-4">
             <FormField label="Tên mặt bằng">
@@ -861,6 +840,7 @@ export function PremisesModule() {
         <Modal
           title={`Chi tiết: ${selected.name}`}
           onClose={() => setModal(null)}
+          panelClassName={premiseStatusSurface[selected.status]}
         >
           <div className="space-y-3">
             {premiseMedia.some(
@@ -885,7 +865,16 @@ export function PremisesModule() {
                       )[activeMediaIndex].premiseMediaImageUrl
                     }
                     alt={`${selected.name} — ảnh ${activeMediaIndex + 1}`}
-                    className="relative w-full h-full object-contain object-center"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setIsImageFullscreen(true)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault()
+                        setIsImageFullscreen(true)
+                      }
+                    }}
+                    className="relative w-full h-full object-contain object-center cursor-zoom-in"
                   />
                   {premiseMedia.filter(
                     (media) => media.premiseMediaPremiseId === selected.id,
@@ -952,30 +941,30 @@ export function PremisesModule() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 rounded-lg p-3">
+              <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">ID</p>
                 <p className="text-sm font-mono font-medium">{selected.id}</p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3">
+              <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">Diện tích</p>
                 <p className="text-sm font-mono font-medium">{selected.area}</p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3">
+              <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">Tầng / Vị trí</p>
                 <p className="text-sm font-medium">
                   Tầng {selected.floor} - {selected.position}
                 </p>
               </div>
-              <div className="bg-gray-50 rounded-lg p-3">
+              <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">Trạng thái</p>
                 <PremiseStatusBadge status={selected.status} />
               </div>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-white/70 rounded-lg p-3">
               <p className="text-xs text-gray-400 mb-1">Địa chỉ</p>
               <p className="text-sm">{selected.location}</p>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-white/70 rounded-lg p-3">
               <p className="text-xs text-gray-400 mb-1">Mô tả</p>
               <p className="text-sm text-gray-600">{selected.description}</p>
             </div>
@@ -995,6 +984,62 @@ export function PremisesModule() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {isImageFullscreen && selected && selectedPremiseMedia[activeMediaIndex] && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Ảnh ${activeMediaIndex + 1} của mặt bằng ${selected.name}`}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4"
+          onClick={() => setIsImageFullscreen(false)}
+        >
+          <button
+            type="button"
+            aria-label="Đóng ảnh toàn màn hình"
+            onClick={() => setIsImageFullscreen(false)}
+            className="absolute right-5 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-3xl leading-none text-white hover:bg-white/20"
+          >
+            &times;
+          </button>
+          <img
+            src={selectedPremiseMedia[activeMediaIndex].premiseMediaImageUrl}
+            alt={`${selected.name} — ảnh ${activeMediaIndex + 1}`}
+            className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
+          {selectedPremiseMedia.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label="Ảnh trước"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setActiveMediaIndex((index) =>
+                    (index - 1 + selectedPremiseMedia.length) % selectedPremiseMedia.length,
+                  )
+                }}
+                className="absolute left-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                aria-label="Ảnh tiếp theo"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setActiveMediaIndex((index) => (index + 1) % selectedPremiseMedia.length)
+                }}
+                className="absolute right-4 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white hover:bg-white/20"
+              >
+                ›
+              </button>
+              <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-sm text-white">
+                {activeMediaIndex + 1} / {selectedPremiseMedia.length}
+              </span>
+            </>
+          )}
+        </div>
       )}
     </div>
   )

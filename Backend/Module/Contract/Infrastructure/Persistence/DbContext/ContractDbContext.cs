@@ -1,4 +1,5 @@
 using Contract.Models.Contract;
+using Contract.Models.Contact;
 using Contract.Models.Invoice;
 using Contract.Models.Regulation;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,7 @@ namespace Contract.Infrastructure.Persistence.DbContext
         public DbSet<MonthlyInvoiceModel> MonthlyInvoices { get; set; }
         public DbSet<InvoiceDetailModel> InvoiceDetails { get; set; }
         public DbSet<ReceiptModel> Receipts { get; set; }
+        public DbSet<ContactInfoModel> ContactInfos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

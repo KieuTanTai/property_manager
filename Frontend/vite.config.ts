@@ -43,6 +43,8 @@ export default defineConfig(({ mode }) => {
         "/api/Regulation": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Invoice": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Receipt": { target: "https://localhost:7255", changeOrigin: true, secure: false },
+        "/api/ContactInfo": { target: "https://localhost:7255", changeOrigin: true, secure: false },
+        "/api/Violation": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/tickets": { target: "https://localhost:7092", changeOrigin: true, secure: false },
         "/api/ticket-medias": { target: "https://localhost:7092", changeOrigin: true, secure: false },
         "/api/notifications": { target: "https://localhost:7092", changeOrigin: true, secure: false },

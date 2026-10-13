@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { FormEvent } from "react"
 import { ticketApi } from "../../api/ticketAndNotification"
 import type { NotificationModel, NotificationType, TicketModel, TicketType } from "../../api/ticketAndNotification"
 import { FormField, Modal, inputCls, selectCls } from "./shared"
+import { MOCK_NOTIFICATIONS, MOCK_TICKETS } from "../../mocks/tickets"
 
 type View = "tickets" | "notifications"
 const button = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
@@ -10,21 +11,11 @@ const ticketTypes: TicketType[] = ["Review", "Complaint", "Violation", "Feedback
 const notificationTypes: NotificationType[] = ["Violation", "Ticket", "Other"]
 const ticketLabel: Record<TicketType, string> = { Review: "Đánh giá", Complaint: "Khiếu nại", Violation: "Tố cáo", Feedback: "Phản hồi" }
 const notificationLabel: Record<NotificationType, string> = { Violation: "Vi phạm", Ticket: "Yêu cầu", Other: "Khác" }
-const sampleTickets: TicketModel[] = [
-  { ticketId: "0195e100-0001-7000-8000-000000000001", ticketAccountId: "0195d6e0-0001-7111-8111-100000000002", ticketContent: "Đèn hành lang tầng 2 bị chập chờn từ tối qua, nhờ bộ phận kỹ thuật kiểm tra.", ticketType: "Feedback", ticketIsResolved: false, ticketCreatedAt: "2026-03-14T09:15:00Z", ticketUpdatedAt: "2026-03-14T09:15:00Z", ticketMedias: [] },
-  { ticketId: "0195e100-0002-7000-8000-000000000002", ticketAccountId: "0195d6e0-0002-7222-8222-200000000003", ticketContent: "Tôi muốn phản ánh tiếng ồn sau 22 giờ tại khu vực tầng 3.", ticketType: "Complaint", ticketIsResolved: false, ticketCreatedAt: "2026-03-13T16:40:00Z", ticketUpdatedAt: "2026-03-13T16:40:00Z", ticketMedias: [] },
-  { ticketId: "0195e100-0003-7000-8000-000000000003", ticketAccountId: "0195d6e0-0003-7333-8333-300000000004", ticketContent: "Đánh giá dịch vụ vệ sinh khu vực sảnh: sạch sẽ và được xử lý nhanh.", ticketType: "Review", ticketIsResolved: true, ticketCreatedAt: "2026-03-11T08:20:00Z", ticketUpdatedAt: "2026-03-11T10:00:00Z", ticketMedias: [] },
-  { ticketId: "0195e100-0004-7000-8000-000000000004", ticketAccountId: "0195d6e0-0004-7444-8444-400000000005", ticketContent: "Báo cáo khu vực kho có vật cản lối thoát hiểm.", ticketType: "Violation", ticketIsResolved: false, ticketCreatedAt: "2026-03-10T13:05:00Z", ticketUpdatedAt: "2026-03-10T13:05:00Z", ticketMedias: [] },
-]
-const sampleNotifications: NotificationModel[] = [
-  { notificationId: "0195e200-0001-7000-8000-000000000001", notificationSenderAccountId: "0195d6e0-0000-7111-8111-100000000001", notificationType: "Other", notificationContent: "Ban quản lý sẽ kiểm tra hệ thống PCCC vào 09:00 ngày 20/03. Vui lòng phối hợp.", notificationIsRead: false, notificationCreatedAt: "2026-03-15T08:00:00Z", notificationUpdatedAt: "2026-03-15T08:00:00Z", notificationRecipients: [{ notificationId: "0195e200-0001-7000-8000-000000000001", accountId: "0195d6e0-0001-7111-8111-100000000002" }] },
-  { notificationId: "0195e200-0002-7000-8000-000000000002", notificationSenderAccountId: "0195d6e0-0000-7111-8111-100000000001", notificationType: "Ticket", notificationContent: "Yêu cầu sửa đèn hành lang của bạn đã được tiếp nhận.", notificationIsRead: true, notificationCreatedAt: "2026-03-14T10:00:00Z", notificationUpdatedAt: "2026-03-14T10:15:00Z", notificationRecipients: [{ notificationId: "0195e200-0002-7000-8000-000000000002", accountId: "0195d6e0-0001-7111-8111-100000000002" }, { notificationId: "0195e200-0002-7000-8000-000000000002", accountId: "0195d6e0-0002-7222-8222-200000000003" }] },
-]
 
-export function TicketsModule() {
-  const [view, setView] = useState<View>("tickets")
-  const [tickets, setTickets] = useState<TicketModel[]>(sampleTickets)
-  const [notifications, setNotifications] = useState<NotificationModel[]>(sampleNotifications)
+export function TicketsModule({ accountId, customerMode = false }: { accountId?: string; customerMode?: boolean }) {
+  const [view, setView] = useState<View>(customerMode ? "notifications" : "tickets")
+  const [tickets, setTickets] = useState<TicketModel[]>(MOCK_TICKETS)
+  const [notifications, setNotifications] = useState<NotificationModel[]>(customerMode ? [] : MOCK_NOTIFICATIONS)
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("all")
   const [modal, setModal] = useState<View | null>(null)
   const [ticketForm, setTicketForm] = useState({ accountId: "", content: "", type: "Feedback" as TicketType })
@@ -33,6 +24,20 @@ export function TicketsModule() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [loadingNotifications, setLoadingNotifications] = useState(customerMode)
+
+  useEffect(() => {
+    if (!customerMode) return
+    let cancelled = false
+    void ticketApi.notifications().then((items) => {
+      if (!cancelled) setNotifications(items)
+    }).catch((cause) => {
+      if (!cancelled) setError(cause instanceof Error ? cause.message : "Không tải được thông báo.")
+    }).finally(() => {
+      if (!cancelled) setLoadingNotifications(false)
+    })
+    return () => { cancelled = true }
+  }, [accountId, customerMode])
 
   // Tạm dùng dữ liệu mẫu theo TicketModel/NotificationModel.
   // Query hiện tại được giữ ở comment để bật lại khi backend có data:
@@ -95,22 +100,25 @@ export function TicketsModule() {
     setNotifications((current) => current.map((item) => item.notificationId === notification.notificationId ? { ...item, notificationIsRead: true, notificationUpdatedAt: new Date().toISOString() } : item))
   }, "Đã đánh dấu thông báo đã đọc.")
   const filteredTickets = tickets.filter((ticket) => filter === "all" || ticket.ticketIsResolved === (filter === "resolved"))
+  const visibleNotifications = customerMode
+    ? notifications.filter((item) => item.notificationRecipients.some((recipient) => recipient.accountId === accountId))
+    : notifications
 
   return <div>
     <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div><h1 className="text-xl font-bold text-slate-900">Yêu cầu &amp; Thông báo</h1><p className="mt-1 text-sm text-slate-500">{tickets.filter((ticket) => !ticket.ticketIsResolved).length} ticket chưa xử lý · {notifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc</p></div>
-      <div className="flex gap-2">
+      <div><h1 className="text-xl font-bold text-slate-900">{customerMode ? "Thông báo của tôi" : "Yêu cầu &amp; Thông báo"}</h1><p className="mt-1 text-sm text-slate-500">{customerMode ? `${visibleNotifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc` : `${tickets.filter((ticket) => !ticket.ticketIsResolved).length} ticket chưa xử lý · ${notifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc`}</p></div>
+      {!customerMode && <div className="flex gap-2">
         <span className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Dữ liệu mẫu</span>
         <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`} onClick={() => { setTicketForm({ accountId: "", content: "", type: "Feedback" }); setModal("tickets") }}>Tạo ticket</button>
         <button className={`${button} bg-slate-900 text-white hover:bg-slate-700`} onClick={() => { setNotificationForm({ senderAccountId: "", recipientAccountId: "", content: "", type: "Other" }); setModal("notifications") }}>Tạo thông báo</button>
-      </div>
+      </div>}
     </div>
 
     {error && <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
     {notice && <div role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
 
     <div className="mb-5 flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
-      {(["tickets", "notifications"] as const).map((item) => <button key={item} className={`rounded-md px-3 py-1.5 text-xs font-medium ${view === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`} onClick={() => setView(item)}>{item === "tickets" ? `Tickets (${tickets.length})` : `Thông báo (${notifications.length})`}</button>)}
+      {(customerMode ? ["notifications"] as const : ["tickets", "notifications"] as const).map((item) => <button key={item} className={`rounded-md px-3 py-1.5 text-xs font-medium ${view === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`} onClick={() => setView(item)}>{item === "tickets" ? `Tickets (${tickets.length})` : `Thông báo (${visibleNotifications.length})`}</button>)}
     </div>
 
     {view === "tickets" ? <>
@@ -123,10 +131,10 @@ export function TicketsModule() {
         {ticket.ticketIsResolved ? <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã xử lý</span> : <button className={`${button} bg-blue-600 text-white`} disabled={saving} onClick={() => void run(() => ticketApi.updateTicket(ticket, true), "Đã xử lý ticket.")}>Đánh dấu xử lý</button>}</div>
         {ticket.ticketMedias.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{ticket.ticketMedias.map((media) => <a key={media.ticketMediaId} href={media.ticketMediaImageUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-700 underline">Tệp đính kèm #{media.ticketMediaId}</a>)}</div>}
       </article>)}{!loading && filteredTickets.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không có ticket.</p>}</div>
-    </> : <div className="space-y-3">{loading ? <p className="py-10 text-center text-sm text-slate-500">Đang tải...</p> : notifications.map((item) => <article key={item.notificationId} className={`rounded-xl border bg-white p-5 ${item.notificationIsRead ? "border-slate-100" : "border-blue-200"}`}>
+    </> : <div className="space-y-3">{loading || loadingNotifications ? <p className="py-10 text-center text-sm text-slate-500">Đang tải...</p> : visibleNotifications.map((item) => <article key={item.notificationId} className={`rounded-xl border bg-white p-5 ${item.notificationIsRead ? "border-slate-100" : "border-blue-200"}`}>
       <div className="flex items-start justify-between gap-4"><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center gap-2"><span className="rounded-md bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">{notificationLabel[item.notificationType]}</span><span className="font-mono text-xs text-slate-400">{item.notificationId}</span><span className="text-xs text-slate-500">Người gửi {item.notificationSenderAccountId}</span></div><p className="text-sm text-slate-800">{item.notificationContent}</p><p className="mt-2 text-xs text-slate-500">{item.notificationRecipients.length} người nhận · {new Date(item.notificationCreatedAt).toLocaleString("vi-VN")}</p></div>
         {item.notificationIsRead ? <span className="text-xs text-slate-400">Đã đọc</span> : <button className={`${button} bg-slate-900 text-white`} disabled={saving} onClick={() => markRead(item)}>Đánh dấu đã đọc</button>}</div>
-    </article>)}{!loading && notifications.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không có thông báo.</p>}</div>}
+    </article>)}{!loading && visibleNotifications.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không có thông báo.</p>}</div>}
 
     {modal === "tickets" && <Modal title="Tạo ticket" onClose={() => setModal(null)}><form onSubmit={(event) => void createTicket(event)}>
       <FormField label="Account ID"><input className={inputCls} required placeholder="GUID tài khoản" value={ticketForm.accountId} onChange={(event) => setTicketForm({ ...ticketForm, accountId: event.target.value })} /></FormField>

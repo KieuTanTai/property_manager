@@ -1,6 +1,8 @@
 using Contract.Interfaces.IApplication;
 using Contract.Interfaces.IRepository;
 using Contract.Models.Contract;
+using Contract.Models.Invoice;
+using Contract.Utils.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
@@ -10,6 +12,8 @@ namespace Contract.Application
     public class ViolationApplication(
         IUnitOfWork unitOfWork,
         IContractViolationRepository violationRepository,
+        IInvoiceApplication invoiceApplication,
+        IReceiptApplication receiptApplication,
         ILogger<ViolationApplication> logger,
         ILogPool logPool) : IViolationApplication
     {
@@ -18,6 +22,8 @@ namespace Contract.Application
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly IContractViolationRepository _violationRepository = violationRepository;
+        private readonly IInvoiceApplication _invoiceApplication = invoiceApplication;
+        private readonly IReceiptApplication _receiptApplication = receiptApplication;
         private readonly ILogger<ViolationApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
 
@@ -113,6 +119,8 @@ namespace Contract.Application
             CancellationToken cancellationToken = default)
         {
             ValidateViolation(violation, requireId: false);
+            if (violation.ViolationIsResolved)
+                throw new ArgumentException("Cannot create a resolved violation.", nameof(violation));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 $"Creating contract violation for contract {violation.ContractId}.");
 
@@ -140,7 +148,6 @@ namespace Contract.Application
                 $"Contract violation {violation.ViolationId} updated.");
             return affectedRows;
         }
-
         #endregion
 
         #region DELETE
@@ -155,7 +162,6 @@ namespace Contract.Application
 
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 $"Deleting contract violation {violationId}.");
-
             await _violationRepository.DeleteAsync(violationId, cancellationToken);
             var affectedRows = await SaveChangesOrThrowAsync("delete", cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,

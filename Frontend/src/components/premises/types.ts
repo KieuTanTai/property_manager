@@ -83,6 +83,16 @@ export interface Premise {
   locationId: string
   location: string
   description: string
+  website?: string
+  hotline?: string
+  email?: string
+  openingHours?: string
+  landArea?: string
+  floorArea?: string
+  leasableArea?: string
+  storeCount?: string
+  parkingCapacity?: string
+  isMockData?: boolean
 }
 
 export interface PremiseMedia {
@@ -114,4 +124,32 @@ export interface WhitelistProduct {
   businessTypeId: string
   name: string
   description: string
+}
+
+export interface LocationsTabProps {
+  locations: Location[]
+  onEdit: (location: Location) => void
+  onDelete: (location: Location) => void
+}
+
+export interface BusinessTypesTabProps {
+  businessTypes: BusinessType[]
+  onView: (businessType: BusinessType) => void
+}
+
+export interface PremisesTabProps {
+  premises: Premise[]
+  premiseMedia: PremiseMedia[]
+  filteredPremises: Premise[]
+  filter: PremiseStatus | "all"
+  onFilterChange: (filter: PremiseStatus | "all") => void
+  onView: (premise: Premise) => void
+}
+
+export interface PremisesSubTabsProps {
+  activeTab: PremisesSubTab
+  locationCount: number
+  businessTypeCount: number
+  premiseCount: number
+  onChange: (tab: PremisesSubTab) => void
 }

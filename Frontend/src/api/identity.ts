@@ -58,6 +58,12 @@ export type RecordAuthResponse = {
   accountUpdatedAt: string
 }
 
+export type RecordLoginResponse = {
+  account: RecordAuthResponse
+  profile: UserProfileModel | null
+  claims: { type: string; value: string }[]
+}
+
 const apiBase = (import.meta.env.VITE_IDENTITY_API_BASE_URL || "/api").replace(/\/$/, "")
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -103,8 +109,11 @@ export const identityApi = {
   permissions() {
     return request<PermissionModel[]>("/Authorization/permissions")
   },
-  permissions() {
-    return request<PermissionModel[]>("/Authorization/permissions")
+  login(email: string, password: string) {
+    return request<RecordLoginResponse>("/Account/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    })
   },
   register(email: string, password: string) {
     return request<RecordAuthResponse>("/Account/register", {

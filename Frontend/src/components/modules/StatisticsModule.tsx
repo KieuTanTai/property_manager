@@ -1,105 +1,21 @@
 import { useState } from "react"
+import { MOCK_MONTHLY_REVENUE, MOCK_CONTRACT_MONTHLY, MOCK_VIOLATION_MONTHLY, MOCK_ACCOUNT_MONTHLY } from "../../mocks/statistics"
 import {
-  ACCOUNTS,
-  CONTRACTS,
-  INVOICES,
-  LOCATIONS,
-  PREMISES,
-  TICKETS,
-  VIOLATIONS,
-  BUSINESS_TYPES,
-  WHITELIST_PRODUCTS,
   ContractStatusBadge,
   FormField,
   InvoiceStatusBadge,
   Modal,
   PremiseStatusBadge,
   TicketTypeBadge,
-  fmt,
   inputCls,
-  selectCls,
+  selectCls
 } from "./shared"
-import type {
-  Contract,
-  ContractStatus,
-  Invoice,
-  InvoiceStatus,
-  Location,
-  Ticket,
-  TicketType,
-  Violation,
-  BusinessType,
-  WhitelistProduct,
-} from "./shared"
+import { ACCOUNTS, CONTRACTS, INVOICES, LOCATIONS, PREMISES, TICKETS, VIOLATIONS, BUSINESS_TYPES, WHITELIST_PRODUCTS } from "../../mocks/shared"
+import { fmt } from "../../scripts/format"
+import type { Contract, ContractStatus, Invoice, InvoiceStatus, Ticket, TicketType, Violation, BusinessType, Location, WhitelistProduct } from "../../types/modules"
 import type { Premise, PremisesSubTab, PremiseStatus } from "../premises/types"
 
 // ─── Statistics Module ────────────────────────────────────────────────────────
-
-const MONTHS = [
-  "T1",
-  "T2",
-  "T3",
-  "T4",
-  "T5",
-  "T6",
-  "T7",
-  "T8",
-  "T9",
-  "T10",
-  "T11",
-  "T12",
-]
-
-const MONTHLY_REVENUE = [
-  { month: "T1", doanhThu: 18500000, chiPhi: 4200000, loiNhuan: 14300000 },
-  { month: "T2", doanhThu: 21000000, chiPhi: 3900000, loiNhuan: 17100000 },
-  { month: "T3", doanhThu: 19800000, chiPhi: 5100000, loiNhuan: 14700000 },
-  { month: "T4", doanhThu: 23400000, chiPhi: 4600000, loiNhuan: 18800000 },
-  { month: "T5", doanhThu: 22100000, chiPhi: 4300000, loiNhuan: 17800000 },
-  { month: "T6", doanhThu: 25600000, chiPhi: 5800000, loiNhuan: 19800000 },
-  { month: "T7", doanhThu: 24200000, chiPhi: 5200000, loiNhuan: 19000000 },
-  { month: "T8", doanhThu: 27800000, chiPhi: 6100000, loiNhuan: 21700000 },
-  { month: "T9", doanhThu: 26500000, chiPhi: 5700000, loiNhuan: 20800000 },
-  { month: "T10", doanhThu: 0, chiPhi: 0, loiNhuan: 0 },
-  { month: "T11", doanhThu: 0, chiPhi: 0, loiNhuan: 0 },
-  { month: "T12", doanhThu: 0, chiPhi: 0, loiNhuan: 0 },
-]
-
-const CONTRACT_MONTHLY = [
-  { month: "T1", moiKy: 1, hetHan: 0, chuyenGia: 0 },
-  { month: "T2", moiKy: 2, hetHan: 0, chuyenGia: 1 },
-  { month: "T3", moiKy: 1, hetHan: 1, chuyenGia: 0 },
-  { month: "T4", moiKy: 3, hetHan: 0, chuyenGia: 1 },
-  { month: "T5", moiKy: 2, hetHan: 1, chuyenGia: 0 },
-  { month: "T6", moiKy: 1, hetHan: 0, chuyenGia: 2 },
-  { month: "T7", moiKy: 2, hetHan: 2, chuyenGia: 0 },
-  { month: "T8", moiKy: 3, hetHan: 1, chuyenGia: 1 },
-  { month: "T9", moiKy: 2, hetHan: 0, chuyenGia: 0 },
-]
-
-const VIOLATION_MONTHLY = [
-  { month: "T1", soLuong: 1, daXuLy: 1, chuaXuLy: 0, tongPhat: 300000 },
-  { month: "T2", soLuong: 2, daXuLy: 1, chuaXuLy: 1, tongPhat: 900000 },
-  { month: "T3", soLuong: 1, daXuLy: 1, chuaXuLy: 0, tongPhat: 500000 },
-  { month: "T4", soLuong: 3, daXuLy: 2, chuaXuLy: 1, tongPhat: 2200000 },
-  { month: "T5", soLuong: 2, daXuLy: 2, chuaXuLy: 0, tongPhat: 800000 },
-  { month: "T6", soLuong: 1, daXuLy: 0, chuaXuLy: 1, tongPhat: 500000 },
-  { month: "T7", soLuong: 4, daXuLy: 3, chuaXuLy: 1, tongPhat: 3100000 },
-  { month: "T8", soLuong: 2, daXuLy: 1, chuaXuLy: 1, tongPhat: 700000 },
-  { month: "T9", soLuong: 3, daXuLy: 1, chuaXuLy: 2, tongPhat: 2700000 },
-]
-
-const ACCOUNT_MONTHLY = [
-  { month: "T1", moiDangKy: 3, huyKhoan: 0 },
-  { month: "T2", moiDangKy: 5, huyKhoan: 1 },
-  { month: "T3", moiDangKy: 2, huyKhoan: 0 },
-  { month: "T4", moiDangKy: 7, huyKhoan: 2 },
-  { month: "T5", moiDangKy: 4, huyKhoan: 0 },
-  { month: "T6", moiDangKy: 6, huyKhoan: 1 },
-  { month: "T7", moiDangKy: 5, huyKhoan: 1 },
-  { month: "T8", moiDangKy: 8, huyKhoan: 0 },
-  { month: "T9", moiDangKy: 3, huyKhoan: 1 },
-]
 
 const fmtM = (n: number) =>
   n >= 1000000
@@ -215,8 +131,8 @@ export function StatisticsModule() {
   ]
 
   // Derived stats
-  const totalRevenue = MONTHLY_REVENUE.reduce((s, m) => s + m.doanhThu, 0)
-  const totalProfit = MONTHLY_REVENUE.reduce((s, m) => s + m.loiNhuan, 0)
+  const totalRevenue = MOCK_MONTHLY_REVENUE.reduce((s, m) => s + m.doanhThu, 0)
+  const totalProfit = MOCK_MONTHLY_REVENUE.reduce((s, m) => s + m.loiNhuan, 0)
   const invoicePaid = INVOICES.filter((i) => i.status === "paid").reduce(
     (s, i) => s + i.totalAmount,
     0,
@@ -402,7 +318,7 @@ export function StatisticsModule() {
                 <span className="text-right">Lợi nhuận</span>
               </div>
               <div className="divide-y divide-gray-100">
-                {MONTHLY_REVENUE.slice(0, 9).map((row) => (
+                {MOCK_MONTHLY_REVENUE.slice(0, 9).map((row) => (
                   <div
                     key={row.month}
                     className="grid grid-cols-4 px-4 py-3 hover:bg-gray-50/50 transition-colors"
@@ -514,7 +430,7 @@ export function StatisticsModule() {
                 <span className="text-right">Hủy khoản</span>
               </div>
               <div className="divide-y divide-gray-100">
-                {ACCOUNT_MONTHLY.map((row) => (
+                {MOCK_ACCOUNT_MONTHLY.map((row) => (
                   <div
                     key={row.month}
                     className="grid grid-cols-3 px-4 py-3 hover:bg-gray-50/50 transition-colors"
@@ -737,7 +653,7 @@ export function StatisticsModule() {
                 <span className="text-right">Chuyển nhượng</span>
               </div>
               <div className="divide-y divide-gray-100">
-                {CONTRACT_MONTHLY.map((row) => (
+                {MOCK_CONTRACT_MONTHLY.map((row) => (
                   <div
                     key={row.month}
                     className="grid grid-cols-4 px-4 py-3 hover:bg-gray-50/50 transition-colors"
@@ -854,7 +770,7 @@ export function StatisticsModule() {
                 <span className="text-right">Chưa xử lý</span>
               </div>
               <div className="divide-y divide-gray-100">
-                {VIOLATION_MONTHLY.map((row) => (
+                {MOCK_VIOLATION_MONTHLY.map((row) => (
                   <div
                     key={row.month}
                     className="grid grid-cols-4 px-4 py-3 hover:bg-gray-50/50 transition-colors"
@@ -883,7 +799,7 @@ export function StatisticsModule() {
                 <span className="text-right">Tổng tiền phạt</span>
               </div>
               <div className="divide-y divide-gray-100">
-                {VIOLATION_MONTHLY.map((row) => (
+                {MOCK_VIOLATION_MONTHLY.map((row) => (
                   <div
                     key={row.month}
                     className="grid grid-cols-3 px-4 py-3 hover:bg-gray-50/50 transition-colors"

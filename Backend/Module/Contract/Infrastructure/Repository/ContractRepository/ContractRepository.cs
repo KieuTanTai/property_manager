@@ -230,6 +230,39 @@ namespace Contract.Infrastructure.Repository.ContractRepository
 
         #endregion
 
+        #region DELETE
+
+        public async Task SoftDeleteAsync(Guid contractId, DateTime deletionDate,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing contract deletion.");
+            
+            var existedContract = await GetTrackedByIdAsync(contractId, cancellationToken);
+
+            if (existedContract is null)
+            {
+                var exception = new InvalidOperationException(
+                    $"ContractModel not found! \n {contractId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Contract deletion rejected because the contract was not found.");
+                throw exception;
+            }
+            if (existedContract.ContractStatus == EContractStatus.Terminated || existedContract.ContractTerminationDate.HasValue)
+            {
+                var exception = new InvalidOperationException(
+                    $"ContractModel is already terminated! \n {contractId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Contract deletion rejected because the contract is already terminated.");
+                throw exception;
+            }
+            existedContract.SetContractTerminationDate(deletionDate);
+            existedContract.SetContractStatus(EContractStatus.Terminated);
+            _db.Contracts.Update(existedContract);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Contract staged for deletion.");
+        }
+
+        #endregion
+
         #region PRIVATE
 
         private IQueryable<ContractModel> GetIncludeQuery(bool isGetViolations, bool isGetInvoices, bool isGetRegulations)

@@ -1,0 +1,13 @@
+import type { NotificationModel, TicketModel } from "../api/ticketAndNotification"
+
+export const MOCK_TICKETS: TicketModel[] = [
+  { ticketId: "0195e100-0001-7000-8000-000000000001", ticketAccountId: "0195d6e0-0001-7111-8111-100000000002", ticketContent: "Đèn hành lang tầng 2 bị chập chờn từ tối qua, nhờ bộ phận kỹ thuật kiểm tra.", ticketType: "Feedback", ticketIsResolved: false, ticketCreatedAt: "2026-03-14T09:15:00Z", ticketUpdatedAt: "2026-03-14T09:15:00Z", ticketMedias: [] },
+  { ticketId: "0195e100-0002-7000-8000-000000000002", ticketAccountId: "0195d6e0-0002-7222-8222-200000000003", ticketContent: "Tôi muốn phản ánh tiếng ồn sau 22 giờ tại khu vực tầng 3.", ticketType: "Complaint", ticketIsResolved: false, ticketCreatedAt: "2026-03-13T16:40:00Z", ticketUpdatedAt: "2026-03-13T16:40:00Z", ticketMedias: [] },
+  { ticketId: "0195e100-0003-7000-8000-000000000003", ticketAccountId: "0195d6e0-0003-7333-8333-300000000004", ticketContent: "Đánh giá dịch vụ vệ sinh khu vực sảnh: sạch sẽ và được xử lý nhanh.", ticketType: "Review", ticketIsResolved: true, ticketCreatedAt: "2026-03-11T08:20:00Z", ticketUpdatedAt: "2026-03-11T10:00:00Z", ticketMedias: [] },
+  { ticketId: "0195e100-0004-7000-8000-000000000004", ticketAccountId: "0195d6e0-0004-7444-8444-400000000005", ticketContent: "Báo cáo khu vực kho có vật cản lối thoát hiểm.", ticketType: "Violation", ticketIsResolved: false, ticketCreatedAt: "2026-03-10T13:05:00Z", ticketUpdatedAt: "2026-03-10T13:05:00Z", ticketMedias: [] },
+]
+export const MOCK_NOTIFICATIONS: NotificationModel[] = [
+  { notificationId: "0195e200-0001-7000-8000-000000000001", notificationSenderAccountId: "0195d6e0-0000-7111-8111-100000000001", notificationType: "Other", notificationContent: "Ban quản lý sẽ kiểm tra hệ thống PCCC vào 09:00 ngày 20/03. Vui lòng phối hợp.", notificationIsRead: false, notificationCreatedAt: "2026-03-15T08:00:00Z", notificationUpdatedAt: "2026-03-15T08:00:00Z", notificationRecipients: [{ notificationId: "0195e200-0001-7000-8000-000000000001", accountId: "0195d6e0-0001-7111-8111-100000000002" }] },
+  { notificationId: "0195e200-0002-7000-8000-000000000002", notificationSenderAccountId: "0195d6e0-0000-7111-8111-100000000001", notificationType: "Ticket", notificationContent: "Yêu cầu sửa đèn hành lang của bạn đã được tiếp nhận.", notificationIsRead: true, notificationCreatedAt: "2026-03-14T10:00:00Z", notificationUpdatedAt: "2026-03-14T10:15:00Z", notificationRecipients: [{ notificationId: "0195e200-0002-7000-8000-000000000002", accountId: "0195d6e0-0001-7111-8111-100000000002" }, { notificationId: "0195e200-0002-7000-8000-000000000002", accountId: "0195d6e0-0002-7222-8222-200000000003" }] },
+]
+

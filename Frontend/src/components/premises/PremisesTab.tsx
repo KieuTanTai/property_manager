@@ -1,13 +1,4 @@
-import type { Premise, PremiseMedia, PremiseStatus } from "./types"
-
-interface Props {
-  premises: Premise[]
-  premiseMedia: PremiseMedia[]
-  filteredPremises: Premise[]
-  filter: PremiseStatus | "all"
-  onFilterChange: (filter: PremiseStatus | "all") => void
-  onView: (premise: Premise) => void
-}
+import type { PremisesTabProps as Props, PremiseStatus } from "./types"
 
 function StatusBadge({ status }: { status: PremiseStatus }) {
   const map: Record<PremiseStatus, { label: string; cls: string }> = {

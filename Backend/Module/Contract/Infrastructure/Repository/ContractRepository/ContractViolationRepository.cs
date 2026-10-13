@@ -226,6 +226,11 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 throw new InvalidOperationException(
                     $"ContractViolationModel not found! \n {violationId}");
             }
+            if (violation.ViolationIsResolved)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot delete resolved contract violation {violationId}.");
+            }
             _db.ContractViolations.Remove(violation);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Contract violation staged for deletion.");

@@ -148,6 +148,22 @@ namespace Contract.Application
 
         #endregion
 
+        #region TERMINATED
+
+        public async Task<int> TerminateContractAsync(Guid contractId, DateTime terminationDate,
+            CancellationToken cancellationToken = default)
+        {
+            if (contractId == Guid.Empty)
+                throw new ArgumentException("Contract id is required.", nameof(contractId));
+            if (terminationDate < DateTime.UtcNow)
+                throw new ArgumentException("Termination date cannot be in the past.", nameof(terminationDate));
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Terminating contract.");
+            await _contractRepository.SoftDeleteAsync(contractId, terminationDate, cancellationToken);
+            return await SaveChangesOrThrowAsync("terminate", cancellationToken);
+        }
+
+        #endregion
+        
         #region PRIVATE
 
         private async Task<IReadOnlyList<RegulationModel>> ResolveRegulationsAsync(
@@ -176,13 +192,13 @@ namespace Contract.Application
             return regulations;
         }
 
-        private async Task SaveChangesOrThrowAsync(string operation, CancellationToken cancellationToken)
+        private async Task<int> SaveChangesOrThrowAsync(string operation, CancellationToken cancellationToken)
         {
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectedRows > 0)
             {
                 _logger.LogLayerInformation(_logPool, Module, Layer, $"Contract {operation} successful. Affected rows: {affectedRows}.");
-                return;
+                return affectedRows;
             }
 
             var exception = new InvalidOperationException($"Failed to {operation} contract.");

@@ -77,6 +77,19 @@ export type RegulationModel = {
   regulationUpdatedAt: string
 }
 
+export type ContactInfoModel = {
+  contactInfoId: string
+  contactInfoEmail: string
+  contactInfoPhone: string
+  contactInfoAddress: string
+  contactSocialLink: string | null
+  contactInfoCreatedAt: string
+  contactInfoUpdatedAt: string
+}
+
+export type ContactInfoRequest = Pick<ContactInfoModel,
+  "contactInfoEmail" | "contactInfoPhone" | "contactInfoAddress" | "contactSocialLink">
+
 const base = (import.meta.env.VITE_CONTRACT_API_BASE_URL || "/api").replace(/\/$/, "")
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -91,12 +104,25 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!response.ok) {
     const detail = await response.text()
-    if (response.status === 404 && /no (contracts|regulations) found/i.test(detail)) {
-      return (path.startsWith("/Contract") ? { items: [], nextCursor: null, isHasMore: false } : []) as T
+    if (response.status === 404 && /no (contracts|regulations|violations) found/i.test(detail)) {
+      if (path.startsWith("/Contract") || path.startsWith("/Violation")) {
+        return { items: [], nextCursor: null, isHasMore: false } as T
+      }
+      return [] as T
     }
     throw new Error(detail || `Contract API trả về HTTP ${response.status}.`)
   }
-  return response.json() as Promise<T>
+  if (response.status === 204) return undefined as T
+  const contentType = response.headers.get("content-type") ?? ""
+  if (!contentType.toLowerCase().includes("application/json")) {
+    const detail = (await response.text()).slice(0, 200)
+    throw new Error(`Contract API trả về nội dung không phải JSON (HTTP ${response.status}). Kiểm tra route/proxy ContactInfo. ${detail}`)
+  }
+  try {
+    return await response.json() as T
+  } catch {
+    throw new Error("Contract API trả về JSON không hợp lệ.")
+  }
 }
 
 export const contractApi = {
@@ -109,6 +135,32 @@ export const contractApi = {
     const query = new URLSearchParams({ pageSize: "100" })
     if (cursor) query.set("cursor", cursor)
     return request<CursorPage<RegulationModel>>(`/Regulation?${query}`)
+  },
+  violations(cursor: string | null = null, pageSize = 50) {
+    const query = new URLSearchParams({ pageSize: String(pageSize) })
+    if (cursor) query.set("cursor", cursor)
+    return request<CursorPage<ContractViolationModel>>(`/Violation?${query}`)
+  },
+  createViolation(body: { contractId: string; violationContent: string; violationPenaltyAmount: number; violationDate: string; violationDueDate: string }) {
+    return request<ContractViolationModel>("/Violation", { method: "POST", body: JSON.stringify(body) })
+  },
+  updateViolation(id: string, body: { contractId: string; violationContent: string; violationPenaltyAmount: number; violationDate: string; violationDueDate: string; violationIsResolved: boolean }) {
+    return request<ContractViolationModel>(`/Violation/${id}`, { method: "PUT", body: JSON.stringify(body) })
+  },
+  deleteViolation(id: string) {
+    return request<void>(`/Violation/${id}`, { method: "DELETE" })
+  },
+  contactInfos() {
+    return request<ContactInfoModel[]>("/ContactInfo")
+  },
+  createContactInfo(body: ContactInfoRequest) {
+    return request<ContactInfoModel>("/ContactInfo", { method: "POST", body: JSON.stringify(body) })
+  },
+  updateContactInfo(id: string, body: ContactInfoRequest) {
+    return request<ContactInfoModel>(`/ContactInfo/${id}`, { method: "PUT", body: JSON.stringify(body) })
+  },
+  deleteContactInfo(id: string) {
+    return request<void>(`/ContactInfo/${id}`, { method: "DELETE" })
   },
   createContract(body: { accountId: string; deposit: number; rentalPrice: number; premiseReturnDate: string; regulationIds: string[] }) {
     return request<ContractModel>("/Contract", { method: "POST", body: JSON.stringify(body) })

@@ -3,6 +3,7 @@ using Contract.Models.Regulation;
 using Contract.Presentation.Record.Regulation;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 
 namespace Contract.Presentation.Controller
 {
@@ -11,11 +12,8 @@ namespace Contract.Presentation.Controller
     public class RegulationController(
         IRegulationApplication regulationApplication,
         ILogger<RegulationController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
     {
-        private const string Module = "Contract";
-        private const string Layer = "Presentation/Controller";
-
         private readonly IRegulationApplication _regulationApplication = regulationApplication;
         private readonly ILogger<RegulationController> _logger = logger;
         private readonly ILogPool _logPool = logPool;

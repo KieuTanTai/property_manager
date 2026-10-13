@@ -3,165 +3,14 @@ import {
   FormField,
   InvoiceStatusBadge,
   Modal,
-  fmt,
   inputCls,
   selectCls,
 } from "./shared"
-import type { InvoiceStatus } from "./shared"
-
-type InvoiceTab = "invoices" | "receipts"
-type ReceiptPaymentMethod = "cash" | "bank_transfer" | "card" | "e_wallet"
-
-interface MonthlyInvoice {
-  invoiceId: string
-  invoiceContractId: string
-  invoicePaymentDate: string
-  invoiceDueDate: string
-  invoiceTotalAmount: number | null
-  invoiceStatus: InvoiceStatus
-  invoiceCreatedAt: string
-  invoiceUpdatedAt: string
-}
-
-interface InvoiceDetail {
-  invoiceDetailId: number
-  invoiceDetailInvoiceId: string
-  invoiceDetailPremiseId: string
-  invoiceDetailRentalPrice: number
-  invoiceDetailElectricityFee: number
-  invoiceDetailWaterFee: number
-  invoiceDetailGarbageFee: number
-  invoiceDetailTotalAmount: number
-}
-
-interface Receipt {
-  receiptId: string
-  receiptInvoiceId: string
-  receiptCreatedByAccountId: string
-  receiptPaymentMethod: ReceiptPaymentMethod
-  receiptAmount: number
-  receiptPaymentDate: string
-  receiptTransactionReference: string | null
-  receiptGatewayTransactionNumber: string | null
-  receiptTransactionInfo: string | null
-  receiptBankName: string | null
-  receiptCreatedAt: string
-  receiptUpdatedAt: string
-}
-
-const MONTHLY_INVOICES: MonthlyInvoice[] = [
-  {
-    invoiceId: "0195d8a1-1a00-7111-8111-100000000001",
-    invoiceContractId: "0195d7f0-1000-7111-8111-100000000001",
-    invoicePaymentDate: "2026-01-01",
-    invoiceDueDate: "2026-01-31",
-    invoiceTotalAmount: 15700000,
-    invoiceStatus: "unpaid",
-    invoiceCreatedAt: "2026-01-01T08:00:00",
-    invoiceUpdatedAt: "2026-01-18T10:15:00",
-  },
-  {
-    invoiceId: "0195d8a1-1a01-7222-8222-200000000002",
-    invoiceContractId: "0195d7f0-1001-7222-8222-200000000002",
-    invoicePaymentDate: "2026-02-01",
-    invoiceDueDate: "2026-03-03",
-    invoiceTotalAmount: 13100000,
-    invoiceStatus: "unpaid",
-    invoiceCreatedAt: "2026-02-01T08:30:00",
-    invoiceUpdatedAt: "2026-02-01T08:30:00",
-  },
-  {
-    invoiceId: "0195d8a1-1a02-7333-8333-300000000003",
-    invoiceContractId: "0195d7f0-1002-7333-8333-300000000003",
-    invoicePaymentDate: "2026-01-01",
-    invoiceDueDate: "2026-01-31",
-    invoiceTotalAmount: 10200000,
-    invoiceStatus: "overdue",
-    invoiceCreatedAt: "2026-01-01T09:00:00",
-    invoiceUpdatedAt: "2026-02-01T00:00:00",
-  },
-]
-
-const INVOICE_DETAILS: InvoiceDetail[] = [
-  {
-    invoiceDetailId: 1,
-    invoiceDetailInvoiceId: MONTHLY_INVOICES[0].invoiceId,
-    invoiceDetailPremiseId: "0195c8f6-cd50-7111-8111-100000000001",
-    invoiceDetailRentalPrice: 7500000,
-    invoiceDetailElectricityFee: 150000,
-    invoiceDetailWaterFee: 100000,
-    invoiceDetailGarbageFee: 50000,
-    invoiceDetailTotalAmount: 7800000,
-  },
-  {
-    invoiceDetailId: 2,
-    invoiceDetailInvoiceId: MONTHLY_INVOICES[0].invoiceId,
-    invoiceDetailPremiseId: "0195c8f6-cd51-7222-8222-200000000002",
-    invoiceDetailRentalPrice: 7500000,
-    invoiceDetailElectricityFee: 200000,
-    invoiceDetailWaterFee: 100000,
-    invoiceDetailGarbageFee: 100000,
-    invoiceDetailTotalAmount: 7900000,
-  },
-  {
-    invoiceDetailId: 3,
-    invoiceDetailInvoiceId: MONTHLY_INVOICES[1].invoiceId,
-    invoiceDetailPremiseId: "0195c8f6-cd52-7333-8333-300000000003",
-    invoiceDetailRentalPrice: 12000000,
-    invoiceDetailElectricityFee: 600000,
-    invoiceDetailWaterFee: 300000,
-    invoiceDetailGarbageFee: 200000,
-    invoiceDetailTotalAmount: 13100000,
-  },
-  {
-    invoiceDetailId: 4,
-    invoiceDetailInvoiceId: MONTHLY_INVOICES[2].invoiceId,
-    invoiceDetailPremiseId: "0195c8f6-cd53-7444-8444-400000000004",
-    invoiceDetailRentalPrice: 9000000,
-    invoiceDetailElectricityFee: 700000,
-    invoiceDetailWaterFee: 300000,
-    invoiceDetailGarbageFee: 200000,
-    invoiceDetailTotalAmount: 10200000,
-  },
-]
-
-const CONTRACT_BILLING: Record<string, {
-  rentalPrice: number
-  premiseIds: string[]
-}> = {
-  "0195d7f0-1000-7111-8111-100000000001": {
-    rentalPrice: 7500000,
-    premiseIds: [
-      "0195c8f6-cd50-7111-8111-100000000001",
-      "0195c8f6-cd51-7222-8222-200000000002",
-    ],
-  },
-  "0195d7f0-1001-7222-8222-200000000002": {
-    rentalPrice: 12000000,
-    premiseIds: ["0195c8f6-cd52-7333-8333-300000000003"],
-  },
-  "0195d7f0-1002-7333-8333-300000000003": {
-    rentalPrice: 9000000,
-    premiseIds: ["0195c8f6-cd53-7444-8444-400000000004"],
-  },
-}
-
-const RECEIPTS: Receipt[] = [
-  {
-    receiptId: "0195d8c3-3c00-7111-8111-100000000001",
-    receiptInvoiceId: MONTHLY_INVOICES[0].invoiceId,
-    receiptCreatedByAccountId: "0195d6e0-0000-7111-8111-100000000001",
-    receiptPaymentMethod: "bank_transfer",
-    receiptAmount: 8200000,
-    receiptPaymentDate: "2026-01-18",
-    receiptTransactionReference: "MS-012026-001",
-    receiptGatewayTransactionNumber: "VCB260118001",
-    receiptTransactionInfo: "Thanh toán hóa đơn tháng 01/2026",
-    receiptBankName: "Vietcombank",
-    receiptCreatedAt: "2026-01-18T10:15:00",
-    receiptUpdatedAt: "2026-01-18T10:15:00",
-  },
-]
+import type { InvoiceStatus } from "../../types/modules"
+import type { InvoiceTab, ReceiptPaymentMethod, MonthlyInvoice, InvoiceDetail, Receipt } from "../../types/invoices"
+import { MOCK_MONTHLY_INVOICES, MOCK_INVOICE_DETAILS, MOCK_CONTRACT_BILLING, MOCK_RECEIPTS } from "../../mocks/invoices"
+import { createUuidV7 } from "../../scripts/ids"
+import { fmt, today } from "../../scripts/format"
 
 const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
   cash: "Tiền mặt",
@@ -170,25 +19,10 @@ const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
   e_wallet: "Ví điện tử",
 }
 
-const today = () => new Date().toISOString().slice(0, 10)
-
-const createUuidV7 = () => {
-  const bytes = crypto.getRandomValues(new Uint8Array(16))
-  const timestamp = Date.now()
-  for (let index = 5; index >= 0; index--)
-    bytes[index] = Math.floor(timestamp / 2 ** ((5 - index) * 8)) & 0xff
-  bytes[6] = (bytes[6] & 0x0f) | 0x70
-  bytes[8] = (bytes[8] & 0x3f) | 0x80
-  const hex = Array.from(bytes, (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("")
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
-}
-
 export function InvoicesModule() {
-  const [invoices, setInvoices] = useState<MonthlyInvoice[]>(MONTHLY_INVOICES)
-  const [details, setDetails] = useState<InvoiceDetail[]>(INVOICE_DETAILS)
-  const [receipts, setReceipts] = useState<Receipt[]>(RECEIPTS)
+  const [invoices, setInvoices] = useState<MonthlyInvoice[]>(MOCK_MONTHLY_INVOICES)
+  const [details, setDetails] = useState<InvoiceDetail[]>(MOCK_INVOICE_DETAILS)
+  const [receipts, setReceipts] = useState<Receipt[]>(MOCK_RECEIPTS)
   const [activeTab, setActiveTab] = useState<InvoiceTab>("invoices")
   const [filter, setFilter] = useState<InvoiceStatus | "all">("all")
   const [selected, setSelected] = useState<MonthlyInvoice | null>(null)
@@ -245,7 +79,7 @@ export function InvoicesModule() {
   const openAddInvoice = () => {
     const dueDate = new Date()
     dueDate.setDate(dueDate.getDate() + 30)
-    const contractId = Object.keys(CONTRACT_BILLING)[0] ?? ""
+    const contractId = Object.keys(MOCK_CONTRACT_BILLING)[0] ?? ""
     setInvoiceForm({
       contractId,
       paymentDate: today(),
@@ -255,7 +89,7 @@ export function InvoicesModule() {
     })
     setCreateDetailFees(
       Object.fromEntries(
-        (CONTRACT_BILLING[contractId]?.premiseIds ?? []).map((premiseId) => [
+        (MOCK_CONTRACT_BILLING[contractId]?.premiseIds ?? []).map((premiseId) => [
           premiseId,
           { electricityFee: "", waterFee: "", garbageFee: "" },
         ]),
@@ -268,7 +102,7 @@ export function InvoicesModule() {
     setInvoiceForm({ ...invoiceForm, contractId })
     setCreateDetailFees(
       Object.fromEntries(
-        (CONTRACT_BILLING[contractId]?.premiseIds ?? []).map((premiseId) => [
+        (MOCK_CONTRACT_BILLING[contractId]?.premiseIds ?? []).map((premiseId) => [
           premiseId,
           { electricityFee: "", waterFee: "", garbageFee: "" },
         ]),
@@ -280,7 +114,7 @@ export function InvoicesModule() {
     setSelected(invoice)
     setIsEditing(false)
     const availablePremise =
-      CONTRACT_BILLING[invoice.invoiceContractId]?.premiseIds.find(
+      MOCK_CONTRACT_BILLING[invoice.invoiceContractId]?.premiseIds.find(
         (premiseId) =>
           !details.some(
             (detail) =>
@@ -300,7 +134,7 @@ export function InvoicesModule() {
   const addInvoice = () => {
     const now = new Date().toISOString()
     const invoiceId = createUuidV7()
-    const billing = CONTRACT_BILLING[invoiceForm.contractId]
+    const billing = MOCK_CONTRACT_BILLING[invoiceForm.contractId]
     if (!billing) return
     const firstDetailId =
       Math.max(0, ...details.map((detail) => detail.invoiceDetailId)) + 1
@@ -441,7 +275,7 @@ export function InvoicesModule() {
 
   const addInvoiceDetail = () => {
     if (!selected) return
-    const billing = CONTRACT_BILLING[selected.invoiceContractId]
+    const billing = MOCK_CONTRACT_BILLING[selected.invoiceContractId]
     const electricityFee = Number(detailForm.electricityFee)
     const waterFee = Number(detailForm.waterFee)
     const garbageFee = Number(detailForm.garbageFee)
@@ -507,12 +341,17 @@ export function InvoicesModule() {
   const openReceipt = (receipt: Receipt) => {
     setSelectedReceipt(receipt)
     setReceiptIsEditing(false)
+    setReceiptEditForm({
+      paymentDate: receipt.receiptPaymentDate.slice(0, 10),
+      amount: String(receipt.receiptAmount),
+      transactionInfo: receipt.receiptTransactionInfo ?? "",
+    })
   }
 
   const startEditingReceipt = () => {
     if (!selectedReceipt) return
     setReceiptEditForm({
-      paymentDate: selectedReceipt.receiptPaymentDate,
+      paymentDate: selectedReceipt.receiptPaymentDate.slice(0, 10),
       amount: String(selectedReceipt.receiptAmount),
       transactionInfo: selectedReceipt.receiptTransactionInfo ?? "",
     })
@@ -567,7 +406,7 @@ export function InvoicesModule() {
       )
     : []
   const selectedBilling = selected
-    ? CONTRACT_BILLING[selected.invoiceContractId]
+    ? MOCK_CONTRACT_BILLING[selected.invoiceContractId]
     : undefined
   const availablePremiseIds =
     selectedBilling?.premiseIds.filter(
@@ -589,12 +428,12 @@ export function InvoicesModule() {
       ),
     )
   const createInvoiceTotal = (
-    CONTRACT_BILLING[invoiceForm.contractId]?.premiseIds ?? []
+    MOCK_CONTRACT_BILLING[invoiceForm.contractId]?.premiseIds ?? []
   ).reduce((sum, premiseId) => {
     const fees = createDetailFees[premiseId]
     return (
       sum +
-      (CONTRACT_BILLING[invoiceForm.contractId]?.rentalPrice ?? 0) +
+      (MOCK_CONTRACT_BILLING[invoiceForm.contractId]?.rentalPrice ?? 0) +
       (Number(fees?.electricityFee) || 0) +
       (Number(fees?.waterFee) || 0) +
       (Number(fees?.garbageFee) || 0)
@@ -834,7 +673,7 @@ export function InvoicesModule() {
                 value={invoiceForm.contractId}
                 onChange={(event) => selectInvoiceContract(event.target.value)}
               >
-                {Object.entries(CONTRACT_BILLING).map(
+                {Object.entries(MOCK_CONTRACT_BILLING).map(
                   ([contractId, billing]) => (
                     <option key={contractId} value={contractId}>
                       {contractId} · {billing.premiseIds.length} mặt bằng
@@ -879,7 +718,7 @@ export function InvoicesModule() {
               <span className="text-right">Tiền nước</span>
               <span className="text-right">Phí rác</span>
             </div>
-            {(CONTRACT_BILLING[invoiceForm.contractId]?.premiseIds ?? []).map(
+            {(MOCK_CONTRACT_BILLING[invoiceForm.contractId]?.premiseIds ?? []).map(
               (premiseId) => {
                 const fees = createDetailFees[premiseId] ?? {
                   electricityFee: "",
@@ -901,7 +740,7 @@ export function InvoicesModule() {
                       <input
                         className={`${inputCls} pr-12 bg-gray-100 text-gray-500 cursor-not-allowed text-right`}
                         value={
-                          CONTRACT_BILLING[invoiceForm.contractId]
+                          MOCK_CONTRACT_BILLING[invoiceForm.contractId]
                             ?.rentalPrice ?? 0
                         }
                         readOnly
@@ -1524,144 +1363,107 @@ export function InvoicesModule() {
 
       {selectedReceipt && (
         <Modal
-          title={
-            receiptIsEditing ? "Chỉnh sửa phiếu thu" : "Chi tiết phiếu thu"
-          }
+          title="Chi tiết phiếu thu"
           onClose={() => setSelectedReceipt(null)}
           wide
         >
-          {receiptIsEditing ? (
-            <>
-              <div className="grid grid-cols-3 gap-x-4">
-                <FormField label="Ngày thanh toán">
-                  <input
-                    className={inputCls}
-                    type="date"
-                    value={receiptEditForm.paymentDate}
-                    onChange={(event) =>
-                      setReceiptEditForm({
-                        ...receiptEditForm,
-                        paymentDate: event.target.value,
-                      })
-                    }
-                  />
-                </FormField>
-                <FormField label="Số tiền">
-                  <div className="relative">
-                    <input
-                      className={`${inputCls} pr-14`}
-                      type="number"
-                      min="1"
-                      value={receiptEditForm.amount}
-                      onChange={(event) =>
-                        setReceiptEditForm({
-                          ...receiptEditForm,
-                          amount: event.target.value,
-                        })
-                      }
-                    />
-                    <span className="absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-gray-400 pointer-events-none">
-                      VND
-                    </span>
-                  </div>
-                </FormField>
-                <FormField label="Thông tin giao dịch">
-                  <input
-                    className={inputCls}
-                    maxLength={250}
-                    value={receiptEditForm.transactionInfo}
-                    onChange={(event) =>
-                      setReceiptEditForm({
-                        ...receiptEditForm,
-                        transactionInfo: event.target.value,
-                      })
-                    }
-                  />
-                </FormField>
+          <div className="grid grid-cols-3 gap-x-4">
+            <FormField label="Receipt ID">
+              <input className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`} value={selectedReceipt.receiptId} disabled />
+            </FormField>
+            <FormField label="Invoice ID">
+              <input className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`} value={selectedReceipt.receiptInvoiceId} disabled />
+            </FormField>
+            <FormField label="Account ID người tạo">
+              <input className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`} value={selectedReceipt.receiptCreatedByAccountId} disabled />
+            </FormField>
+            <FormField label="Phương thức">
+              <select className={`${selectCls} disabled:bg-gray-50 disabled:text-gray-500`} value={selectedReceipt.receiptPaymentMethod} disabled>
+                {Object.entries(paymentMethodLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Số tiền">
+              <div className="relative">
+                <input
+                  className={`${inputCls} pr-14 disabled:bg-gray-50 disabled:text-gray-500`}
+                  type="number"
+                  min="1"
+                  value={receiptEditForm.amount}
+                  disabled={!receiptIsEditing}
+                  onChange={(event) => setReceiptEditForm({ ...receiptEditForm, amount: event.target.value })}
+                />
+                <span className="absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-gray-400 pointer-events-none">VND</span>
               </div>
-              <div className="flex justify-end gap-2">
+            </FormField>
+            <FormField label="Ngày thanh toán">
+              <input
+                className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`}
+                type="date"
+                value={receiptEditForm.paymentDate}
+                disabled={!receiptIsEditing}
+                onChange={(event) => setReceiptEditForm({ ...receiptEditForm, paymentDate: event.target.value })}
+              />
+            </FormField>
+            <FormField label="Mã tham chiếu">
+              <input className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`} value={selectedReceipt.receiptTransactionReference ?? "—"} disabled />
+            </FormField>
+            <FormField label="Mã giao dịch cổng">
+              <input className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`} value={selectedReceipt.receiptGatewayTransactionNumber ?? "—"} disabled />
+            </FormField>
+            <FormField label="Ngân hàng">
+              <input className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`} value={selectedReceipt.receiptBankName ?? "—"} disabled />
+            </FormField>
+            <FormField label="Thông tin giao dịch">
+              <input
+                className={`${inputCls} disabled:bg-gray-50 disabled:text-gray-500`}
+                maxLength={250}
+                value={receiptEditForm.transactionInfo}
+                disabled={!receiptIsEditing}
+                onChange={(event) => setReceiptEditForm({ ...receiptEditForm, transactionInfo: event.target.value })}
+              />
+            </FormField>
+            <FormField label="Ngày tạo">
+              <input className={inputCls} value={new Date(selectedReceipt.receiptCreatedAt).toLocaleString("vi-VN")} disabled />
+            </FormField>
+            <FormField label="Ngày cập nhật">
+              <input className={inputCls} value={new Date(selectedReceipt.receiptUpdatedAt).toLocaleString("vi-VN")} disabled />
+            </FormField>
+          </div>
+          <div className="flex justify-end gap-2 mt-5">
+            {receiptIsEditing ? (
+              <>
                 <button
-                  onClick={() => setReceiptIsEditing(false)}
+                  onClick={() => {
+                    setReceiptEditForm({
+                      paymentDate: selectedReceipt.receiptPaymentDate.slice(0, 10),
+                      amount: String(selectedReceipt.receiptAmount),
+                      transactionInfo: selectedReceipt.receiptTransactionInfo ?? "",
+                    })
+                    setReceiptIsEditing(false)
+                  }}
                   className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  Hủy
-                </button>
+                >Hủy</button>
                 <button
                   onClick={updateReceipt}
-                  disabled={
-                    !receiptEditForm.paymentDate ||
-                    Number(receiptEditForm.amount) <= 0
-                  }
+                  disabled={!receiptEditForm.paymentDate || Number(receiptEditForm.amount) <= 0}
                   className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400"
-                >
-                  Lưu thay đổi
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  ["Receipt ID", selectedReceipt.receiptId],
-                  ["Invoice ID", selectedReceipt.receiptInvoiceId],
-                  [
-                    "Account ID người tạo",
-                    selectedReceipt.receiptCreatedByAccountId,
-                  ],
-                  [
-                    "Phương thức",
-                    paymentMethodLabels[selectedReceipt.receiptPaymentMethod],
-                  ],
-                  ["Số tiền", fmt(selectedReceipt.receiptAmount)],
-                  ["Ngày thanh toán", selectedReceipt.receiptPaymentDate],
-                  [
-                    "Mã tham chiếu",
-                    selectedReceipt.receiptTransactionReference || "—",
-                  ],
-                  [
-                    "Mã giao dịch cổng",
-                    selectedReceipt.receiptGatewayTransactionNumber || "—",
-                  ],
-                  ["Ngân hàng", selectedReceipt.receiptBankName || "—"],
-                  [
-                    "Thông tin giao dịch",
-                    selectedReceipt.receiptTransactionInfo || "—",
-                  ],
-                  [
-                    "Ngày tạo",
-                    new Date(selectedReceipt.receiptCreatedAt).toLocaleString(
-                      "vi-VN",
-                    ),
-                  ],
-                  [
-                    "Ngày cập nhật",
-                    new Date(selectedReceipt.receiptUpdatedAt).toLocaleString(
-                      "vi-VN",
-                    ),
-                  ],
-                ].map(([label, value]) => (
-                  <div key={label} className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-400 mb-1">{label}</p>
-                    <p className="text-sm text-gray-700 break-all">{value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-end gap-2 mt-5">
+                >Lưu thay đổi</button>
+              </>
+            ) : (
+              <>
                 <button
                   onClick={() => setSelectedReceipt(null)}
                   className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  Đóng
-                </button>
+                >Đóng</button>
                 <button
                   onClick={startEditingReceipt}
                   className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Chỉnh sửa
-                </button>
-              </div>
-            </>
-          )}
+                >Chỉnh sửa</button>
+              </>
+            )}
+          </div>
         </Modal>
       )}
     </div>

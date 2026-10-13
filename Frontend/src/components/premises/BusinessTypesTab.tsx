@@ -1,15 +1,5 @@
-import type { BusinessType } from "./types"
-
-interface Props {
-  businessTypes: BusinessType[]
-  onView: (businessType: BusinessType) => void
-}
-
-const formatDateTime = (value: string) =>
-  new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value))
+import type { BusinessTypesTabProps as Props } from "./types"
+import { formatDateTime } from "../../scripts/format"
 
 export function BusinessTypesTab({ businessTypes, onView }: Props) {
   return (

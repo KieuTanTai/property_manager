@@ -112,7 +112,7 @@ namespace Contract.Application
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating invoice.");
-            ThrowIfInvalidInvoiceModel(invoice, requireId: true);
+            ThrowIfInvalidInvoiceModel(invoice);
             var invoiceDetails = details?.ToList() ?? [];
             foreach (var detail in invoiceDetails)
                 ThrowIfInvalidInvoiceDetailModel(detail, invoice.InvoiceId);
@@ -151,11 +151,10 @@ namespace Contract.Application
             throw exception;
         }
 
-        private static void ThrowIfInvalidInvoiceModel(MonthlyInvoiceModel invoice,
-            bool requireId = false)
+        private static void ThrowIfInvalidInvoiceModel(MonthlyInvoiceModel invoice)
         {
             ArgumentNullException.ThrowIfNull(invoice);
-            if (requireId && invoice.InvoiceId == Guid.Empty)
+            if (invoice.InvoiceId == Guid.Empty)
                 throw new ArgumentException("Invoice id is required.", nameof(invoice));
             if (invoice.InvoiceContractId == Guid.Empty)
                 throw new ArgumentException("Contract id is required.", nameof(invoice));

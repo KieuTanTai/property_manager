@@ -26,5 +26,7 @@ namespace Contract.Interfaces.IRepository
             bool isGetInvoices = false,
             bool isGetRegulations = false,
             CancellationToken cancellationToken = default);
+        
+        Task SoftDeleteAsync(Guid contractId, DateTime deletionDate, CancellationToken cancellationToken = default);
     }
 }

@@ -233,7 +233,14 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
                     "Monthly invoice update rejected because the invoice was not found.");
                 throw exception;
             }
-
+            if (existedInvoice.InvoiceStatus == EInvoiceStatus.Paid)
+            {
+                var exception = new InvalidOperationException(
+                    $"MonthlyInvoiceModel cannot be updated because it is already paid! \n {invoiceModel.InvoiceId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Monthly invoice update rejected because the invoice is already paid.");
+                throw exception;
+            }
             _db.MonthlyInvoices.Update(invoiceModel);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Monthly invoice staged for update.");
@@ -245,6 +252,14 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Preparing monthly invoice range update.");
             var invoiceModels = entities.ToList();
+            if (invoiceModels.Any(invoice => invoice.InvoiceStatus == EInvoiceStatus.Paid))
+            {
+                var exception = new InvalidOperationException(
+                    $"MonthlyInvoiceModel cannot be updated because it is already paid! \n {string.Join(", ", invoiceModels.Where(invoice => invoice.InvoiceStatus == EInvoiceStatus.Paid).Select(invoice => invoice.InvoiceId))}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Monthly invoice range update rejected because some invoices are already paid.");
+                throw exception;
+            }
             _db.MonthlyInvoices.UpdateRange(invoiceModels);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Monthly invoice range staged for update.");

@@ -4,6 +4,7 @@ using Contract.Presentation.Record.Receipt;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Enum;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 
 namespace Contract.Presentation.Controller
 {
@@ -12,11 +13,8 @@ namespace Contract.Presentation.Controller
     public class ReceiptController(
         IReceiptApplication receiptApplication,
         ILogger<ReceiptController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
     {
-        private const string Module = "Contract";
-        private const string Layer = "Presentation/Controller";
-
         private readonly IReceiptApplication _receiptApplication = receiptApplication;
         private readonly ILogger<ReceiptController> _logger = logger;
         private readonly ILogPool _logPool = logPool;

@@ -12,6 +12,7 @@ namespace Contract.Infrastructure.DIContainer
             services.AddScoped<IInvoiceApplication, InvoiceApplication>();
             services.AddScoped<IReceiptApplication, ReceiptApplication>();
             services.AddScoped<IViolationApplication, ViolationApplication>();
+            services.AddScoped<IContactInfoApplication, ContactInfoApplication>();
             return services;
         }   
     }

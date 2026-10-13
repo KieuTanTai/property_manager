@@ -1,36 +1,15 @@
-import { useState } from "react"
 import {
-  ACCOUNTS,
-  CONTRACTS,
-  INVOICES,
-  LOCATIONS,
-  PREMISES,
-  TICKETS,
-  VIOLATIONS,
-  BUSINESS_TYPES,
-  WHITELIST_PRODUCTS,
   ContractStatusBadge,
   FormField,
   InvoiceStatusBadge,
   Modal,
   PremiseStatusBadge,
   TicketTypeBadge,
-  fmt,
   inputCls,
-  selectCls,
+  selectCls
 } from "./shared"
-import type {
-  Contract,
-  ContractStatus,
-  Invoice,
-  InvoiceStatus,
-  Location,
-  Ticket,
-  TicketType,
-  Violation,
-  BusinessType,
-  WhitelistProduct,
-} from "./shared"
+import { ACCOUNTS, CONTRACTS, INVOICES, LOCATIONS, PREMISES, TICKETS, VIOLATIONS, BUSINESS_TYPES, WHITELIST_PRODUCTS } from "../../mocks/shared"
+import { fmt } from "../../scripts/format"
 import type { Premise, PremisesSubTab, PremiseStatus } from "../premises/types"
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────
@@ -182,31 +161,31 @@ export function Dashboard() {
           <div className="space-y-3">
             {[
               {
-                icon: "📝",
+                icon: "edit_note",
                 text: "Hợp đồng CTR-2024-004 chờ ký",
                 time: "2 giờ trước",
                 color: "text-amber-600",
               },
               {
-                icon: "⚠️",
+                icon: "warning",
                 text: "Vi phạm mới: Nguyễn Văn A - A01",
                 time: "5 giờ trước",
                 color: "text-red-600",
               },
               {
-                icon: "🎫",
+                icon: "confirmation_number",
                 text: "Ticket mới: Sự cố điều hòa tầng 1",
                 time: "8 giờ trước",
                 color: "text-blue-600",
               },
               {
-                icon: "💳",
+                icon: "credit_card",
                 text: "Hóa đơn INV-2024-004 quá hạn",
                 time: "1 ngày trước",
                 color: "text-red-600",
               },
               {
-                icon: "✅",
+                icon: "task_alt",
                 text: "Hợp đồng CTR-2024-001 đã ký",
                 time: "3 ngày trước",
                 color: "text-emerald-600",
@@ -216,7 +195,7 @@ export function Dashboard() {
                 key={i}
                 className="flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0"
               >
-                <span className="text-base">{a.icon}</span>
+                <span className="material-symbols-outlined text-base" aria-hidden="true">{a.icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs font-medium ${a.color} truncate`}>
                     {a.text}

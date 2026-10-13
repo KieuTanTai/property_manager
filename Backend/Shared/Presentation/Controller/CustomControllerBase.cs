@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Shared.Logging;
 
-namespace Identity.Presentation.Controller
+namespace Shared.Presentation.Controller
 {
-    public abstract class CustomControllerBase(ILogPool logPool, string module, string layer) : ControllerBase, IAsyncActionFilter
+    public abstract class CustomControllerBase(ILogPool logPool, string module, string layer)
+        : ControllerBase, IAsyncActionFilter
     {
         protected string Module { get; } = module;
         protected string Layer { get; } = layer;
