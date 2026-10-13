@@ -10,18 +10,18 @@ namespace Contract.Interfaces.IApplication
             bool isGetViolations = false, bool isGetInvoices = false,
             CancellationToken cancellationToken = default);
 
-        Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize,
+        Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByContractStatusAsync(Guid? cursor, int pageSize,
             EContractStatus status, bool isGetViolations = false, bool isGetInvoices = false,
             CancellationToken cancellationToken = default);
 
-        Task<ContractModel?> GetByIdAsync(Guid contractId, bool isGetViolations = false,
+        Task<ContractModel?> GetByContractIdAsync(Guid contractId, bool isGetViolations = false,
             bool isGetInvoices = false, CancellationToken cancellationToken = default);
 
-        Task<ContractModel> AddAsync(ContractModel contract,
+        Task<ContractModel> AddContractAsync(ContractModel contract,
             IReadOnlyCollection<Guid>? regulationIds = null,
             CancellationToken cancellationToken = default);
 
-        Task<ContractModel> UpdateAsync(ContractModel contract,
+        Task<ContractModel> UpdateContractAsync(ContractModel contract,
             IReadOnlyCollection<Guid>? regulationIds = null,
             CancellationToken cancellationToken = default);
     }

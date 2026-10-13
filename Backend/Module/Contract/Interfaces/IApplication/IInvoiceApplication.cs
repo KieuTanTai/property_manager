@@ -10,18 +10,18 @@ namespace Contract.Interfaces.IApplication
             int pageSize, bool isGetDetails = true, bool isGetReceipt = true,
             CancellationToken cancellationToken = default);
 
-        Task<RecordBaseCursorPage<MonthlyInvoiceModel>> GetApplyPagingByStatusAsync(Guid? cursor,
+        Task<RecordBaseCursorPage<MonthlyInvoiceModel>> GetApplyPagingByInvoiceStatusAsync(Guid? cursor,
             int pageSize, EInvoiceStatus status, bool isGetDetails = true, bool isGetReceipt = true,
             CancellationToken cancellationToken = default);
 
-        Task<MonthlyInvoiceModel?> GetByIdAsync(Guid invoiceId, bool isGetDetails = true,
+        Task<MonthlyInvoiceModel?> GetByInvoiceIdAsync(Guid invoiceId, bool isGetDetails = true,
             bool isGetReceipt = true, CancellationToken cancellationToken = default);
         
-        Task<MonthlyInvoiceModel> AddAsync(MonthlyInvoiceModel invoice,
+        Task<MonthlyInvoiceModel> AddInvoiceAsync(MonthlyInvoiceModel invoice,
             IReadOnlyCollection<InvoiceDetailModel> details,
             CancellationToken cancellationToken = default);
 
-        Task<MonthlyInvoiceModel> UpdateAsync(MonthlyInvoiceModel invoice,
+        Task<MonthlyInvoiceModel> UpdateInvoiceAsync(MonthlyInvoiceModel invoice,
             IReadOnlyCollection<InvoiceDetailModel>? details = null,
             CancellationToken cancellationToken = default);
         

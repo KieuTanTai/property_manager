@@ -70,7 +70,7 @@ namespace Contract.Presentation.Controller
                 $"Invoice lookup request received for {invoiceId}.");
             try
             {
-                var result = await _invoiceApplication.GetByIdAsync(
+                var result = await _invoiceApplication.GetByInvoiceIdAsync(
                     invoiceId, isGetDetails, isGetReceipt, cancellationToken);
                 if (result is null)
                 {
@@ -115,7 +115,7 @@ namespace Contract.Presentation.Controller
 
             try
             {
-                var result = await _invoiceApplication.GetApplyPagingByStatusAsync(
+                var result = await _invoiceApplication.GetApplyPagingByInvoiceStatusAsync(
                     cursor, pageSize, status, isGetDetails, isGetReceipt, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Invoice status request completed: {result.Items.Count} records.");
@@ -151,7 +151,7 @@ namespace Contract.Presentation.Controller
                 var invoice = new MonthlyInvoiceModel(request.InvoiceId, request.ContractId,
                     request.PaymentDate, request.DueDate, request.TotalAmount, request.Status);
                 var details = request.Details.Select(detail => CreateDetail(request.InvoiceId, detail)).ToList();
-                var result = await _invoiceApplication.AddAsync(invoice, details, cancellationToken);
+                var result = await _invoiceApplication.AddInvoiceAsync(invoice, details, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Invoice created: {result.InvoiceId}.");
                 return Ok(result);
@@ -193,7 +193,7 @@ namespace Contract.Presentation.Controller
                 var invoice = new MonthlyInvoiceModel(invoiceId, request.ContractId,
                     request.PaymentDate, request.DueDate, request.TotalAmount, request.Status);
                 var details = request.Details?.Select(detail => CreateDetail(invoiceId, detail)).ToList();
-                var result = await _invoiceApplication.UpdateAsync(invoice, details, cancellationToken);
+                var result = await _invoiceApplication.UpdateInvoiceAsync(invoice, details, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Invoice updated: {result.InvoiceId}.");
                 return Ok(result);

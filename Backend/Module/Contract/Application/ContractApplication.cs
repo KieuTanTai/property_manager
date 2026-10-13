@@ -42,7 +42,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByStatusAsync(Guid? cursor,
+        public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByContractStatusAsync(Guid? cursor,
             int pageSize, EContractStatus status, bool isGetViolations = false, bool isGetInvoices = false,
             CancellationToken cancellationToken = default)
         {
@@ -54,7 +54,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<ContractModel?> GetByIdAsync(Guid contractId, bool isGetViolations = false,
+        public async Task<ContractModel?> GetByContractIdAsync(Guid contractId, bool isGetViolations = false,
             bool isGetInvoices = false, CancellationToken cancellationToken = default)
         {
             if (contractId == Guid.Empty)
@@ -73,7 +73,7 @@ namespace Contract.Application
 
         #region CREATE
 
-        public async Task<ContractModel> AddAsync(ContractModel contract,
+        public async Task<ContractModel> AddContractAsync(ContractModel contract,
             IReadOnlyCollection<Guid>? regulationIds = null,
             CancellationToken cancellationToken = default)
         {
@@ -102,7 +102,7 @@ namespace Contract.Application
 
         #region UPDATE
 
-        public async Task<ContractModel> UpdateAsync(ContractModel contract,
+        public async Task<ContractModel> UpdateContractAsync(ContractModel contract,
             IReadOnlyCollection<Guid>? regulationIds = null,
             CancellationToken cancellationToken = default)
         {

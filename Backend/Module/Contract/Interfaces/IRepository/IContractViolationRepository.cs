@@ -24,5 +24,7 @@ namespace Contract.Interfaces.IRepository
 
         Task<RecordBaseCursorPage<ContractViolationModel>> GetApplyPagingByStatusAsync(Guid? cursor,
             int pageSize, bool isResolved, CancellationToken cancellationToken = default);
+
+        Task DeleteAsync(Guid violationId, CancellationToken cancellationToken = default);
     }
 }

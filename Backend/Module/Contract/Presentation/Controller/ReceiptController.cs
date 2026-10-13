@@ -31,7 +31,7 @@ namespace Contract.Presentation.Controller
             _logger.LogLayerDebug(_logPool, Module, Layer, "Receipt list request received.");
             try
             {
-                var result = await _receiptApplication.GetAllAsync(cancellationToken);
+                var result = await _receiptApplication.GetAllReceiptsAsync(cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipt list request completed: {result.Count} records.");
                 return result.Count == 0 ? NotFound("No receipts found.") : Ok(result);
@@ -60,7 +60,7 @@ namespace Contract.Presentation.Controller
                 $"Receipt lookup request received for {receiptId}.");
             try
             {
-                var result = await _receiptApplication.GetByIdAsync(receiptId, cancellationToken);
+                var result = await _receiptApplication.GetByReceiptIdAsync(receiptId, cancellationToken);
                 if (result is null)
                 {
                     _logger.LogLayerWarning(_logPool, Module, Layer,
@@ -128,7 +128,7 @@ namespace Contract.Presentation.Controller
                 "Receipt lookup by ids request received.");
             try
             {
-                var result = await _receiptApplication.GetByIdsAsync(ids, cancellationToken);
+                var result = await _receiptApplication.GetReceiptsByIdsAsync(ids, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipt lookup by ids completed: {result.Count} records.");
                 return result.Count == 0 ? NotFound("No receipts found.") : Ok(result);
@@ -161,7 +161,7 @@ namespace Contract.Presentation.Controller
                 $"Receipt by invoice request received for {invoiceId}.");
             try
             {
-                var result = await _receiptApplication.GetByInvoiceIdAsync(invoiceId, cancellationToken);
+                var result = await _receiptApplication.GetReceiptByInvoiceIdAsync(invoiceId, cancellationToken);
                 if (result is null)
                     return NotFound("Receipt not found.");
                 _logger.LogLayerInformation(_logPool, Module, Layer,
@@ -192,7 +192,7 @@ namespace Contract.Presentation.Controller
                 $"Receipt by account request received for {accountId}.");
             try
             {
-                var result = await _receiptApplication.GetByAccountIdAsync(accountId, cancellationToken);
+                var result = await _receiptApplication.GetReceiptsByAccountIdAsync(accountId, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipts loaded for account {accountId}: {result.Count} records.");
                 return result.Count == 0 ? NotFound("No receipts found.") : Ok(result);
@@ -223,7 +223,7 @@ namespace Contract.Presentation.Controller
                 return BadRequest("Payment method is invalid.");
             try
             {
-                var result = await _receiptApplication.GetByPaymentMethodAsync(
+                var result = await _receiptApplication.GetReceiptsByPaymentMethodAsync(
                     paymentMethod, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipts loaded by payment method {paymentMethod}: {result.Count} records.");
@@ -257,7 +257,7 @@ namespace Contract.Presentation.Controller
                 return BadRequest("Page size must be greater than 0.");
             try
             {
-                var result = await _receiptApplication.GetApplyPagingByPaymentDateAsync(
+                var result = await _receiptApplication.GetApplyPagingByReceiptPaymentDateAsync(
                     cursor, pageSize, paymentDate, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipt payment date request completed: {result.Items.Count} records.");
@@ -291,7 +291,7 @@ namespace Contract.Presentation.Controller
             try
             {
                 var receipt = CreateReceipt(request);
-                var result = await _receiptApplication.AddAsync(receipt, cancellationToken);
+                var result = await _receiptApplication.AddReceiptAsync(receipt, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipt created: {result.ReceiptId}.");
                 return Ok(result);
@@ -326,7 +326,7 @@ namespace Contract.Presentation.Controller
                 $"Receipt update request received for {receiptId}.");
             try
             {
-                var result = await _receiptApplication.UpdateAsync(receiptId, invoiceId,
+                var result = await _receiptApplication.UpdateReceiptAsync(receiptId, invoiceId,
                     request.PaymentDate, request.Amount, request.TransactionInfo, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipt updated: {result.ReceiptId}.");

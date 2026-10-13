@@ -6,36 +6,36 @@ namespace Contract.Interfaces.IApplication
 {
     public interface IReceiptApplication
     {
-        Task<IReadOnlyList<ReceiptModel>> GetAllAsync(
+        Task<IReadOnlyList<ReceiptModel>> GetAllReceiptsAsync(
             CancellationToken cancellationToken = default);
 
-        Task<ReceiptModel?> GetByIdAsync(Guid receiptId,
+        Task<ReceiptModel?> GetByReceiptIdAsync(Guid receiptId,
             CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<ReceiptModel>> GetByIdsAsync(IEnumerable<Guid> receiptIds,
+        Task<IReadOnlyList<ReceiptModel>> GetReceiptsByIdsAsync(IEnumerable<Guid> receiptIds,
             CancellationToken cancellationToken = default);
 
-        Task<ReceiptModel?> GetByInvoiceIdAsync(Guid invoiceId,
+        Task<ReceiptModel?> GetReceiptByInvoiceIdAsync(Guid invoiceId,
             CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<ReceiptModel>> GetByAccountIdAsync(Guid accountId,
+        Task<IReadOnlyList<ReceiptModel>> GetReceiptsByAccountIdAsync(Guid accountId,
             CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<ReceiptModel>> GetByPaymentMethodAsync(
+        Task<IReadOnlyList<ReceiptModel>> GetReceiptsByPaymentMethodAsync(
             EReceiptPaymentMethod paymentMethod,
             CancellationToken cancellationToken = default);
 
-        Task<RecordBaseCursorPage<ReceiptModel>> GetApplyPagingByPaymentDateAsync(
+        Task<RecordBaseCursorPage<ReceiptModel>> GetApplyPagingByReceiptPaymentDateAsync(
             Guid? cursor, int pageSize, DateTime paymentDate,
             CancellationToken cancellationToken = default);
 
         Task<bool> ExistsAsync(Guid receiptId,
             CancellationToken cancellationToken = default);
 
-        Task<ReceiptModel> AddAsync(ReceiptModel receipt,
+        Task<ReceiptModel> AddReceiptAsync(ReceiptModel receipt,
             CancellationToken cancellationToken = default);
 
-        Task<ReceiptModel> UpdateAsync(Guid receiptId, Guid invoiceId, DateTime paymentDate, decimal amount, string? transactionInfo,
+        Task<ReceiptModel> UpdateReceiptAsync(Guid receiptId, Guid invoiceId, DateTime paymentDate, decimal amount, string? transactionInfo,
             CancellationToken cancellationToken = default);
     }
 }

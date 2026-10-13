@@ -23,20 +23,7 @@ namespace Contract.Application
 
         #region GET
 
-        public async Task<IReadOnlyList<RegulationModel>> GetAllAsync(
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all regulations.");
-            var result = await _regulationRepository.GetAllAsync(cancellationToken);
-            if (result.Count != 0)
-            {
-                return result;
-            }
-            _logger.LogLayerWarning(_logPool, Module, Layer, "No regulations found.");
-            throw new InvalidOperationException("No regulations found.");
-        }
-
-        public async Task<RegulationModel?> GetByIdAsync(Guid regulationId,
+        public async Task<RegulationModel?> GetByRegulationIdAsync(Guid regulationId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading regulation by id.");
@@ -49,7 +36,7 @@ namespace Contract.Application
             return null;
         }
 
-        public async Task<RegulationModel> GetByNameAsync(string regulationName,
+        public async Task<RegulationModel> GetByRegulationNameAsync(string regulationName,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(regulationName))
@@ -69,14 +56,7 @@ namespace Contract.Application
             return await GetApplyingAsync( _regulationRepository.GetApplyPagingAsync, cursor, pageSize, cancellationToken);
         }
 
-        public async Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByNameAsync(Guid? cursor,
-            int pageSize, string regulationName, CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading regulation page by name.");
-            return await GetApplyingAsync((c, p, ct) => _regulationRepository.GetApplyPagingByNameAsync(c, p, regulationName, ct), cursor, pageSize, cancellationToken);
-        }
-
-        public async Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByStatusAsync(Guid? cursor,
+        public async Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByRegulationStatusAsync(Guid? cursor,
             int pageSize, bool isActive, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading regulation page by status.");
@@ -87,7 +67,7 @@ namespace Contract.Application
 
         #region UPSERT
 
-        public async Task<RegulationModel> AddAsync(RegulationModel regulation,
+        public async Task<RegulationModel> AddRegulationAsync(RegulationModel regulation,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(regulation);
@@ -105,7 +85,7 @@ namespace Contract.Application
             return regulation;
         }
 
-        public async Task<int> UpdateAsync(RegulationModel regulation,
+        public async Task<int> UpdateRegulationAsync(RegulationModel regulation,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(regulation);
@@ -123,7 +103,7 @@ namespace Contract.Application
             return affectedRows;
         }
 
-        public async Task<int> SoftDeleteAsync(Guid regulationId,
+        public async Task<int> SoftDeleteRegulationAsync(Guid regulationId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Soft deleting regulation.");

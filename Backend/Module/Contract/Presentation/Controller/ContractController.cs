@@ -68,7 +68,7 @@ namespace Contract.Presentation.Controller
                 $"Contract lookup request received for {contractId}.");
             try
             {
-                var result = await _contractApplication.GetByIdAsync(
+                var result = await _contractApplication.GetByContractIdAsync(
                     contractId, isGetViolations, isGetInvoices, cancellationToken);
                 if (result is null)
                 {
@@ -111,7 +111,7 @@ namespace Contract.Presentation.Controller
 
             try
             {
-                var result = await _contractApplication.GetApplyPagingByStatusAsync(
+                var result = await _contractApplication.GetApplyPagingByContractStatusAsync(
                     cursor, pageSize, status, isGetViolations, isGetInvoices, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Contract status request completed: {result.Items.Count} records.");
@@ -146,7 +146,7 @@ namespace Contract.Presentation.Controller
             {
                 var contract = new ContractModel(request.AccountId, request.Deposit,
                     request.RentalPrice, request.PremiseReturnDate);
-                var result = await _contractApplication.AddAsync(
+                var result = await _contractApplication.AddContractAsync(
                     contract, request.RegulationIds, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Contract created: {result.ContractId}.");
@@ -189,7 +189,7 @@ namespace Contract.Presentation.Controller
                 var contract = new ContractModel(contractId, request.AccountId,
                     request.Deposit, request.RentalPrice, request.PremiseReturnDate,
                     request.Status, request.TerminationDate);
-                var result = await _contractApplication.UpdateAsync(
+                var result = await _contractApplication.UpdateContractAsync(
                     contract, request.RegulationIds, cancellationToken);
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Contract updated: {result.ContractId}.");

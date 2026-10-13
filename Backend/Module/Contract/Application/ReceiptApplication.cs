@@ -28,7 +28,7 @@ namespace Contract.Application
 
         #region GET
 
-        public async Task<IReadOnlyList<ReceiptModel>> GetAllAsync(
+        public async Task<IReadOnlyList<ReceiptModel>> GetAllReceiptsAsync(
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all receipts.");
@@ -38,7 +38,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<ReceiptModel?> GetByIdAsync(Guid receiptId,
+        public async Task<ReceiptModel?> GetByReceiptIdAsync(Guid receiptId,
             CancellationToken cancellationToken = default)
         {
             ThrowIfEmpty(receiptId, nameof(receiptId));
@@ -50,7 +50,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<IReadOnlyList<ReceiptModel>> GetByIdsAsync(IEnumerable<Guid> receiptIds,
+        public async Task<IReadOnlyList<ReceiptModel>> GetReceiptsByIdsAsync(IEnumerable<Guid> receiptIds,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(receiptIds);
@@ -65,7 +65,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<ReceiptModel?> GetByInvoiceIdAsync(Guid invoiceId,
+        public async Task<ReceiptModel?> GetReceiptByInvoiceIdAsync(Guid invoiceId,
             CancellationToken cancellationToken = default)
         {
             ThrowIfEmpty(invoiceId, nameof(invoiceId));
@@ -77,7 +77,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<IReadOnlyList<ReceiptModel>> GetByAccountIdAsync(Guid accountId,
+        public async Task<IReadOnlyList<ReceiptModel>> GetReceiptsByAccountIdAsync(Guid accountId,
             CancellationToken cancellationToken = default)
         {
             ThrowIfEmpty(accountId, nameof(accountId));
@@ -89,7 +89,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<IReadOnlyList<ReceiptModel>> GetByPaymentMethodAsync(
+        public async Task<IReadOnlyList<ReceiptModel>> GetReceiptsByPaymentMethodAsync(
             EReceiptPaymentMethod paymentMethod,
             CancellationToken cancellationToken = default)
         {
@@ -103,7 +103,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<RecordBaseCursorPage<ReceiptModel>> GetApplyPagingByPaymentDateAsync(
+        public async Task<RecordBaseCursorPage<ReceiptModel>> GetApplyPagingByReceiptPaymentDateAsync(
             Guid? cursor, int pageSize, DateTime paymentDate,
             CancellationToken cancellationToken = default)
         {
@@ -132,7 +132,7 @@ namespace Contract.Application
 
         #region ADD
 
-        public async Task<ReceiptModel> AddAsync(ReceiptModel receipt,
+        public async Task<ReceiptModel> AddReceiptAsync(ReceiptModel receipt,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Creating receipt.");
@@ -158,7 +158,7 @@ namespace Contract.Application
 
         #region UPDATE
 
-        public async Task<ReceiptModel> UpdateAsync(Guid receiptId, Guid invoiceId, DateTime paymentDate, decimal amount, string? transactionInfo,
+        public async Task<ReceiptModel> UpdateReceiptAsync(Guid receiptId, Guid invoiceId, DateTime paymentDate, decimal amount, string? transactionInfo,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating receipt.");

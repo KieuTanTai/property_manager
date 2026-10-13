@@ -58,7 +58,7 @@ namespace Contract.Presentation.Controller
         {
             try
             {
-                var regulation = await _regulationApplication.GetByIdAsync(regulationId, cancellationToken);
+                var regulation = await _regulationApplication.GetByRegulationIdAsync(regulationId, cancellationToken);
                 return regulation is null ? NotFound("Regulation not found.") : Ok(regulation);
             }
             catch (OperationCanceledException ex)
@@ -85,7 +85,7 @@ namespace Contract.Presentation.Controller
 
             try
             {
-                return Ok(await _regulationApplication.GetByNameAsync(regulationName, cancellationToken));
+                return Ok(await _regulationApplication.GetByRegulationNameAsync(regulationName, cancellationToken));
             }
             catch (OperationCanceledException ex)
             {
@@ -117,7 +117,7 @@ namespace Contract.Presentation.Controller
 
             try
             {
-                var result = await _regulationApplication.GetApplyPagingByStatusAsync(
+                var result = await _regulationApplication.GetApplyPagingByRegulationStatusAsync(
                     cursor, pageSize, isActive, cancellationToken);
                 return result.Items.Count == 0 ? NotFound("No regulations found.") : Ok(result);
             }
@@ -148,7 +148,7 @@ namespace Contract.Presentation.Controller
                 regulation.SetRegulationDescription(request.RegulationDescription);
                 regulation.SetRegulationFineAmount(request.RegulationFineAmount);
                 regulation.SetRegulationIsActive(request.RegulationIsActive);
-                var created = await _regulationApplication.AddAsync(regulation, cancellationToken); 
+                var created = await _regulationApplication.AddRegulationAsync(regulation, cancellationToken);
                 return Ok(created);
             }
             catch (OperationCanceledException ex)
@@ -182,7 +182,7 @@ namespace Contract.Presentation.Controller
             {
                 var regulation = new RegulationModel(regulationId, request.RegulationName,
                     request.RegulationDescription, request.RegulationFineAmount, request.RegulationIsActive);
-                var affectedRows = await _regulationApplication.UpdateAsync(regulation, cancellationToken);
+                var affectedRows = await _regulationApplication.UpdateRegulationAsync(regulation, cancellationToken);
                 return affectedRows == 0 ? BadRequest("Could not update regulation.") : Ok(regulation);
             }
             catch (OperationCanceledException ex)
@@ -208,7 +208,7 @@ namespace Contract.Presentation.Controller
         {
             try
             {
-                var affectedRows = await _regulationApplication.SoftDeleteAsync(regulationId, cancellationToken);
+                var affectedRows = await _regulationApplication.SoftDeleteRegulationAsync(regulationId, cancellationToken);
                 return affectedRows == 0 ? BadRequest("Could not delete regulation.") : NoContent();
             }
             catch (OperationCanceledException ex)

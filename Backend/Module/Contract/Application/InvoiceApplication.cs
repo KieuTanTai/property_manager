@@ -39,7 +39,7 @@ namespace Contract.Application
             return result;
         }
 
-        public async Task<RecordBaseCursorPage<MonthlyInvoiceModel>> GetApplyPagingByStatusAsync(Guid? cursor,
+        public async Task<RecordBaseCursorPage<MonthlyInvoiceModel>> GetApplyPagingByInvoiceStatusAsync(Guid? cursor,
             int pageSize, EInvoiceStatus status, bool isGetDetails = true, bool isGetReceipt = true,
             CancellationToken cancellationToken = default)
         {
@@ -54,7 +54,7 @@ namespace Contract.Application
             return result;
         }
         
-        public async Task<MonthlyInvoiceModel?> GetByIdAsync(Guid invoiceId, bool isGetDetails = true,
+        public async Task<MonthlyInvoiceModel?> GetByInvoiceIdAsync(Guid invoiceId, bool isGetDetails = true,
             bool isGetReceipt = true, CancellationToken cancellationToken = default)
         {
             if (invoiceId == Guid.Empty)
@@ -75,7 +75,7 @@ namespace Contract.Application
 
         #region ADD
 
-        public async Task<MonthlyInvoiceModel> AddAsync(MonthlyInvoiceModel invoice,
+        public async Task<MonthlyInvoiceModel> AddInvoiceAsync(MonthlyInvoiceModel invoice,
             IReadOnlyCollection<InvoiceDetailModel> details,
             CancellationToken cancellationToken = default)
         {
@@ -107,7 +107,7 @@ namespace Contract.Application
 
         #region UPDATE
 
-        public async Task<MonthlyInvoiceModel> UpdateAsync(MonthlyInvoiceModel invoice,
+        public async Task<MonthlyInvoiceModel> UpdateInvoiceAsync(MonthlyInvoiceModel invoice,
             IReadOnlyCollection<InvoiceDetailModel>? details = null,
             CancellationToken cancellationToken = default)
         {
