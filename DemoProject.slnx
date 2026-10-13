@@ -10,6 +10,56 @@
         <Project Path="Backend/Module/Premise/Premise.csproj" />
         <Project Path="Backend/Module/TicketAndNotification/TicketAndNotification.csproj" />
     </Folder>
-    <Project Path="Frontend/Frontend.csproj" />
+    <Folder Name="/Frontend/">
+        <File Path="Frontend/package.json" />
+        <File Path="Frontend/pnpm-lock.yaml" />
+        <File Path="Frontend/index.html" />
+        <File Path="Frontend/vite.config.ts" />
+        <File Path="Frontend/tsconfig.json" />
+        <File Path="Frontend/src/App.tsx" />
+        <File Path="Frontend/src/index.css" />
+        <File Path="Frontend/.mise.toml" />
+        <File Path="Frontend/.gitignore" />
+        <File Path="Frontend/.gitattributes" />
+        <File Path="Frontend/AGENTS.md" />
+        <File Path="Frontend/CLAUDE.md" />
+    </Folder>
+    <Folder Name="/Frontend/public/" />
+    <Folder Name="/Frontend/public/assets/">
+        <File Path="Frontend/public/assets/21990.svg" />
+        <File Path="Frontend/public/assets/38b59.svg" />
+        <File Path="Frontend/public/assets/56f25.svg" />
+        <File Path="Frontend/public/assets/65946.svg" />
+        <File Path="Frontend/public/assets/9d522.svg" />
+        <File Path="Frontend/public/assets/b9ab1.svg" />
+        <File Path="Frontend/public/assets/bb57f.svg" />
+    </Folder>
+    <Folder Name="/Frontend/src/">
+        <File Path="Frontend/src/main.tsx" />
+        <File Path="Frontend/src/vite-env.d.ts" />
+    </Folder>
+    <Folder Name="/Frontend/src/imports/">
+        <File Path="Frontend/src/imports/dtb_test.txt" />
+    </Folder>
+    <Folder Name="/Frontend/src/components/" />
+    <Folder Name="/Frontend/src/components/modules/">
+        <File Path="Frontend/src/components/modules/AccountsModule.tsx" />
+        <File Path="Frontend/src/components/modules/ContractsModule.tsx" />
+        <File Path="Frontend/src/components/modules/Dashboard.tsx" />
+        <File Path="Frontend/src/components/modules/InvoicesModule.tsx" />
+        <File Path="Frontend/src/components/modules/PremisesModule.tsx" />
+        <File Path="Frontend/src/components/modules/RegulationsModule.tsx" />
+        <File Path="Frontend/src/components/modules/shared.tsx" />
+        <File Path="Frontend/src/components/modules/StatisticsModule.tsx" />
+        <File Path="Frontend/src/components/modules/TicketsModule.tsx" />
+        <File Path="Frontend/src/components/modules/ViolationsModule.tsx" />
+    </Folder>
+    <Folder Name="/Frontend/src/components/premises/">
+        <File Path="Frontend/src/components/premises/BusinessTypesTab.tsx" />
+        <File Path="Frontend/src/components/premises/LocationsTab.tsx" />
+        <File Path="Frontend/src/components/premises/PremisesSubTabs.tsx" />
+        <File Path="Frontend/src/components/premises/PremisesTab.tsx" />
+        <File Path="Frontend/src/components/premises/types.ts" />
+    </Folder>
     <Project Path="TestProject/TestProject.csproj" />
 </Solution>
