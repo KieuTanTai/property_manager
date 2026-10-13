@@ -1,28 +1,27 @@
 {
-  "name": "frontend",
+  "name": "figma-make-app",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "css:build": "npx @tailwindcss/cli -i ./wwwroot/css/site.css -o ./wwwroot/css/main.css --minify",
-    "css:watch": "npx @tailwindcss/cli -i ./wwwroot/css/site.css -o ./wwwroot/css/main.css --watch"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "devDependencies": {
-    "@tailwindcss/cli": "^4.3.3",
-    "esbuild": "^0.28.2",
-    "tailwindcss": "^4.3.3"
-  },
-  "allowScripts": {
-    "@parcel/watcher@2.5.1": true
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "format": "oxfmt"
   },
   "dependencies": {
-    "jquery": "^3.7.1",
-    "jquery-validation": "^1.22.1",
-    "jquery-validation-unobtrusive": "^4.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "oxfmt": "^0.2.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^8.0.5"
   }
 }

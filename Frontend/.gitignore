@@ -1,45 +1,30 @@
-# Node / npm dependencies
 node_modules/
-
-# npm logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Package manager caches
 .npm/
 .pnpm-store/
 .yarn/cache/
 .yarn/unplugged/
 .yarn/build-state.yml
 .yarn/install-state.gz
-
-# Frontend build outputs
 dist/
 build/
 .cache/
-.parcel-cache/
-.vite/
-.next/
-.nuxt/
-
-# Static asset outputs generated under wwwroot
-wwwroot/dist/
-wwwroot/build/
-wwwroot/assets/
-wwwroot/**/*.map
-wwwroot/**/*.gz
-wwwroot/**/*.br
-
-# Environment files
-.env
-.env.*
+.env*
 !.env.example
+.vite/
+vite.config.*.timestamp-*
+*.tsbuildinfo
+coverage/
+coverage-*/
+*-debug.log*
+logs/
+*.log
+.claude-replay.*
+.tmp-*
+/.figma/design-context/
 
-# Editor / OS files
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
+# Platform-managed agentplat state, not project source. In the
+# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
+# repo root IS the workspace root, so these land inside this repo rather than
+# beside it.
+/.plugins/
+/.opencode-skills/
