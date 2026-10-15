@@ -1,11 +1,13 @@
 {
-  "name": "figma-make-app",
+  "name": "property-manager-frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node mjs/create-dev-certificate.mjs",
     "dev": "vite",
     "build": "vite build",
+    "prepreview": "node mjs/create-dev-certificate.mjs",
     "preview": "vite preview",
     "format": "oxfmt"
   },

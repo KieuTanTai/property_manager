@@ -1,5 +1,4 @@
 export interface PublicHomeProps {
-  onLogin: () => void
   onManager: () => void
 }
 

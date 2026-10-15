@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react"
-import type { FormEvent } from "react"
+import type { SubmitEvent } from "react"
 import { MOCK_CONTRACTS } from "../../mocks/contracts"
 import { getMockTenant, MOCK_VIOLATIONS } from "../../mocks/violations"
 import { FormField, Modal, inputCls, selectCls } from "./shared"
 import { fmt } from "../../scripts/format"
 import type { Violation } from "../../types/modules"
 import { filterViolationsForAccount } from "../../scripts/violations"
+import { APP_SETTINGS } from "@/config/appSettings"
 import { createUuid } from "../../scripts/ids"
 import type { ViolationFilter, ViolationForm, ViolationsModuleProps } from "../../types/violations"
 
-const PAGE_SIZE = 10
 const emptyForm: ViolationForm = { contractId: "", tenant: "", content: "", penaltyAmount: 0, date: "", dueDate: "", resolved: false }
 
 const newMockId = createUuid
@@ -26,18 +26,13 @@ export function ViolationsModule({ accountId, readOnly = false }: ViolationsModu
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // API query đang tắt để kiểm thử bằng mock data; giữ query cùng contract controller để bật lại sau.
-  // useEffect(() => {
-  //   let cursor: string | null = null
-  //   const page = await contractApi.violations(cursor, PAGE_SIZE)
-  //   setViolations(page.items.map(mapViolationDtoToUi))
-  // }, [])
-
   const visible = useMemo(() => violations.filter((item) =>
     filter === "all" || item.resolved === (filter === "resolved"),
   ), [filter, violations])
-  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE))
-  const pageItems = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const pageSize = APP_SETTINGS.pagination.defaultPageSize
+  const pageCount = Math.max(1, Math.ceil(visible.length / pageSize))
+  const currentPage = Math.min(page, pageCount)
+  const pageItems = visible.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const openView = (item: Violation) => {
     setSelected(item)
@@ -53,7 +48,7 @@ export function ViolationsModule({ accountId, readOnly = false }: ViolationsModu
     setForm(emptyForm)
   }
 
-  const save = (event: FormEvent<HTMLFormElement>) => {
+  const save = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!form.contractId || !form.content.trim() || !form.date || !form.dueDate || form.penaltyAmount < 0) return
     setSaving(true)
@@ -80,7 +75,7 @@ export function ViolationsModule({ accountId, readOnly = false }: ViolationsModu
     if (item.resolved || readOnly) return
     if (!window.confirm("Xóa mock vi phạm chưa xử lý này? Thao tác không thể hoàn tác.")) return
     setViolations((current) => current.filter((violation) => violation.id !== item.id))
-    setPage((current) => Math.min(current, Math.max(1, Math.ceil((visible.length - 1) / PAGE_SIZE))))
+    setPage((current) => Math.min(current, Math.max(1, Math.ceil((visible.length - 1) / pageSize))))
     closeModal()
   }
 
@@ -117,8 +112,8 @@ export function ViolationsModule({ accountId, readOnly = false }: ViolationsModu
         </tbody>
       </table>
       <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-xs text-gray-500">
-        <span>{visible.length ? `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, visible.length)} / ${visible.length}` : "0 bản ghi"}</span>
-        <div className="flex items-center gap-2"><button disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded-md border border-gray-200 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Trước</button><span>Trang {page} / {pageCount}</span><button disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)} className="rounded-md border border-gray-200 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Sau</button></div>
+        <span>{visible.length ? `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, visible.length)} / ${visible.length}` : "0 bản ghi"}</span>
+        <div className="flex items-center gap-2"><button disabled={currentPage <= 1} onClick={() => setPage((current) => current - 1)} className="rounded-md border border-gray-200 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Trước</button><span>Trang {currentPage} / {pageCount}</span><button disabled={currentPage >= pageCount} onClick={() => setPage((current) => current + 1)} className="rounded-md border border-gray-200 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Sau</button></div>
       </div>
     </div>
 

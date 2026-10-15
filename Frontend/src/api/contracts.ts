@@ -1,4 +1,5 @@
-import type { CursorPage } from "./identity"
+import type { CursorPage } from "@/types/identity"
+import { APP_SETTINGS } from "@/config/appSettings"
 
 export type ContractStatus = "PendingApproval" | "PendingSignature" | "Cancelled" | "Expired" | "Signed" | "Terminated"
 export type InvoiceStatus = "Unpaid" | "Paid" | "Overdue"
@@ -136,7 +137,7 @@ export const contractApi = {
     if (cursor) query.set("cursor", cursor)
     return request<CursorPage<RegulationModel>>(`/Regulation?${query}`)
   },
-  violations(cursor: string | null = null, pageSize = 50) {
+  violations(cursor: string | null = null, pageSize = APP_SETTINGS.pagination.defaultPageSize) {
     const query = new URLSearchParams({ pageSize: String(pageSize) })
     if (cursor) query.set("cursor", cursor)
     return request<CursorPage<ContractViolationModel>>(`/Violation?${query}`)

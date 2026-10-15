@@ -72,7 +72,7 @@ export default function App() {
       {isManagerRoute && session ? (
         <ManagerWorkspace accountId={session.accountId} email={session.email} roleCodes={session.roleCodes} onLogout={handleLogout} />
       ) : (
-        <PublicHome onLogin={() => setIsLoginOpen(true)} onManager={openManager} />
+        <PublicHome onManager={openManager} />
       )}
 
       {isLoginOpen && (

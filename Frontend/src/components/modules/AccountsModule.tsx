@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
-import type { FormEvent } from "react"
+import type { SubmitEvent } from "react"
 import { identityApi } from "@/api/identity.ts"
-import type { AccountModel, PermissionModel, RoleModel } from "@/api/identity.ts"
+import type { AccountModel, PermissionModel, RoleModel } from "@/types/identity"
 import { FormField, Modal, inputCls, selectCls } from "./shared"
-import { accountName, dateLabel } from "../../scripts/identity"
+import { accountName, dateLabel } from "@/scripts/identity.ts"
+import { APP_SETTINGS } from "@/config/appSettings"
 
-const PAGE_SIZE = 10
 const buttonCls = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 
 export function AccountsModule() {
@@ -35,11 +35,15 @@ export function AccountsModule() {
     setError(null)
     try {
       const [page, roleList, permissionList] = await Promise.all([
-        identityApi.accounts(cursorStack[pageIndex] ?? null, PAGE_SIZE, status),
+        identityApi.accounts(cursorStack[pageIndex] ?? null, APP_SETTINGS.pagination.defaultPageSize, status),
         identityApi.roles(),
         identityApi.permissions(),
       ])
-      setAccounts(page.items)
+      setAccounts(page.items.map((account) => ({
+        ...account,
+        roles: roleList.filter((role) => account.roleCodes.includes(role.roleCode)),
+        additionalPermissions: permissionList.filter((permission) => account.permissionCodes.includes(permission.permissionCode)),
+      })))
       setNextCursor(page.nextCursor)
       setHasMore(page.isHasMore)
       setRoles(roleList)
@@ -71,8 +75,21 @@ export function AccountsModule() {
 
   const selectedRole = roles.find((role) => role.roleId === selectedRoleId) ?? null
   useEffect(() => {
-    setPermissionIds(selectedRole?.permissions.map((permission) => permission.permissionId) ?? [])
-  }, [selectedRole])
+    if (!selectedRole) {
+      setPermissionIds([])
+      return
+    }
+    let cancelled = false
+    setPermissionIds([])
+    void identityApi.roleWithPermissions(selectedRole.roleCode).then((role) => {
+      if (cancelled) return
+      setPermissionIds(role.permissions.map((permission) => permission.permissionId))
+      setRoles((current) => current.map((item) => item.roleId === role.roleId ? role : item))
+    }).catch((cause) => {
+      if (!cancelled) setError(cause instanceof Error ? cause.message : "Không tải được quyền của vai trò.")
+    })
+    return () => { cancelled = true }
+  }, [selectedRoleId])
 
   const visibleAccounts = accounts.filter((account) => {
     const matchesSearch = !search || `${accountName(account)} ${account.accountEmail}`.toLocaleLowerCase("vi").includes(search.toLocaleLowerCase("vi"))
@@ -119,7 +136,7 @@ export function AccountsModule() {
     )
   }
 
-  const createAccount = async (event: FormEvent<HTMLFormElement>) => {
+  const createAccount = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const role = roles.find((item) => item.roleId === createForm.roleId)
     if (!role) return
@@ -147,6 +164,13 @@ export function AccountsModule() {
   const openAccount = (account: AccountModel) => {
     setSelectedAccount(account)
     setAssignedRoleIds(account.roles.map((role) => role.roleId))
+    void identityApi.profileByAccountId(account.accountId).then((profile) => {
+      setSelectedAccount((current) => current?.accountId === account.accountId
+        ? { ...current, userProfile: profile }
+        : current)
+    }).catch(() => {
+      // Tài khoản có thể chưa có hồ sơ.
+    })
   }
 
   return (

@@ -1,4 +1,4 @@
-import type { AccountModel } from "../api/identity"
+import type { AccountModel } from "@/types/identity"
 
 export const accountName = (account: AccountModel) => {
   const profile = account.userProfile

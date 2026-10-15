@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-exec pnpm exec vite --host 0.0.0.0 --port "${PORT:-8443}"

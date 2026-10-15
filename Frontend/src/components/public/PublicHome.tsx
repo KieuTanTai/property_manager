@@ -1,11 +1,10 @@
-import {useEffect, useMemo, useState} from "react"
-import {contractApi, type ContactInfoModel} from "@/api/contracts.ts"
+import React, {useEffect, useMemo, useState} from "react"
+import {APP_SETTINGS} from "@/config/appSettings"
 import {LOCATIONS, PREMISES, PREMISE_MEDIA} from "@/mocks/shared.ts"
-import type {PublicHomeProps as Props} from "./types"
+import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
 import {Modal, PremiseStatusBadge, premiseStatusSurface} from "../modules/shared"
 import type {Premise} from "../premises/types"
-
-const PREMISES_PER_PAGE = 6
+import {PublicHomeProps} from "@/components/public/types.ts";
 
 const PREMISE_STATUS_TABS = [
     {key: "all", label: "Tất cả"},
@@ -21,7 +20,7 @@ const fallbackPhone = import.meta.env.VITE_PUBLIC_CONTACT_PHONE?.trim() ?? ""
 
 const formatArea = (value: string) => value.replace(/m²?$/i, " m²")
 
-export function PublicHome({onLogin, onManager}: Props) {
+export function PublicHome({onManager}: PublicHomeProps) {
     const [query, setQuery] = useState("")
     const [statusTab, setStatusTab] = useState<PremiseStatusTab>("all")
     const [page, setPage] = useState(1)
@@ -30,36 +29,10 @@ export function PublicHome({onLogin, onManager}: Props) {
     const [contactPremiseId, setContactPremiseId] = useState("")
     const [contactMessage, setContactMessage] = useState("")
     const [contactError, setContactError] = useState<string | null>(null)
-    const [ownerContact, setOwnerContact] = useState<ContactInfoModel | null>(null)
+    const ownerContact = MOCK_CONTACTS[0] ?? null
     const [selectedPremise, setSelectedPremise] = useState<Premise | null>(null)
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isImageFullscreen, setIsImageFullscreen] = useState(false)
-    const [contactLoading, setContactLoading] = useState(true)
-    const [contactLoadError, setContactLoadError] = useState(false)
-
-    useEffect(() => {
-        let cancelled = false
-        void contractApi.contactInfos()
-            .then((contacts) => {
-                if (!cancelled) {
-                  setOwnerContact(
-                    contacts.find(
-                      (contact) =>
-                        contact.contactInfoEmail.trim() || contact.contactInfoPhone.trim(),
-                    ) ?? contacts[0] ?? null,
-                  )
-                }
-            })
-            .catch(() => {
-                if (!cancelled) setContactLoadError(true)
-            })
-            .finally(() => {
-                if (!cancelled) setContactLoading(false)
-            })
-        return () => {
-            cancelled = true
-        }
-    }, [])
 
     useEffect(() => {
         if (!selectedPremise && !isImageFullscreen) return
@@ -95,11 +68,11 @@ export function PublicHome({onLogin, onManager}: Props) {
     const visiblePremises = statusTab === "all"
         ? searchedPremises
         : searchedPremises.filter((premise) => premise.status === statusTab)
-    const pageCount = Math.max(1, Math.ceil(visiblePremises.length / PREMISES_PER_PAGE))
+    const pageCount = Math.max(1, Math.ceil(visiblePremises.length / APP_SETTINGS.pagination.defaultPageSize))
     const currentPage = Math.min(page, pageCount)
     const pagedPremises = visiblePremises.slice(
-        (currentPage - 1) * PREMISES_PER_PAGE,
-        currentPage * PREMISES_PER_PAGE,
+        (currentPage - 1) * APP_SETTINGS.pagination.defaultPageSize,
+        currentPage * APP_SETTINGS.pagination.defaultPageSize,
     )
 
     const openPremise = (premise: Premise) => {
@@ -110,7 +83,7 @@ export function PublicHome({onLogin, onManager}: Props) {
         setSelectedPremise(premise)
     }
 
-    const sendInquiry = (event: React.FormEvent<HTMLFormElement>) => {
+    const sendInquiry = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
         setContactError(null)
         if (!contactEmail) {
@@ -153,10 +126,6 @@ export function PublicHome({onLogin, onManager}: Props) {
                         <a href="#contact" className="transition hover:text-white">Liên hệ</a>
                     </nav>
                     <div className="flex items-center gap-2">
-                        <button onClick={onLogin}
-                                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10">Đăng
-                            nhập
-                        </button>
                         <button onClick={onManager}
                                 className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-blue-50">ManagerSpace
                         </button>

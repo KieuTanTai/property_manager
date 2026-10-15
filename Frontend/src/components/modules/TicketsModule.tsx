@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react"
-import type { FormEvent } from "react"
-import { ticketApi } from "../../api/ticketAndNotification"
+import { useState } from "react"
+import type { SubmitEvent } from "react"
 import type { NotificationModel, NotificationType, TicketModel, TicketType } from "../../api/ticketAndNotification"
 import { FormField, Modal, inputCls, selectCls } from "./shared"
 import { MOCK_NOTIFICATIONS, MOCK_TICKETS } from "../../mocks/tickets"
@@ -15,7 +14,12 @@ const notificationLabel: Record<NotificationType, string> = { Violation: "Vi ph�
 export function TicketsModule({ accountId, customerMode = false }: { accountId?: string; customerMode?: boolean }) {
   const [view, setView] = useState<View>(customerMode ? "notifications" : "tickets")
   const [tickets, setTickets] = useState<TicketModel[]>(MOCK_TICKETS)
-  const [notifications, setNotifications] = useState<NotificationModel[]>(customerMode ? [] : MOCK_NOTIFICATIONS)
+  const [notifications, setNotifications] = useState<NotificationModel[]>(() => customerMode && accountId
+    ? MOCK_NOTIFICATIONS.map((item) => ({
+      ...item,
+      notificationRecipients: item.notificationRecipients.map((recipient) => ({ ...recipient, accountId })),
+    }))
+    : MOCK_NOTIFICATIONS)
   const [filter, setFilter] = useState<"all" | "open" | "resolved">("all")
   const [modal, setModal] = useState<View | null>(null)
   const [ticketForm, setTicketForm] = useState({ accountId: "", content: "", type: "Feedback" as TicketType })
@@ -24,31 +28,7 @@ export function TicketsModule({ accountId, customerMode = false }: { accountId?:
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [loadingNotifications, setLoadingNotifications] = useState(customerMode)
-
-  useEffect(() => {
-    if (!customerMode) return
-    let cancelled = false
-    void ticketApi.notifications().then((items) => {
-      if (!cancelled) setNotifications(items)
-    }).catch((cause) => {
-      if (!cancelled) setError(cause instanceof Error ? cause.message : "Không tải được thông báo.")
-    }).finally(() => {
-      if (!cancelled) setLoadingNotifications(false)
-    })
-    return () => { cancelled = true }
-  }, [accountId, customerMode])
-
-  // Tạm dùng dữ liệu mẫu theo TicketModel/NotificationModel.
-  // Query hiện tại được giữ ở comment để bật lại khi backend có data:
-  // useEffect(() => {
-  //   Promise.all([ticketApi.tickets(), ticketApi.notifications()])
-  //     .then(([ticketList, notificationList]) => {
-  //       setTickets(ticketList)
-  //       setNotifications(notificationList)
-  //     })
-  //     .catch((cause) => setError(cause instanceof Error ? cause.message : "Không tải được Ticket/Notification."))
-  // }, [])
+  const loadingNotifications = false
 
   const run = async (operation: () => Promise<unknown>, message: string) => {
     setSaving(true)
@@ -66,15 +46,14 @@ export function TicketsModule({ accountId, customerMode = false }: { accountId?:
     }
   }
 
-  const createTicket = async (event: FormEvent<HTMLFormElement>) => {
+  const createTicket = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const now = new Date().toISOString()
     const sample: TicketModel = { ticketId: crypto.randomUUID(), ticketAccountId: ticketForm.accountId, ticketContent: ticketForm.content, ticketType: ticketForm.type, ticketIsResolved: false, ticketCreatedAt: now, ticketUpdatedAt: now, ticketMedias: [] }
-    // API write khi bật live mode: ticketApi.createTicket(ticketForm)
     const done = await run(async () => setTickets((current) => [sample, ...current]), "Đã tạo yêu cầu.")
     if (done) setModal(null)
   }
-  const createNotification = async (event: FormEvent<HTMLFormElement>) => {
+  const createNotification = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSaving(true)
     setError(null)
@@ -83,9 +62,6 @@ export function TicketsModule({ accountId, customerMode = false }: { accountId?:
       const now = new Date().toISOString()
       const id = crypto.randomUUID()
       const notification: NotificationModel = { notificationId: id, notificationSenderAccountId: notificationForm.senderAccountId, notificationType: notificationForm.type, notificationContent: notificationForm.content, notificationIsRead: false, notificationCreatedAt: now, notificationUpdatedAt: now, notificationRecipients: [{ notificationId: id, accountId: notificationForm.recipientAccountId }] }
-      // API writes khi bật live mode:
-      // const created = await ticketApi.createNotification({ senderAccountId: notificationForm.senderAccountId, content: notificationForm.content, type: notificationForm.type })
-      // await ticketApi.addRecipient(created.notificationId, notificationForm.recipientAccountId)
       setNotifications((current) => [notification, ...current])
       setNotice("Đã tạo thông báo và thêm người nhận.")
       setModal(null)
@@ -96,7 +72,6 @@ export function TicketsModule({ accountId, customerMode = false }: { accountId?:
     }
   }
   const markRead = (notification: NotificationModel) => void run(async () => {
-    // API write khi bật live mode: await ticketApi.updateNotification(notification, true)
     setNotifications((current) => current.map((item) => item.notificationId === notification.notificationId ? { ...item, notificationIsRead: true, notificationUpdatedAt: new Date().toISOString() } : item))
   }, "Đã đánh dấu thông báo đã đọc.")
   const filteredTickets = tickets.filter((ticket) => filter === "all" || ticket.ticketIsResolved === (filter === "resolved"))
@@ -128,7 +103,7 @@ export function TicketsModule({ accountId, customerMode = false }: { accountId?:
           <div className="mb-2 flex flex-wrap items-center gap-2"><span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">{ticketLabel[ticket.ticketType]}</span><span className="font-mono text-xs text-slate-400">{ticket.ticketId}</span><span className="text-xs text-slate-500">Account {ticket.ticketAccountId}</span></div>
           <p className="whitespace-pre-wrap text-sm text-slate-800">{ticket.ticketContent}</p><p className="mt-2 text-xs text-slate-400">Tạo lúc {new Date(ticket.ticketCreatedAt).toLocaleString("vi-VN")}</p>
         </div>
-        {ticket.ticketIsResolved ? <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã xử lý</span> : <button className={`${button} bg-blue-600 text-white`} disabled={saving} onClick={() => void run(() => ticketApi.updateTicket(ticket, true), "Đã xử lý ticket.")}>Đánh dấu xử lý</button>}</div>
+        {ticket.ticketIsResolved ? <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã xử lý</span> : <button className={`${button} bg-blue-600 text-white`} disabled={saving} onClick={() => void run(async () => setTickets((current) => current.map((item) => item.ticketId === ticket.ticketId ? { ...item, ticketIsResolved: true, ticketUpdatedAt: new Date().toISOString() } : item)), "Đã xử lý ticket.")}>Đánh dấu xử lý</button>}</div>
         {ticket.ticketMedias.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{ticket.ticketMedias.map((media) => <a key={media.ticketMediaId} href={media.ticketMediaImageUrl} target="_blank" rel="noreferrer" className="text-xs text-blue-700 underline">Tệp đính kèm #{media.ticketMediaId}</a>)}</div>}
       </article>)}{!loading && filteredTickets.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không có ticket.</p>}</div>
     </> : <div className="space-y-3">{loading || loadingNotifications ? <p className="py-10 text-center text-sm text-slate-500">Đang tải...</p> : visibleNotifications.map((item) => <article key={item.notificationId} className={`rounded-xl border bg-white p-5 ${item.notificationIsRead ? "border-slate-100" : "border-blue-200"}`}>

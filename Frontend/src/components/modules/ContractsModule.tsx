@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react"
-import type { FormEvent } from "react"
-import { contractApi } from "../../api/contracts"
+import { useState } from "react"
+import type { SubmitEvent } from "react"
 import { MOCK_CONTRACTS, MOCK_REGULATIONS } from "../../mocks/contracts"
 import type { ContractModel, ContractStatus as ApiContractStatus, ContractViolationModel, MonthlyInvoiceModel, RegulationModel } from "../../api/contracts"
 import { ContractStatusBadge, FormField, Modal, inputCls, selectCls } from "./shared"
@@ -15,54 +14,19 @@ const statusLabel: Record<ApiContractStatus, string> = { PendingApproval: "Chờ
 const button = "rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
 
 export function ContractsModule({ accountId, readOnly = false }: ContractsModuleProps) {
-  const [contracts, setContracts] = useState<ContractModel[]>(MOCK_CONTRACTS)
+  const [contracts, setContracts] = useState<ContractModel[]>(() => readOnly
+    ? MOCK_CONTRACTS.map((item) => ({ ...item, contractAccountId: accountId ?? item.contractAccountId }))
+    : MOCK_CONTRACTS)
   const [regulations, setRegulations] = useState<RegulationModel[]>(MOCK_REGULATIONS)
   const [filter, setFilter] = useState<ContractStatus | "all">("all")
   const [selected, setSelected] = useState<ContractModel | null>(null)
   const [modal, setModal] = useState<"add" | "detail" | null>(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<ContractForm>(emptyForm)
-  const [loading, setLoading] = useState(readOnly)
+  const loading = false
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!readOnly) return
-    let cancelled = false
-    const loadOwnContracts = async () => {
-      setLoading(true)
-      try {
-        const all: ContractModel[] = []
-        let cursor: string | null = null
-        let hasMore = true
-        while (hasMore) {
-          const page = await contractApi.contracts(cursor)
-          all.push(...page.items)
-          cursor = page.nextCursor
-          hasMore = page.isHasMore
-        }
-        if (!cancelled) setContracts(all.filter((item) => item.contractAccountId === accountId))
-      } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : "Không tải được hợp đồng của tài khoản.")
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    void loadOwnContracts()
-    return () => { cancelled = true }
-  }, [accountId, readOnly])
-
-  // Tạm dùng fixtures vì Contract API chưa có dữ liệu local.
-  // Khi bật backend, bỏ comment để nạp response và regulations từ API:
-  // useEffect(() => {
-  //   Promise.all([contractApi.contracts(null), contractApi.regulations()])
-  //     .then(([page, regulationPage]) => {
-  //       setContracts(page.items)
-  //       setRegulations(regulationPage.items)
-  //     })
-  //     .catch((cause) => setError(cause instanceof Error ? cause.message : "Không tải được hợp đồng."))
-  // }, [])
 
   const visibleContracts = contracts
   const filtered = visibleContracts.filter((item) => filter === "all" || toUiContractStatus(item.contractStatus) === filter)
@@ -74,7 +38,7 @@ export function ContractsModule({ accountId, readOnly = false }: ContractsModule
     setEditing(true)
   }
   const toggleRegulation = (id: string) => setForm((current) => ({ ...current, regulationIds: current.regulationIds.includes(id) ? current.regulationIds.filter((item) => item !== id) : [...current.regulationIds, id] }))
-  const save = async (event: FormEvent<HTMLFormElement>) => {
+  const save = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSaving(true); setError(null); setNotice(null)
     try {
@@ -108,8 +72,6 @@ export function ContractsModule({ accountId, readOnly = false }: ContractsModule
         contractUpdatedAt: now, contractRegulations: selectedRegulations,
       } : null
       if (!saved) return
-      // API write requests for the live-data mode:
-      // modal === "add" ? await contractApi.createContract(base) : await contractApi.updateContract(selected!.contractId, { ...base, status: form.status, terminationDate: saved.contractTerminationDate })
       setContracts((current) => modal === "add" ? [saved, ...current] : current.map((item) => item.contractId === saved.contractId ? saved : item))
       setNotice(modal === "add" ? "Đã tạo hợp đồng." : "Đã cập nhật hợp đồng.")
       setModal(null); setSelected(null); setEditing(false)

@@ -1,7 +1,7 @@
 import type { InvoiceStatus } from "./modules"
 
 export type InvoiceTab = "invoices" | "receipts"
-export type ReceiptPaymentMethod = "cash" | "bank_transfer" | "card" | "e_wallet"
+export type ReceiptPaymentMethod = "cash" | "vnpay" | "bank"
 
 export interface MonthlyInvoice {
   invoiceId: string

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { identityApi } from "../../api/identity"
+import { identityApi } from "@/api/identity.ts"
 import type { LoginModalProps as Props } from "./types"
 
 export function LoginModal({ onClose, onLogin }: Props) {
@@ -8,7 +8,7 @@ export function LoginModal({ onClose, onLogin }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
     setIsSubmitting(true)
@@ -26,7 +26,7 @@ export function LoginModal({ onClose, onLogin }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}
@@ -63,7 +63,7 @@ export function LoginModal({ onClose, onLogin }: Props) {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="ten@congty.vn"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
             />
           </label>
           <label className="block">
@@ -75,7 +75,7 @@ export function LoginModal({ onClose, onLogin }: Props) {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Nhập mật khẩu"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
             />
           </label>
           {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">{error}</p>}
