@@ -24,6 +24,9 @@
         <File Path="Frontend/AGENTS.md" />
         <File Path="Frontend/CLAUDE.md" />
     </Folder>
+    <Folder Name="/Frontend/mjs/">
+        <File Path="Frontend\mjs\create-dev-certificate.mjs" />
+    </Folder>
     <Folder Name="/Frontend/public/" />
     <Folder Name="/Frontend/public/assets/">
         <File Path="Frontend/public/assets/21990.svg" />
@@ -91,6 +94,14 @@
         <File Path="Frontend/src/types/modules.ts" />
         <File Path="Frontend/src/types/regulations.ts" />
         <File Path="Frontend/src/types/violations.ts" />
+    </Folder>
+    <Folder Name="/Frontend/src/config/">
+        <File Path="Frontend/src/config/appSettings.ts"/>
+    </Folder>
+    <Folder Name="/Frontend/src/api/">
+        <File Path="Frontend/src/api/contracts.ts"/>
+        <File Path="Frontend/src/api/identity.ts"/>
+        <File Path="Frontend/src/api/ticketAndNotification.ts"/>
     </Folder>
     <Project Path="TestProject/TestProject.csproj" />
 </Solution>

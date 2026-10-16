@@ -98,3 +98,4 @@ Frontend/.cache/
 /.output.txt
 /docs/
 /docs/sql/
+./claude/

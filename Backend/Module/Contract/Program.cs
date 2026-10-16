@@ -16,7 +16,9 @@ builder.Services.AddContractApplicationCollection(builder.Configuration);
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(c =>
+    {
+    });
 }
 
 var app = builder.Build();
@@ -25,5 +27,8 @@ app.UseCors("Frontend");
 app.UseAuthorization();
 app.MapControllers();
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Contract API");
+});
 app.Run();
