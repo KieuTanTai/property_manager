@@ -1,4 +1,5 @@
 using Premise.Interfaces.IRepository.Location;
+using Premise.Interfaces.IApplication;
 using Premise.Models.Premise;
 using Shared.Interfaces;
 using Shared.Logging;
@@ -10,7 +11,7 @@ namespace Premise.Application
         ILogPool logPool,
         ILocationRepository locationRepository,
         IUnitOfWork unitOfWork
-    )
+    ) : ILocationApplication
     {
         private const string Module = "Premise";
         private const string Layer = "Application";

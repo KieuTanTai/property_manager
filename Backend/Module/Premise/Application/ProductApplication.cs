@@ -1,5 +1,6 @@
 using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Interfaces.IRepository.Product;
+using Premise.Interfaces.IApplication;
 using Premise.Models.Business;
 using Premise.Models.Product;
 using Shared.Interfaces;
@@ -13,7 +14,7 @@ namespace Premise.Application
         IWhitelistProductRepository productRepository,
         IBusinessTypeRepository businessTypeRepository,
         IProductBusinessTypeRepository productBusinessTypeRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork) : IProductApplication
     {
         private const string Module = "Premise";
         private const string Layer = "Application";

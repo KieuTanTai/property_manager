@@ -58,6 +58,12 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 .AnyAsync(location => location.LocationId == id, cancellationToken);
         }
 
+        public async Task<long> CountTotalAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total location count.");
+            return await _db.Locations.LongCountAsync(cancellationToken);
+        }
+
         #endregion
 
         #region POST

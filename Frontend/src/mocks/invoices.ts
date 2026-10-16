@@ -102,7 +102,7 @@ export const MOCK_RECEIPTS: Receipt[] = [
     receiptId: "0195d8c3-3c00-7111-8111-100000000001",
     receiptInvoiceId: MOCK_MONTHLY_INVOICES[0].invoiceId,
     receiptCreatedByAccountId: "0195d6e0-0000-7111-8111-100000000001",
-    receiptPaymentMethod: "bank_transfer",
+    receiptPaymentMethod: "bank",
     receiptAmount: 8200000,
     receiptPaymentDate: "2026-01-18",
     receiptTransactionReference: "MS-012026-001",

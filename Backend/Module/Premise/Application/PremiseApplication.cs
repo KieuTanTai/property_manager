@@ -2,6 +2,7 @@ using Premise.Interfaces.IRepository;
 using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Interfaces.IRepository.Location;
 using Premise.Interfaces.IRepository.Premise;
+using Premise.Interfaces.IApplication;
 using Premise.Models.Business;
 using Premise.Models.Premise;
 using Shared.Enum;
@@ -19,7 +20,7 @@ namespace Premise.Application
         ILocationRepository locationRepository,
         IBusinessTypeRepository businessTypeRepository,
         IPremiseBusinessTypeRepository premiseBusinessTypeRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork) : IPremiseApplication
     {
         private const string Module = "Premise";
         private const string Layer = "Application";

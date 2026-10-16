@@ -46,6 +46,7 @@ export default defineConfig(({ mode, command }) => {
         "/api/authorization": { target: apiProxyTarget, changeOrigin: true, secure: false },
         "/api/profile": { target: apiProxyTarget, changeOrigin: true, secure: false },
         // Local ASP.NET development endpoints use a self-signed certificate.
+        "/api/Premise": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Contract": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Regulation": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Invoice": { target: "https://localhost:7255", changeOrigin: true, secure: false },

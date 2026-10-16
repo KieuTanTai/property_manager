@@ -92,16 +92,18 @@
         <File Path="Frontend/src/types/invoices.ts" />
         <File Path="Frontend/src/types/manager.ts" />
         <File Path="Frontend/src/types/modules.ts" />
+        <File Path="Frontend/src/types/premise.ts" />
         <File Path="Frontend/src/types/regulations.ts" />
         <File Path="Frontend/src/types/violations.ts" />
     </Folder>
     <Folder Name="/Frontend/src/config/">
-        <File Path="Frontend/src/config/appSettings.ts"/>
+        <File Path="Frontend/src/config/appSettings.ts" />
     </Folder>
     <Folder Name="/Frontend/src/api/">
-        <File Path="Frontend/src/api/contracts.ts"/>
-        <File Path="Frontend/src/api/identity.ts"/>
-        <File Path="Frontend/src/api/ticketAndNotification.ts"/>
+        <File Path="Frontend/src/api/contracts.ts" />
+        <File Path="Frontend/src/api/identity.ts" />
+        <File Path="Frontend/src/api/premise.ts" />
+        <File Path="Frontend/src/api/ticketAndNotification.ts" />
     </Folder>
     <Project Path="TestProject/TestProject.csproj" />
 </Solution>

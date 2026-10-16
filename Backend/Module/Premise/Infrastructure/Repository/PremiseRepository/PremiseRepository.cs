@@ -305,16 +305,18 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 "Premise range staged for update.");
         }
 
-        public async Task<long> CountTotalPremise(CancellationToken cancellationToken = default)
+        public async Task<long> CountTotalPremiseAsync(CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total premise!");
-            return await _db.Premises.LongCountAsync();
+            return await _db.Premises.LongCountAsync(cancellationToken);
         }
 
-        public async Task<long> CountTotalRentedPremise(CancellationToken cancellationToken = default)
+        public async Task<long> CountTotalRentedPremiseAsync(CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total rented premise!");
-            return await _db.Premises.LongCountAsync(premise => (premise.PremiseStatus.ToString() == "rented") || (premise.PremiseStatus.ToString() == "Rented"));
+            return await _db.Premises.LongCountAsync(
+                premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Rented,
+                cancellationToken);
         }
 
 

@@ -39,7 +39,7 @@ export function ManagerWorkspace({ accountId, email, roleCodes, onLogout }: Prop
   const accountInitial = email.charAt(0).toUpperCase()
 
   return (
-    <div className="flex min-h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
+    <div className="flex h-screen" style={{ fontFamily: "Inter, sans-serif" }}>
       <aside className="flex w-56 shrink-0 flex-col" style={{ background: "#0f1629", minHeight: "100vh" }}>
         <div className="border-b px-5 py-5" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
           <div className="flex items-center gap-2.5">

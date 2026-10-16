@@ -1,8 +1,9 @@
-export type { PremiseStatus, Premise, PremiseMedia, Location, BusinessType, WhitelistProduct } from "../components/premises/types"
+export type { PremiseMedia, Location, BusinessType, WhitelistProduct } from "../components/premises/types"
 
 export type ContractStatus = "pending_approval" | "pending_signature" | "canceled" | "expired" | "signed" | "terminated"
 export type InvoiceStatus = "unpaid" | "paid" | "overdue"
 export type TicketType = "review" | "complaint" | "violation" | "feedback"
+export type PremiseStatus = "reserved" | "rented" | "available" | "maintenance"
 
 export interface Contract {
   id: string
@@ -54,4 +55,15 @@ export interface Account {
   active: boolean
   createdAt: string
   name: string
+}
+
+export interface Premise{
+  premiseId : number,
+  premiseName : string,
+  premiseLocation : string,
+  premiseStatus: PremiseStatus,
+  premisePosition: number,
+  premiseFloor: number,
+  premiseArea: string,
+  premiseDescription: string,
 }

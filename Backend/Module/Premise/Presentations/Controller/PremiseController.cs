@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Premise.Application;
+using Premise.Interfaces.IApplication;
 using Premise.Models.Business;
 using Premise.Models.Premise;
 using Premise.Presentations.Record.Location;
@@ -10,11 +11,11 @@ using Shared.Persistence.Record;
 namespace Premise.Presentations.Controller
 {
     [ApiController]
-    [Route("api/premises")]
+    [Route("api/[controller]")]
     public sealed class PremiseController(
-        PremiseApplication premiseApplication) : ControllerBase
+        IPremiseApplication premiseApplication) : ControllerBase
     {
-        private readonly PremiseApplication _premiseApplication = premiseApplication;
+        private readonly IPremiseApplication _premiseApplication = premiseApplication;
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<RecordPremiseResponse>), StatusCodes.Status200OK)]

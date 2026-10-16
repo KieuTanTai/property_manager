@@ -4,6 +4,7 @@ using Premise.Application;
 using Premise.Infrastructure.Persistence.DbContext;
 using Premise.Infrastructure.Repository;
 using Premise.Infrastructure.Repository.PremiseRepository;
+using Premise.Interfaces.IApplication;
 using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Interfaces.IRepository.Location;
 using Premise.Interfaces.IRepository.Premise;
@@ -26,15 +27,16 @@ builder.Services.AddDbContext<PremiseDbContext>(options => options.UseMySQL(conn
 builder.Services.AddSingleton<ILogPool, LogPool>();
 builder.Services.AddScoped<IUnitOfWork, EfPremiseUnitOfWork>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
-builder.Services.AddScoped<LocationApplication>();
+builder.Services.AddScoped<ILocationApplication, LocationApplication>();
 builder.Services.AddScoped<IPremiseRepository, PremiseRepository>();
 builder.Services.AddScoped<IPremiseMediaRepository, PremiseMediaRepository>();
 builder.Services.AddScoped<IBusinessTypeRepository, BusinessTypeRepository>();
 builder.Services.AddScoped<IPremiseBusinessTypeRepository, PremiseBusinessTypeRepository>();
-builder.Services.AddScoped<PremiseApplication>();
+builder.Services.AddScoped<IPremiseApplication, PremiseApplication>();
 builder.Services.AddScoped<IWhitelistProductRepository, WhitelistProductRepository>();
 builder.Services.AddScoped<IProductBusinessTypeRepository, ProductBusinessTypeRepository>();
-builder.Services.AddScoped<ProductApplication>();
+builder.Services.AddScoped<IProductApplication, ProductApplication>();
+builder.Services.AddScoped<IPremiseStatisticApplication, PremiseStatisticApplication>();
 
 if (builder.Environment.IsDevelopment())
 {

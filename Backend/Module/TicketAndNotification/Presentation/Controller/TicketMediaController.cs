@@ -7,7 +7,7 @@ using TicketAndNotification.Presentation.Record.TicketMedia;
 namespace TicketAndNotification.Presentation.Controller
 {
     [ApiController]
-    [Route("api/ticket-medias")]
+    [Route("api/[controller]")]
     public class TicketMediaController(
         ITicketMediaApplication ticketMediaApplication,
         ILogger<TicketMediaController> logger,

@@ -1,16 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Premise.Application;
+using Premise.Interfaces.IApplication;
 using Premise.Models.Premise;
 using Premise.Presentations.Record.Location;
 
 namespace Premise.Presentations.Controller
 {
     [ApiController]
-    [Route("api/locations")]
+    [Route("api/[controller]")]
     public sealed class LocationController(
-        LocationApplication locationApplication) : ControllerBase
+        ILocationApplication locationApplication) : ControllerBase
     {
-        private readonly LocationApplication _locationApplication = locationApplication;
+        private readonly ILocationApplication _locationApplication = locationApplication;
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<RecordLocationResponse>), StatusCodes.Status200OK)]

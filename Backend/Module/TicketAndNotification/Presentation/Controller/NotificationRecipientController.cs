@@ -7,7 +7,7 @@ using TicketAndNotification.Presentation.Record.NotificationRecipient;
 namespace TicketAndNotification.Presentation.Controller
 {
     [ApiController]
-    [Route("api/notification-recipients")]
+    [Route("api/[controller]")]
     public class NotificationRecipientController(
         INotificationRecipientApplication recipientApplication,
         ILogger<NotificationRecipientController> logger,

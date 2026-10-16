@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Premise.Application;
+using Premise.Interfaces.IApplication;
 using Premise.Models.Business;
 using Premise.Models.Product;
 using Premise.Presentations.Record.Product;
@@ -7,11 +8,11 @@ using Premise.Presentations.Record.Product;
 namespace Premise.Presentations.Controller
 {
     [ApiController]
-    [Route("api/products")]
+    [Route("api/[controller]")]
     public sealed class ProductController(
-        ProductApplication productApplication) : ControllerBase
+        IProductApplication productApplication) : ControllerBase
     {
-        private readonly ProductApplication _productApplication = productApplication;
+        private readonly IProductApplication _productApplication = productApplication;
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<RecordProductResponse>), StatusCodes.Status200OK)]
