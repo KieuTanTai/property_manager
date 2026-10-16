@@ -3,7 +3,7 @@ using Shared.Interfaces;
 
 namespace Contract.Interfaces.IRepository
 {
-    public interface IInvoiceDetailRepository : IBaseReadRepository<InvoiceDetailModel, int>, IBasePostRepository<InvoiceDetailModel>
+    public interface IInvoiceDetailRepository : IBaseReadRepository<InvoiceDetailModel, int>, IBaseUpsertRepository<InvoiceDetailModel>
     {
         Task<IReadOnlyList<InvoiceDetailModel>> GetByInvoiceIdAsync(Guid invoiceId,
             CancellationToken cancellationToken = default);

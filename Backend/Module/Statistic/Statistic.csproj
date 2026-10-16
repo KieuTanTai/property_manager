@@ -8,10 +8,10 @@
 
   <ItemGroup>
       <ProjectReference Include="../../Shared/Shared.csproj"/>
-      <ProjectReference Include="../../Premise/Premise.csproj"/>
-      <ProjectReference Include="../../Contract/Contract.csproj"/>
-      <ProjectReference Include="../../Identity/Identity.csproj"/>
-      <ProjectReference Include="../../TicketAndNotification/TicketAndNotification.csproj"/>
+      <ProjectReference Include="../Premise/Premise.csproj"/>
+      <ProjectReference Include="../Contract/Contract.csproj"/>
+      <ProjectReference Include="../Identity/Identity.csproj"/>
+      <ProjectReference Include="../TicketAndNotification/TicketAndNotification.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

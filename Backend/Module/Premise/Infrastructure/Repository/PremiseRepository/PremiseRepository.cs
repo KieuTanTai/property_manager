@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Premise.Infrastructure.Persistence.DbContext;
-using Premise.Interfaces.IRepository;
+using Premise.Interfaces.IRepository.Premise;
 using Premise.Models.Premise;
 using Shared.Enum;
 using Shared.Logging;
@@ -304,6 +304,19 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Premise range staged for update.");
         }
+
+        public async Task<long> CountTotalPremise(CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total premise!");
+            return await _db.Premises.LongCountAsync();
+        }
+
+        public async Task<long> CountTotalRentedPremise(CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total rented premise!");
+            return await _db.Premises.LongCountAsync(premise => (premise.PremiseStatus.ToString() == "rented") || (premise.PremiseStatus.ToString() == "Rented"));
+        }
+
 
         #endregion
     }

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Premise.Infrastructure.Persistence.DbContext;
-using Premise.Interfaces.BusinessType;
+using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Models.Business;
 using Shared.Logging;
 

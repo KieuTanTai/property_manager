@@ -4,6 +4,7 @@ using Identity.Models.Profile;
 using Identity.Presentation.Record.Profile;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 
 namespace Identity.Presentation.Controller
 {

@@ -6,7 +6,7 @@ namespace Contract.Interfaces.IRepository
 {
     public interface IContractViolationRepository :
         IBaseReadRepository<ContractViolationModel, Guid>,
-        IBasePostRepository<ContractViolationModel>
+        IBaseUpsertRepository<ContractViolationModel>
     {
         Task<IReadOnlyList<ContractViolationModel>> GetByContractIdAsync(Guid contractId,
             CancellationToken cancellationToken = default);
@@ -24,5 +24,7 @@ namespace Contract.Interfaces.IRepository
 
         Task<RecordBaseCursorPage<ContractViolationModel>> GetApplyPagingByStatusAsync(Guid? cursor,
             int pageSize, bool isResolved, CancellationToken cancellationToken = default);
+
+        Task DeleteAsync(Guid violationId, CancellationToken cancellationToken = default);
     }
 }

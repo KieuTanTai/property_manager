@@ -15,7 +15,7 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
         ILogPool logPool) : IMonthlyInvoiceRepository
     {
         private const string Module = "Contract";
-        
+
         private const string Layer = "Infrastructure/Repository/InvoiceRepository";
         
         private readonly ContractDbContext _db = context;
@@ -25,6 +25,25 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
         private readonly ILogger<MonthlyInvoiceRepository> _logger = logger;
 
         #region GET
+
+        public async Task<IReadOnlyList<MonthlyInvoiceModel>> GetAllWithNavigationAsync(
+            bool isIncludedDetails = true, bool isIncludedReceipt = true,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Loading all monthly invoices with navigation properties.");
+            return await GetIncludeQuery(isIncludedDetails, isIncludedReceipt)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<MonthlyInvoiceModel?> GetByIdWithNavigationAsync(Guid invoiceId, bool isIncludedDetails = true,
+            bool isIncludedReceipt = true, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Loading monthly invoice by id with navigation properties.");
+            return await GetIncludeQuery(isIncludedDetails, isIncludedReceipt)
+                .FirstOrDefaultAsync(invoice => invoice.InvoiceId == invoiceId, cancellationToken);
+        }
 
         public async Task<IReadOnlyList<MonthlyInvoiceModel>> GetAllAsync(
             CancellationToken cancellationToken = default)
@@ -78,14 +97,26 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<IReadOnlyList<MonthlyInvoiceModel>> GetByContractIdWithNavigationAsync(
+            Guid contractId, bool isIncludedDetails = true, bool isIncludedReceipt = true,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Loading monthly invoices by contract id with navigation properties.");
+            return await GetIncludeQuery(isIncludedDetails, isIncludedReceipt)
+                .Where(invoice => invoice.InvoiceContractId == contractId)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<RecordBaseCursorPage<MonthlyInvoiceModel>> GetApplyPagingAsync(Guid? cursor,
-            int pageSize, CancellationToken cancellationToken = default)
+            int pageSize, bool isIncludedDetails = true, bool isIncludedReceipt = true,
+            CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading monthly invoice page.");
             SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
                 exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Monthly invoice paging rejected because the page size is invalid."));
-            var query = _db.MonthlyInvoices.AsNoTracking();
+            var query = GetIncludeQuery(isIncludedDetails, isIncludedReceipt);
 
             if (cursor.HasValue)
             {
@@ -99,7 +130,8 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
         }
 
         public async Task<RecordBaseCursorPage<MonthlyInvoiceModel>> GetApplyPagingByStatusAsync(
-            Guid? cursor, int pageSize, EInvoiceStatus status,
+            Guid? cursor, int pageSize, EInvoiceStatus status, bool isIncludedDetails = true,
+            bool isIncludedReceipt = true,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
@@ -107,7 +139,7 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
             SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
                 exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Monthly invoice paging rejected because the page size is invalid."));
-            var query = _db.MonthlyInvoices.AsNoTracking()
+            var query = GetIncludeQuery(isIncludedDetails, isIncludedReceipt)
                 .Where(invoice => invoice.InvoiceStatus == status);
 
             if (cursor.HasValue)
@@ -129,12 +161,7 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
             SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
                 exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Monthly invoice paging rejected because the page size is invalid."));
-            var query = _db.MonthlyInvoices.AsNoTracking()
-                .AsSplitQuery()
-                .AsQueryable();
-            query = query
-                .Include(invoice => invoice.InvoiceDetails)
-                .Include(invoice => invoice.InvoiceReceipt);
+            var query = GetIncludeQuery(true, true);
 
             if (cursor.HasValue)
             {
@@ -206,7 +233,14 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
                     "Monthly invoice update rejected because the invoice was not found.");
                 throw exception;
             }
-
+            if (existedInvoice.InvoiceStatus == EInvoiceStatus.Paid)
+            {
+                var exception = new InvalidOperationException(
+                    $"MonthlyInvoiceModel cannot be updated because it is already paid! \n {invoiceModel.InvoiceId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Monthly invoice update rejected because the invoice is already paid.");
+                throw exception;
+            }
             _db.MonthlyInvoices.Update(invoiceModel);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Monthly invoice staged for update.");
@@ -218,9 +252,33 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Preparing monthly invoice range update.");
             var invoiceModels = entities.ToList();
+            if (invoiceModels.Any(invoice => invoice.InvoiceStatus == EInvoiceStatus.Paid))
+            {
+                var exception = new InvalidOperationException(
+                    $"MonthlyInvoiceModel cannot be updated because it is already paid! \n {string.Join(", ", invoiceModels.Where(invoice => invoice.InvoiceStatus == EInvoiceStatus.Paid).Select(invoice => invoice.InvoiceId))}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Monthly invoice range update rejected because some invoices are already paid.");
+                throw exception;
+            }
             _db.MonthlyInvoices.UpdateRange(invoiceModels);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Monthly invoice range staged for update.");
+        }
+
+        #endregion
+
+        #region PRIVATE
+
+        private IQueryable<MonthlyInvoiceModel> GetIncludeQuery(bool isIncludedDetails = false, bool isIncludedReceipt = false)
+        {
+            var query = _db.MonthlyInvoices.AsNoTracking().AsSplitQuery();
+            if (isIncludedDetails)
+                query = query
+                    .Include(invoice => invoice.InvoiceDetails);
+            if (isIncludedReceipt)
+                query = query
+                    .Include(invoice => invoice.InvoiceReceipt);
+            return query;
         }
 
         #endregion

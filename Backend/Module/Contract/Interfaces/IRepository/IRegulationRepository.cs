@@ -5,7 +5,7 @@ using Shared.Persistence.Record;
 
 namespace Contract.Interfaces.IRepository
 {
-    public interface IRegulationRepository : IBaseReadRepository<RegulationModel, Guid>, IBasePostRepository<RegulationModel>
+    public interface IRegulationRepository : IBaseReadRepository<RegulationModel, Guid>, IBaseUpsertRepository<RegulationModel>
     {
         Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
             CancellationToken cancellationToken = default);

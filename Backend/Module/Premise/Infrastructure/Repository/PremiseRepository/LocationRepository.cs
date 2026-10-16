@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Premise.Infrastructure.Persistence.DbContext;
-using Premise.Interfaces.Location;
+using Premise.Interfaces.IRepository.Location;
 using Premise.Models.Premise;
 using Shared.Logging;
 

@@ -47,22 +47,12 @@ namespace Identity.Application
 
         #endregion
 
-        private ArgumentException InvalidIdType()
-        {
-            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup rejected because the identifier type is invalid.");
-            return new ArgumentException("Invalid id type");
-        }
-
-        #region POST
+        #region UPSERT
 
         public async Task<UserProfileModel> UpdateProfileInfoAsync(UserProfileModel userProfile, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update operation started.");
-            if (string.IsNullOrWhiteSpace(userProfile.UserProfileId) || userProfile.UserProfileId.Length != 12)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update rejected because the identity code is invalid.");
-                throw new ArgumentException("identity code is required and must be 12 digits");
-            }
+            ThrowIfInvalidUserProfileModel(userProfile, requireAccountId: true);
             if (!string.IsNullOrWhiteSpace(userProfile.UserProfilePhoneNumber))
             {
                 var resultFormated = TryProcessPhoneNumber(userProfile.UserProfilePhoneNumber, out var phoneNumber);
@@ -111,6 +101,7 @@ namespace Identity.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation operation started.");
             // method will raise an argument exception or argument null exception if failed to create a user profile. (check on constructor)
             var baseProfile = new UserProfileModel(identityCode, accountId);
+            ThrowIfInvalidUserProfileModel(baseProfile, requireAccountId: true);
             await _userProfileRepository.AddAsync(baseProfile, cancellationToken);
 
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -127,11 +118,12 @@ namespace Identity.Application
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation started.");
             var userProfileModels = userProfiles.ToList();
-            if (!userProfileModels.Any())
+            if (userProfileModels.Count == 0)
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update range operation rejected because the input collection is null or empty.");
                 throw new ArgumentException("User profiles collection cannot be null or empty.", nameof(userProfiles));
             }
+            userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, requireAccountId: true));
             _userProfileRepository.UpdateRange(userProfileModels, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation completed.");
             return await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -154,6 +146,25 @@ namespace Identity.Application
         #endregion
 
         #region PRIVATE
+
+        private ArgumentException InvalidIdType()
+        {
+            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup rejected because the identifier type is invalid.");
+            return new ArgumentException("Invalid id type");
+        }
+
+        private static void ThrowIfInvalidUserProfileModel(UserProfileModel profile, bool requireAccountId = false)
+        {
+            ArgumentNullException.ThrowIfNull(profile);
+            if (string.IsNullOrWhiteSpace(profile.UserProfileId) || profile.UserProfileId.Length != 12)
+                throw new ArgumentException("Identity code is required and must be 12 characters.", nameof(profile));
+            if (requireAccountId && profile.UserProfileAccountId == Guid.Empty)
+                throw new ArgumentException("User profile account id is required.", nameof(profile));
+            if (profile.UserProfileFirstName?.Length > 30 || profile.UserProfileLastName?.Length > 30 ||
+                profile.UserProfilePhoneNumber?.Length > 10 || profile.UserProfileAddress?.Length > 255 ||
+                profile.UserProfileAvatarUrl?.Length > 255)
+                throw new ArgumentException("One or more profile fields exceed their maximum length.", nameof(profile));
+        }
 
         private static bool TryProcessPhoneNumber(string input, out string stringPhoneNumber)
         {

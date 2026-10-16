@@ -253,6 +253,7 @@ namespace Identity.Application
             {
                 throw new ArgumentException("AccountModel collection is required.", nameof(entities));
             }
+            accountModels.ForEach(account => ThrowIfInvalidAccountModel(account));
             
             await _accountRepository.AddRangeAsync(accountModels, cancellationToken);
             await _accountRoleRepository.AddRangeAsync([.. accountRoleModels], cancellationToken);
@@ -264,7 +265,8 @@ namespace Identity.Application
                     _logger.LogLayerWarning(_logPool, Module, Layer, "UserProfileModel collection count does not match AccountModel collection count.");
                     throw new ArgumentException("UserProfileModel collection must have the same count as AccountModel collection.", nameof(userProfiles));
                 }
-                if (userProfileModels.Any())
+                userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, requireAccountId: true));
+                if (userProfileModels.Count == 0)
                 {
                     await _userProfileRepository.AddRangeAsync([.. userProfileModels], cancellationToken);
                 }
@@ -293,6 +295,7 @@ namespace Identity.Application
             {
                 throw new ArgumentException("AccountModel collection is required.", nameof(entities));
             }
+            accountModels.ForEach(account => ThrowIfInvalidAccountModel(account, requireId: true));
             _accountRepository.UpdateRange(accountModels, cancellationToken);
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectRows == 0)
@@ -361,6 +364,26 @@ namespace Identity.Application
                 throw new ArgumentException("Account email is invalid.", nameof(email));
             }
             return true;
+        }
+
+        private void ThrowIfInvalidAccountModel(AccountModel account, bool requireId = false)
+        {
+            ArgumentNullException.ThrowIfNull(account);
+            if (requireId && account.AccountId == Guid.Empty)
+                throw new ArgumentException("Account id is required.", nameof(account));
+            if (!_accountHelper.IsEmailValid(account.AccountEmail))
+                throw new ArgumentException("Account email is invalid.", nameof(account));
+            if (string.IsNullOrWhiteSpace(account.AccountPassword) || account.AccountPassword.Length > 255)
+                throw new ArgumentException("Account password is required and must not exceed 255 characters.", nameof(account));
+        }
+
+        private static void ThrowIfInvalidUserProfileModel(UserProfileModel profile, bool requireAccountId = false)
+        {
+            ArgumentNullException.ThrowIfNull(profile);
+            if (string.IsNullOrWhiteSpace(profile.UserProfileId) || profile.UserProfileId.Length != 12)
+                throw new ArgumentException("User profile id is required and must be 12 characters.", nameof(profile));
+            if (requireAccountId && profile.UserProfileAccountId == Guid.Empty)
+                throw new ArgumentException("User profile account id is required.", nameof(profile));
         }
 
         private InvalidOperationException InvalidPassword()

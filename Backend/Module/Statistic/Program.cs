@@ -1,5 +1,8 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Premise.Infrastructure.Repository.PremiseRepository;
+using Premise.Interfaces.IRepository;
+using Premise.Interfaces.Location;
 using Shared.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +12,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddSingleton<ILogPool, LogPool>();
-
+builder.Services.AddSingleton<IPremiseRepository,PremiseRepository>();
+builder.Services.AddSingleton<ILocationRepository,LocationRepository>();
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddEndpointsApiExplorer();

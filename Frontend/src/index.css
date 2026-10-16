@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Inter:Bold';
+  font-weight: 700;
+  font-style: normal;
+  src: local('Inter Bold'), local('Inter-Bold');
+}
+@font-face {
+  font-family: 'Inter:Regular';
+  font-weight: 400;
+  font-style: normal;
+  src: local('Inter'), local('Inter-Regular');
+}
+@font-face {
+  font-family: 'Inter:Semi Bold';
+  font-weight: 600;
+  font-style: normal;
+  src: local('Inter SemiBold'), local('Inter-SemiBold');
+}
+
+@theme {
+  --color-navy-950: #0a0e1a;
+  --color-navy-900: #0f1629;
+  --color-navy-800: #162040;
+  --color-navy-700: #1e2d5a;
+  --color-navy-600: #253472;
+  --color-navy-500: #2d3d8a;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #14b8a6;
+  --color-teal-600: #0d9488;
+  --font-sans: 'DM Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #f0f2f7;
+  color: #111827;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

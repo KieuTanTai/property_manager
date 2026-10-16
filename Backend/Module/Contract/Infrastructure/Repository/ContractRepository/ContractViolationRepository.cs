@@ -138,26 +138,6 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             return await ApplyPagingAsync(query, pageSize, cancellationToken);
         }
 
-        private IQueryable<ContractViolationModel> CreatePagingQuery(int pageSize,
-            string message)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, message);
-            SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
-                exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Contract violation paging rejected because the page size is invalid."));
-            return _db.ContractViolations.AsNoTracking()
-                .OrderByDescending(violation => violation.ViolationId);
-        }
-
-        private static async Task<RecordBaseCursorPage<ContractViolationModel>> ApplyPagingAsync(
-            IQueryable<ContractViolationModel> query, int pageSize,
-            CancellationToken cancellationToken)
-        {
-            return await SharedGetApplyPagingRepository.ApplyPaging(
-                query.AsAsyncEnumerable(), pageSize, violation => violation.ViolationId,
-                cancellationToken);
-        }
-
         #endregion
 
         #region POST
@@ -229,6 +209,55 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             _db.ContractViolations.UpdateRange(violations);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Contract violation range staged for update.");
+        }
+
+        #endregion
+
+        #region DELETE
+
+        public async Task DeleteAsync(Guid violationId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Preparing contract violation deletion.");
+            var violation = await GetByIdAsync(violationId, cancellationToken);
+            if (violation is null)
+            {
+                throw new InvalidOperationException(
+                    $"ContractViolationModel not found! \n {violationId}");
+            }
+            if (violation.ViolationIsResolved)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot delete resolved contract violation {violationId}.");
+            }
+            _db.ContractViolations.Remove(violation);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Contract violation staged for deletion.");
+        }
+
+        #endregion
+
+        #region PRIVATE
+
+        private IQueryable<ContractViolationModel> CreatePagingQuery(int pageSize,
+            string message)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, message);
+            SharedGetApplyPagingRepository.ValidatePageSize(pageSize,
+                exception => _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Contract violation paging rejected because the page size is invalid."));
+            return _db.ContractViolations.AsNoTracking()
+                .OrderByDescending(violation => violation.ViolationId);
+        }
+
+        private static async Task<RecordBaseCursorPage<ContractViolationModel>> ApplyPagingAsync(
+            IQueryable<ContractViolationModel> query, int pageSize,
+            CancellationToken cancellationToken)
+        {
+            return await SharedGetApplyPagingRepository.ApplyPaging(
+                query.AsAsyncEnumerable(), pageSize, violation => violation.ViolationId,
+                cancellationToken);
         }
 
         #endregion

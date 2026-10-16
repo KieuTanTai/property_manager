@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Premise.Infrastructure.Persistence.DbContext;
-using Premise.Interfaces.Product;
+using Premise.Interfaces.IRepository.Product;
 using Premise.Models.Product;
 using Shared.Logging;
 

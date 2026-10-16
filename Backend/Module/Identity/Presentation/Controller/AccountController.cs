@@ -5,6 +5,7 @@ using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 using Shared.Persistence.Record.Auth;
 
 namespace Identity.Presentation.Controller
@@ -13,7 +14,6 @@ namespace Identity.Presentation.Controller
     [Route("api/[controller]")]
     public class AccountController(
         IAccountApplication accountApplication,
-        IUserProfileApplication userProfileApplication,
         IAccountHelper helper,
         IApiHelper apiHelper,
         ILogger<AccountController> logger,
