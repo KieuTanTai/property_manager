@@ -312,6 +312,7 @@ DROP TABLE IF EXISTS `location`;
 CREATE TABLE `location` (
   `location_id` uuid NOT NULL DEFAULT uuid_v7(),
   `location_address` varchar(255) NOT NULL,
+  `location_is_active` tinyint(1) NOT NULL DEFAULT 1,
   `location_created_at` timestamp NULL DEFAULT current_timestamp(),
   `location_updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`location_id`),

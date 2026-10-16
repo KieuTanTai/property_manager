@@ -121,6 +121,7 @@ CREATE TABLE `location`
 (
     `location_id`         UUID PRIMARY KEY DEFAULT (UUID_v7()),
     `location_address`    VARCHAR(255) NOT NULL,
+    `location_is_active`  BOOLEAN          NOT NULL DEFAULT TRUE,
     `location_created_at` TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
     `location_updated_at` TIMESTAMP        DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,

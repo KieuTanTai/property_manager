@@ -26,11 +26,18 @@ namespace Premise.Models.Premise
 
         public DateTime LocationUpdatedAt { get; private set; } = DateTime.Now;
 
+        public bool LocationIsActive { get; private set; } = true;
+
         #region Setter
 
         public void SetLocationAddress(string address)
         {
             LocationAddress = ModelFieldGuard.Required(address, 255, nameof(address));
+        }
+
+        public void SetLocationIsActive(bool isActive)
+        {
+            LocationIsActive = isActive;
         }
 
         #endregion

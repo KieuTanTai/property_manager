@@ -117,6 +117,64 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _db.Locations.UpdateRange(locationModels);
         }
 
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing location deletion.");
+            if (id == Guid.Empty)
+            {
+                var exception = new ArgumentException("Location id is required.", nameof(id));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Location deletion rejected because the id is missing.");
+                throw exception;
+            }
+
+            var location = await _db.Locations.FirstOrDefaultAsync(
+                item => item.LocationId == id, cancellationToken);
+            if (location is null)
+            {
+                var exception = new InvalidOperationException($"Location not found: {id}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Location deletion rejected because it was not found.");
+                throw exception;
+            }
+
+            _db.Locations.Remove(location);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Location staged for deletion.");
+        }
+
+        public async Task SoftDeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing location soft deletion.");
+            if (id == Guid.Empty)
+            {
+                var exception = new ArgumentException("Location id is required.", nameof(id));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Location soft deletion rejected because the id is missing.");
+                throw exception;
+            }
+
+            var location = await _db.Locations.FirstOrDefaultAsync(
+                item => item.LocationId == id, cancellationToken);
+            if (location is null)
+            {
+                var exception = new InvalidOperationException($"Location not found: {id}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Location soft deletion rejected because it was not found.");
+                throw exception;
+            }
+
+            if (!location.LocationIsActive)
+            {
+                var exception = new InvalidOperationException($"Location is already soft deleted: {id}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Location soft deletion rejected because it was already deleted.");
+                throw exception;
+            }
+
+            location.SetLocationIsActive(false);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Location soft deletion staged.");
+        }
+
         #endregion
     }
 }
