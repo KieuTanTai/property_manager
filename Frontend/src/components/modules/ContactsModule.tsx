@@ -1,7 +1,7 @@
-import { useState } from "react"
-import type { ContactInfoModel, ContactInfoRequest } from "../../api/contracts"
+import { useEffect, useState } from "react"
+import type { ContactInfoModel, ContactInfoRequest } from "@/api/contracts.ts"
+import { contractApi } from "@/api/contracts.ts"
 import { FormField, Modal, inputCls } from "./shared"
-import { MOCK_CONTACTS } from "../../mocks/contacts"
 
 const emptyForm: ContactInfoRequest = {
   contactInfoEmail: "",
@@ -11,14 +11,29 @@ const emptyForm: ContactInfoRequest = {
 }
 
 export function ContactsModule() {
-  const [contacts, setContacts] = useState<ContactInfoModel[]>(MOCK_CONTACTS)
+  const [contacts, setContacts] = useState<ContactInfoModel[]>([])
   const [selected, setSelected] = useState<ContactInfoModel | null>(null)
   const [form, setForm] = useState<ContactInfoRequest>(emptyForm)
   const [isEditing, setIsEditing] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
-  const loading = false
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    contractApi.contactInfos()
+      .then((items) => {
+        if (active) setContacts(items)
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(reason instanceof Error ? reason.message : "Không thể tải thông tin liên hệ.")
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => { active = false }
+  }, [])
 
   const openContact = (contact: ContactInfoModel) => {
     setSelected(contact)
@@ -45,18 +60,12 @@ export function ContactsModule() {
     setError(null)
     const body = { ...form, contactSocialLink: form.contactSocialLink?.trim() || null }
     try {
-      const now = new Date().toISOString()
       if (isAdding) {
-        const created: ContactInfoModel = {
-          ...body,
-          contactInfoId: crypto.randomUUID(),
-          contactInfoCreatedAt: now,
-          contactInfoUpdatedAt: now,
-        }
+        const created = await contractApi.createContactInfo(body)
         setContacts((current) => [...current, created])
         closeModal()
       } else if (selected) {
-        const updated: ContactInfoModel = { ...selected, ...body, contactInfoUpdatedAt: now }
+        const updated = await contractApi.updateContactInfo(selected.contactInfoId, body)
         setContacts((current) => current.map((item) => item.contactInfoId === updated.contactInfoId ? updated : item))
         closeModal()
       }
@@ -69,7 +78,9 @@ export function ContactsModule() {
 
   const remove = async (contact: ContactInfoModel) => {
     if (!window.confirm(`Xóa thông tin liên hệ ${contact.contactInfoEmail}?`)) return
+    setError(null)
     try {
+      await contractApi.deleteContactInfo(contact.contactInfoId)
       setContacts((current) => current.filter((item) => item.contactInfoId !== contact.contactInfoId))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Không thể xóa thông tin liên hệ.")
