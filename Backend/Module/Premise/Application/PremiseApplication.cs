@@ -1,7 +1,7 @@
 using Premise.Interfaces.IRepository;
-using Premise.Interfaces.BusinessType;
-using Premise.Interfaces.Location;
-using Premise.Interfaces.Premise;
+using Premise.Interfaces.IRepository.BusinessType;
+using Premise.Interfaces.IRepository.Location;
+using Premise.Interfaces.IRepository.Premise;
 using Premise.Models.Business;
 using Premise.Models.Premise;
 using Shared.Enum;

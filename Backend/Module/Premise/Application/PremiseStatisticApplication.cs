@@ -1,8 +1,8 @@
-using Premise.Interfaces.IRepository.Premise;
 using Premise.Interfaces.IRepository.Location;
+using Premise.Interfaces.IRepository.Premise;
 using Shared.Logging;
 
-namespace Statisic.Application
+namespace Premise.Application
 {
     public class PremiseStatisticApplication
     (
@@ -19,6 +19,6 @@ namespace Statisic.Application
         private const string Module = "Statistic";
         private const string Layer = "Application";
 
-        public class 
+        // public class 
     }
 }

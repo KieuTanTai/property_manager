@@ -4,11 +4,10 @@ using Premise.Application;
 using Premise.Infrastructure.Persistence.DbContext;
 using Premise.Infrastructure.Repository;
 using Premise.Infrastructure.Repository.PremiseRepository;
-using Premise.Interfaces.IRepository;
-using Premise.Interfaces.BusinessType;
-using Premise.Interfaces.Location;
-using Premise.Interfaces.Premise;
-using Premise.Interfaces.Product;
+using Premise.Interfaces.IRepository.BusinessType;
+using Premise.Interfaces.IRepository.Location;
+using Premise.Interfaces.IRepository.Premise;
+using Premise.Interfaces.IRepository.Product;
 using Shared.Interfaces;
 using Shared.Logging;
 

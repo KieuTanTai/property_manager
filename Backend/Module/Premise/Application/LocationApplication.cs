@@ -1,4 +1,4 @@
-using Premise.Interfaces.Location;
+using Premise.Interfaces.IRepository.Location;
 using Premise.Models.Premise;
 using Shared.Interfaces;
 using Shared.Logging;
