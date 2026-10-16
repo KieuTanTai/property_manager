@@ -19,9 +19,9 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var connectionString = builder.Configuration.GetConnectionString("Premise")
-                       ?? builder.Configuration.GetConnectionString("IdentityTest")
+                       ?? builder.Configuration.GetConnectionString("PremiseTest")
                        ?? throw new InvalidOperationException(
-                           "Connection string 'Premise' (or 'IdentityTest') was not found.");
+                           "Connection string 'Premise' was not found.");
 
 builder.Services.AddDbContext<PremiseDbContext>(options => options.UseMySQL(connectionString));
 builder.Services.AddSingleton<ILogPool, LogPool>();
