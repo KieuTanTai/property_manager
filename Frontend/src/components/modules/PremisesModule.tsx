@@ -23,12 +23,16 @@ import { BusinessTypesTab } from "../premises/BusinessTypesTab"
 import { LocationsTab } from "../premises/LocationsTab"
 import { PremisesSubTabs } from "../premises/PremisesSubTabs"
 import { PremisesTab } from "../premises/PremisesTab"
+import { ImageAttachments } from "./ImageAttachments"
+import { premiseMediaApi } from "@/api/premiseMedia"
 
 // ─── Premises Module ────────────────────────────────────────────────────────
 
 export function PremisesModule() {
   const [premises, setPremises] = useState<Premise[]>(PREMISES)
-  const [premiseMedia] = useState<PremiseMedia[]>(PREMISE_MEDIA)
+  const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>(PREMISE_MEDIA)
+  const [premiseImages, setPremiseImages] = useState<File[]>([])
+  const [isUploadingPremiseImages, setIsUploadingPremiseImages] = useState(false)
   const [locations, setLocations] = useState<Location[]>(LOCATIONS)
   const [businessTypes, setBusinessTypes] =
     useState<BusinessType[]>(BUSINESS_TYPES)
@@ -103,6 +107,7 @@ export function PremisesModule() {
       locationId: locations[0].locationId,
       description: "",
     })
+    setPremiseImages([])
     setModal("add")
   }
 
@@ -127,13 +132,22 @@ export function PremisesModule() {
     setPremiseIsEditing(true)
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const location = locations.find(
       (item) => item.locationId === form.locationId,
     )
     if (!location) return
+    setIsUploadingPremiseImages(true)
+    let imageUrls: string[]
+    try {
+      imageUrls = await Promise.all(premiseImages.map((file) => premiseMediaApi.uploadImage(file)))
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không tải được ảnh mặt bằng lên Google Drive.")
+      setIsUploadingPremiseImages(false)
+      return
+    }
     const newP: Premise = {
-      id: `PRE-${String(premises.length + 1).padStart(3, "0")}`,
+      id: createUuidV7(),
       name: form.name,
       floor: Number(form.floor),
       position: Number(form.position),
@@ -144,6 +158,19 @@ export function PremisesModule() {
       description: form.description,
     }
     setPremises([...premises, newP])
+    if (imageUrls.length) {
+      const now = new Date().toISOString()
+      const firstId = Math.max(0, ...premiseMedia.map((media) => media.premiseMediaId)) + 1
+      setPremiseMedia([...premiseMedia, ...imageUrls.map((imageUrl, index) => ({
+        premiseMediaId: firstId + index,
+        premiseMediaPremiseId: newP.id,
+        premiseMediaImageUrl: imageUrl,
+        premiseMediaCreatedAt: now,
+        premiseMediaUpdatedAt: now,
+      }))])
+    }
+    setPremiseImages([])
+    setIsUploadingPremiseImages(false)
     setModal(null)
   }
 
@@ -814,6 +841,11 @@ export function PremisesModule() {
               }
             />
           </FormField>
+          {modal === "add" && (
+            <FormField label="Ảnh mặt bằng">
+              <ImageAttachments files={premiseImages} onChange={setPremiseImages} />
+            </FormField>
+          )}
           <div className="flex justify-end gap-2 mt-2">
             <button
               onClick={
@@ -826,10 +858,11 @@ export function PremisesModule() {
               Hủy
             </button>
             <button
-              onClick={modal === "add" ? handleAdd : handleEdit}
+              onClick={modal === "add" ? () => void handleAdd() : handleEdit}
+              disabled={isUploadingPremiseImages}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              {modal === "add" ? "Thêm mới" : "Lưu thay đổi"}
+              {isUploadingPremiseImages ? "Đang tải ảnh..." : modal === "add" ? "Thêm mới" : "Lưu thay đổi"}
             </button>
           </div>
         </Modal>
