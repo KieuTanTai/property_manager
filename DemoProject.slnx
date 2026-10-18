@@ -41,9 +41,6 @@
         <File Path="Frontend/src/main.tsx" />
         <File Path="Frontend/src/vite-env.d.ts" />
     </Folder>
-    <Folder Name="/Frontend/src/imports/">
-        <File Path="Frontend/src/imports/dtb_test.txt" />
-    </Folder>
     <Folder Name="/Frontend/src/components/" />
     <Folder Name="/Frontend/src/components/modules/">
         <File Path="Frontend/src/components/modules/AccountsModule.tsx" />
@@ -96,12 +93,12 @@
         <File Path="Frontend/src/types/violations.ts" />
     </Folder>
     <Folder Name="/Frontend/src/config/">
-        <File Path="Frontend/src/config/appSettings.ts"/>
+        <File Path="Frontend/src/config/appSettings.ts" />
     </Folder>
     <Folder Name="/Frontend/src/api/">
-        <File Path="Frontend/src/api/contracts.ts"/>
-        <File Path="Frontend/src/api/identity.ts"/>
-        <File Path="Frontend/src/api/ticketAndNotification.ts"/>
+        <File Path="Frontend/src/api/contracts.ts" />
+        <File Path="Frontend/src/api/identity.ts" />
+        <File Path="Frontend/src/api/ticketAndNotification.ts" />
     </Folder>
     <Project Path="TestProject/TestProject.csproj" />
 </Solution>

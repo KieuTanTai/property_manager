@@ -1,10 +1,13 @@
 using System.Text.Json.Serialization;
+using Premise.Infrastructure.DIContainer;
+using Shared.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
-builder.Services.AddHttpClient<Shared.Services.GoogleDriveImageStorage>();
+builder.Services.AddPremiseRepositoryCollection(builder.Configuration, builder.Environment);
+builder.Services.AddHttpClient<GoogleDriveImageStorage>();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 if (builder.Environment.IsDevelopment())
