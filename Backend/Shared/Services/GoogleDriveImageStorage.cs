@@ -51,7 +51,7 @@ namespace Shared.Services
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, $"Image uploaded to Google Drive. FileId={fileId}.");
                 await MakeFileReadableAsync(fileId, accessToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, $"Google Drive image permission created. FileId={fileId}.");
-                return $"https://drive.google.com/uc?export=view&id={Uri.EscapeDataString(fileId)}";
+                return $"https://lh3.googleusercontent.com/d/{Uri.EscapeDataString(fileId)}?authuser=0";
             }
             catch (Exception exception)
             {
