@@ -36,6 +36,9 @@ appsettings.*.Local.json
 secrets.json
 appsettings.json
 appsettings.*.json
+
+# Payment module scratch: holds VNPAY sandbox TmnCode/HashSecret, never commit
+Backend/Module/Payment/paymenttestinfo.txt
 # Visual Studio
 .vs/
 .vscode/

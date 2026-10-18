@@ -1,0 +1,38 @@
+@Payment_HostAddress = https://localhost:7093
+
+### Create a VNPAY payment url for an invoice
+POST {{Payment_HostAddress}}/api/payment/create-url
+Content-Type: application/json
+
+{
+  "invoiceId": "00000000-0000-0000-0000-000000000000",
+  "accountId": "00000000-0000-0000-0000-000000000000",
+  "amount": 100000,
+  "description": "Thanh toan hoa don thang 10",
+  "bankCode": "ANY",
+  "language": "Vietnamese"
+}
+
+### Effective payment status of an invoice (entry point for other services)
+GET {{Payment_HostAddress}}/api/payment/by-invoice/00000000-0000-0000-0000-000000000000/status
+Accept: application/json
+
+### All attempts for an invoice
+GET {{Payment_HostAddress}}/api/payment/by-invoice/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+### Transaction by VNPAY transaction reference
+GET {{Payment_HostAddress}}/api/payment/by-txn-ref/638000000000000000
+Accept: application/json
+
+### Transactions of an account (paged)
+GET {{Payment_HostAddress}}/api/payment/by-account/00000000-0000-0000-0000-000000000000?pageSize=20
+Accept: application/json
+
+### Transactions by status (paged)
+GET {{Payment_HostAddress}}/api/payment/status/Succeeded?pageSize=20
+Accept: application/json
+
+### VNPAY IPN - called by VNPAY, not by hand. Kept here for reference only.
+GET {{Payment_HostAddress}}/api/payment/ipn?vnp_TxnRef=638000000000000000&vnp_Amount=10000000&vnp_ResponseCode=00&vnp_TransactionStatus=00&vnp_SecureHash=invalid
+Accept: application/json

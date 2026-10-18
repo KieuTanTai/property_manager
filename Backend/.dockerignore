@@ -1,0 +1,23 @@
+# Applies to the Backend/ build context used by Module/Payment/Dockerfile.
+# Paths are relative to Backend/, which is why the module paths omit a Backend/ prefix.
+# Excluding local config and scratch secrets keeps them out of the image.
+
+**/bin
+**/obj
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/.idea
+**/*.*proj.user
+**/node_modules
+
+# Local secrets / config: the container is configured through environment variables instead.
+**/appsettings.json
+**/appsettings.*.json
+**/paymenttestinfo.txt
+**/*.pfx
+
+# Compose/env files are not needed inside the image.
+**/.env
+**/compose.yaml
