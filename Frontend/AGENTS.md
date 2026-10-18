@@ -10,7 +10,8 @@ For a trusted certificate, set `HTTPS_CERT_FILE` and `HTTPS_KEY_FILE` to certifi
 
 ## Project Structure
 
-This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
+This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other
+files when required, when a documented path is missing, or when the repository contradicts this guide.
 
 - `src/main.tsx` - React entrypoint; imports `src/index.css` and mounts `src/App.tsx` into the `#root` element
 - `src/App.tsx` - Primary application component and the usual starting point for UI work
@@ -29,6 +30,10 @@ This is the canonical project structure. Start with task-relevant files below. O
 
 ## Styling
 
-This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`. `src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or PostCSS config.
+This project uses **Tailwind CSS v4** through the `@tailwindcss/vite` plugin configured in `vite.config.ts`.
+`src/index.css` imports Tailwind with `@import 'tailwindcss';`. Use Tailwind utility classes directly in JSX and put
+global CSS or Tailwind v4 theme customization in `src/index.css`. This scaffold does not need a Tailwind config file or
+PostCSS config.
 
-`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements first, then add any `@font-face` rules and font-family defaults there.
+`src/main.tsx` imports `src/index.css`, so global font wiring belongs in `src/index.css`. Keep CSS `@import` statements
+first, then add any `@font-face` rules and font-family defaults there.

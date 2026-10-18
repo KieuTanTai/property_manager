@@ -17,12 +17,32 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
         private const string Module = "Contract";
 
         private const string Layer = "Infrastructure/Repository/InvoiceRepository";
-        
+
         private readonly ContractDbContext _db = context;
 
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<MonthlyInvoiceRepository> _logger = logger;
+
+        #region PRIVATE
+
+        private IQueryable<MonthlyInvoiceModel> GetIncludeQuery(bool isIncludedDetails = false, bool isIncludedReceipt = false)
+        {
+            var query = _db.MonthlyInvoices.AsNoTracking().AsSplitQuery();
+            if (isIncludedDetails)
+            {
+                query = query
+                    .Include(invoice => invoice.InvoiceDetails);
+            }
+            if (isIncludedReceipt)
+            {
+                query = query
+                    .Include(invoice => invoice.InvoiceReceipt);
+            }
+            return query;
+        }
+
+        #endregion
 
         #region GET
 
@@ -263,22 +283,6 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
             _db.MonthlyInvoices.UpdateRange(invoiceModels);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Monthly invoice range staged for update.");
-        }
-
-        #endregion
-
-        #region PRIVATE
-
-        private IQueryable<MonthlyInvoiceModel> GetIncludeQuery(bool isIncludedDetails = false, bool isIncludedReceipt = false)
-        {
-            var query = _db.MonthlyInvoices.AsNoTracking().AsSplitQuery();
-            if (isIncludedDetails)
-                query = query
-                    .Include(invoice => invoice.InvoiceDetails);
-            if (isIncludedReceipt)
-                query = query
-                    .Include(invoice => invoice.InvoiceReceipt);
-            return query;
         }
 
         #endregion

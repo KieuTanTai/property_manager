@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
-import {LOCATIONS, PREMISES, PREMISE_MEDIA} from "@/mocks/shared.ts"
+import {LOCATIONS, PREMISE_MEDIA, PREMISES} from "@/mocks/shared.ts"
 import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
 import {contractApi} from "@/api/contracts"
 import {Modal, PremiseStatusBadge, premiseStatusSurface} from "../modules/shared"
@@ -47,7 +47,9 @@ export function PublicHome({onManager}: PublicHomeProps) {
         }).catch(() => {
             // Keep the contact sample visible when the Contract API is unavailable.
         })
-        return () => { isCurrent = false }
+        return () => {
+            isCurrent = false
+        }
     }, [])
 
     useEffect(() => {
@@ -200,7 +202,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <div className="absolute -inset-5 rounded-4xl bg-blue-400/15 blur-2xl"/>
                             <div
                                 className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-white/5 p-3 shadow-2xl backdrop-blur-sm">
-                                <img src={heroMedia[0]?.premiseMediaImageUrl} alt={`Mặt bằng ${heroPremise?.name ?? ""}`}
+                                <img src={heroMedia[0]?.premiseMediaImageUrl}
+                                     alt={`Mặt bằng ${heroPremise?.name ?? ""}`}
                                      className="h-85 w-full rounded-[1.25rem] object-cover sm:h-105"/>
                                 <div
                                     className="absolute inset-x-3 bottom-3 rounded-b-[1.25rem] bg-linear-to-t from-slate-950/90 to-transparent p-6 pt-20">
@@ -267,7 +270,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                         </div>
 
                         {pageCount > 1 && (
-                            <nav className="mt-8 flex items-center justify-center gap-1.5" aria-label="Phân trang mặt bằng">
+                            <nav className="mt-8 flex items-center justify-center gap-1.5"
+                                 aria-label="Phân trang mặt bằng">
                                 <button
                                     type="button"
                                     onClick={() => setPage(currentPage - 1)}
@@ -318,7 +322,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         onClick={() => openPremise(premise)}
                                         className={`group flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 ${premiseStatusSurface[premise.status]} text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20`}
                                     >
-                                        <div className="relative aspect-16/10 w-full shrink-0 overflow-hidden bg-slate-100">
+                                        <div
+                                            className="relative aspect-16/10 w-full shrink-0 overflow-hidden bg-slate-100">
                                             {media[0] ? (
                                                 <img
                                                     src={media[0].premiseMediaImageUrl}
@@ -326,7 +331,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                                                 />
                                             ) : (
-                                                <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                                                <div
+                                                    className="flex h-full items-center justify-center text-sm text-slate-400">
                                                     Chưa có hình ảnh
                                                 </div>
                                             )}
@@ -345,7 +351,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                                     {location?.address ?? premise.location}
                                                 </p>
                                             </div>
-                                            <div className="mt-5 flex min-h-19 gap-5 border-y border-slate-100 py-4 text-sm">
+                                            <div
+                                                className="mt-5 flex min-h-19 gap-5 border-y border-slate-100 py-4 text-sm">
                                                 <div><p className="text-xs text-slate-400">Diện tích</p><p
                                                     className="mt-1 font-semibold text-slate-800">{formatArea(premise.area)}</p>
                                                 </div>
@@ -354,11 +361,13 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                                     Vị trí {premise.position}</p></div>
                                             </div>
                                             <p className="mt-4 min-h-12 text-sm leading-6 text-slate-600">{premise.description}</p>
-                                            <span className={`mt-auto flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold bg-white text-slate-800 transition ${
-                                                canRequestConsultation ? "group-hover:bg-blue-50 group-hover:text-blue-700" : ""
-                                            }`}>
+                                            <span
+                                                className={`mt-auto flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold bg-white text-slate-800 transition ${
+                                                    canRequestConsultation ? "group-hover:bg-blue-50 group-hover:text-blue-700" : ""
+                                                }`}>
                                                 {canRequestConsultation ? "Xem chi tiết và liên hệ" : "Xem chi tiết mặt bằng"}
-                                                <span className="material-symbols-outlined text-base" aria-hidden="true">
+                                                <span className="material-symbols-outlined text-base"
+                                                      aria-hidden="true">
                                                     open_in_new
                                                 </span>
                                             </span>
@@ -470,7 +479,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             {contactError && <p role="alert"
                                                 className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">{contactError}</p>}
                             {contactSuccess && <p role="status"
-                                                className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800">{contactSuccess}</p>}
+                                                  className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800">{contactSuccess}</p>}
                             <button type="submit" disabled={contactSending}
                                     className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                                 {contactSending ? "Đang gửi yêu cầu..." : "Gửi yêu cầu tư vấn"}
@@ -521,7 +530,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         className="h-48 w-full cursor-zoom-in object-contain"
                                     />
                                 ) : (
-                                    <div className="flex h-48 items-center justify-center text-sm text-slate-400">Chưa có hình ảnh</div>
+                                    <div className="flex h-48 items-center justify-center text-sm text-slate-400">Chưa
+                                        có hình ảnh</div>
                                 )}
                                 {selectedPremiseMedia.length > 1 && (
                                     <>
@@ -541,7 +551,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         >
                                             ›
                                         </button>
-                                        <span className="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-2.5 py-1 text-xs font-semibold text-white">
+                                        <span
+                                            className="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-2.5 py-1 text-xs font-semibold text-white">
                                             {activeMediaIndex + 1} / {selectedPremiseMedia.length}
                                         </span>
                                     </>
@@ -561,7 +572,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 </div>
                             )}
                             <div className="mt-4">
-                                <h3 className="text-lg font-semibold text-slate-900">Mặt bằng {selectedPremise.name}</h3>
+                                <h3 className="text-lg font-semibold text-slate-900">Mặt
+                                    bằng {selectedPremise.name}</h3>
                                 <p className="mt-1 text-sm text-slate-500">{selectedPremise.location}</p>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-3 border-y border-slate-200 py-4 text-sm">
@@ -581,11 +593,21 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <p className="mt-3 text-sm leading-6 text-slate-600">{selectedPremise.description}</p>
                             {(selectedPremise.openingHours || selectedPremise.floorArea || selectedPremise.leasableArea || selectedPremise.storeCount || selectedPremise.parkingCapacity) && (
                                 <div className="mt-5 space-y-3 border-t border-slate-200 pt-4 text-sm">
-                                    {selectedPremise.openingHours && <div><p className="text-xs text-slate-400">Giờ hoạt động</p><p className="mt-1 text-slate-700">{selectedPremise.openingHours}</p></div>}
-                                    {selectedPremise.floorArea && <div><p className="text-xs text-slate-400">Diện tích mặt sàn</p><p className="mt-1 text-slate-700">{selectedPremise.floorArea}</p></div>}
-                                    {selectedPremise.leasableArea && <div><p className="text-xs text-slate-400">Diện tích cho thuê</p><p className="mt-1 text-slate-700">{selectedPremise.leasableArea}</p></div>}
-                                    {selectedPremise.storeCount && <div><p className="text-xs text-slate-400">Cửa hàng</p><p className="mt-1 text-slate-700">{selectedPremise.storeCount}</p></div>}
-                                    {selectedPremise.parkingCapacity && <div><p className="text-xs text-slate-400">Bãi đỗ xe</p><p className="mt-1 text-slate-700">{selectedPremise.parkingCapacity}</p></div>}
+                                    {selectedPremise.openingHours &&
+                                        <div><p className="text-xs text-slate-400">Giờ hoạt động</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.openingHours}</p></div>}
+                                    {selectedPremise.floorArea &&
+                                        <div><p className="text-xs text-slate-400">Diện tích mặt sàn</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.floorArea}</p></div>}
+                                    {selectedPremise.leasableArea &&
+                                        <div><p className="text-xs text-slate-400">Diện tích cho thuê</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.leasableArea}</p></div>}
+                                    {selectedPremise.storeCount &&
+                                        <div><p className="text-xs text-slate-400">Cửa hàng</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.storeCount}</p></div>}
+                                    {selectedPremise.parkingCapacity &&
+                                        <div><p className="text-xs text-slate-400">Bãi đỗ xe</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.parkingCapacity}</p></div>}
                                 </div>
                             )}
                             {(contactPhone || contactEmail) && (
@@ -603,25 +625,30 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 </div>
                             )}
                         </div>
-                        {selectedPremise.status === "available" ? <div className="rounded-xl border border-emerald-200 bg-emerald-100/70 p-4 lg:col-span-2">
-                            <p className="text-sm leading-6 text-slate-700">Mặt bằng đang còn trống và có thể tiếp nhận yêu cầu tư vấn.</p>
-                            <button type="button" onClick={requestPremiseConsultation}
-                                    className="mt-4 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
-                                Yêu cầu tư vấn
-                            </button>
-                        </div> : <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6 lg:col-span-2">
-                            <h3 className="text-lg font-semibold text-slate-900">Mặt bằng hiện không nhận tư vấn</h3>
-                            <p className="mt-2 text-sm leading-6 text-slate-600">
-                                Mặt bằng này hiện đang ở trạng thái <strong>{selectedPremise.status === "rented" ? "Đang thuê" : selectedPremise.status === "reserved" ? "Đã đặt cọc" : "Bảo trì"}</strong>.
-                                Bạn có thể xem thông tin chi tiết, nhưng chưa thể gửi yêu cầu liên hệ cho mặt bằng này.
-                            </p>
-                            <div className="flex justify-end">
-                                <button type="button" onClick={() => setSelectedPremise(null)}
-                                        className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
-                                    Đóng
+                        {selectedPremise.status === "available" ?
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-100/70 p-4 lg:col-span-2">
+                                <p className="text-sm leading-6 text-slate-700">Mặt bằng đang còn trống và có thể tiếp
+                                    nhận yêu cầu tư vấn.</p>
+                                <button type="button" onClick={requestPremiseConsultation}
+                                        className="mt-4 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                    Yêu cầu tư vấn
                                 </button>
-                            </div>
-                        </div>}
+                            </div> : <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6 lg:col-span-2">
+                                <h3 className="text-lg font-semibold text-slate-900">Mặt bằng hiện không nhận tư
+                                    vấn</h3>
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                    Mặt bằng này hiện đang ở trạng
+                                    thái <strong>{selectedPremise.status === "rented" ? "Đang thuê" : selectedPremise.status === "reserved" ? "Đã đặt cọc" : "Bảo trì"}</strong>.
+                                    Bạn có thể xem thông tin chi tiết, nhưng chưa thể gửi yêu cầu liên hệ cho mặt bằng
+                                    này.
+                                </p>
+                                <div className="flex justify-end">
+                                    <button type="button" onClick={() => setSelectedPremise(null)}
+                                            className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
+                                        Đóng
+                                    </button>
+                                </div>
+                            </div>}
                     </div>
                 </Modal>
             )}
@@ -671,7 +698,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             >
                                 ›
                             </button>
-                            <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-sm text-white">
+                            <span
+                                className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-sm text-white">
                                 {activeMediaIndex + 1} / {selectedPremiseMedia.length}
                             </span>
                         </>

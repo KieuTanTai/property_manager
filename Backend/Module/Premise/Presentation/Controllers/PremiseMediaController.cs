@@ -10,25 +10,29 @@ namespace Premise.Presentation.Controllers
         GoogleDriveImageStorage imageStorage,
         ILogger<PremiseMediaController> logger,
         ILogPool logPool
-        ) : ControllerBase
+    ) : ControllerBase
     {
         private const long MaxImageSize = 10 * 1024 * 1024;
-        private static readonly HashSet<string> SupportedImageTypes =
-            ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
 
         private const string Module = "Premise";
 
         private const string Layer = "Presentation/Controller";
 
-        private readonly ILogger<PremiseMediaController> _logger = logger;
+        private static readonly HashSet<string> SupportedImageTypes =
+            ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<PremiseMediaController> _logger = logger;
 
         [HttpPost("upload")]
         [RequestSizeLimit(MaxImageSize)]
         public async Task<IActionResult> Upload([FromForm] IFormFile file, CancellationToken cancellationToken)
         {
             if (file.Length is 0 or > MaxImageSize)
+            {
                 return BadRequest("Ảnh phải có dung lượng từ 1 byte đến 10 MB.");
+            }
 
             if (!SupportedImageTypes.Contains(file.ContentType))
             {

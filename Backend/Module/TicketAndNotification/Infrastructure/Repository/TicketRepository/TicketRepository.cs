@@ -11,13 +11,17 @@ namespace TicketAndNotification.Infrastructure.Repository.TicketRepository
         TicketAndNotificationDbContext context,
         ILogger<TicketRepository> logger,
         ILogPool logPool
-    ): ITicketRepository
+    ) : ITicketRepository
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Infrastructure/Repository/TicketRepository";
+
         private readonly TicketAndNotificationDbContext _db = context;
-        private readonly ILogger<TicketRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<TicketRepository> _logger = logger;
 
         #region POST
 
@@ -178,7 +182,7 @@ namespace TicketAndNotification.Infrastructure.Repository.TicketRepository
             return await _db.Tickets
                 .FirstOrDefaultAsync(ticket => ticket.TicketId == ticketId, cancellationToken);
         }
-        
+
         public async Task<bool> ExistsAsync(
             Guid ticketId,
             CancellationToken cancellationToken = default)
@@ -187,7 +191,7 @@ namespace TicketAndNotification.Infrastructure.Repository.TicketRepository
             return await _db.Tickets.AsNoTracking()
                 .AnyAsync(ticket => ticket.TicketId == ticketId, cancellationToken);
         }
-        
+
         #endregion
     }
 }

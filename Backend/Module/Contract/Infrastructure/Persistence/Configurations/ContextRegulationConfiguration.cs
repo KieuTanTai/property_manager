@@ -1,4 +1,3 @@
-using Contract.Models.Contract;
 using Contract.Models.Regulation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

@@ -4,7 +4,5 @@ using Shared.Interfaces;
 namespace Contract.Interfaces.IRepository
 {
     public interface IContractRegulationRepository
-        : IBaseAssociativeRepository<ContractRegulationModel, Guid>
-    {
-    }
+        : IBaseAssociativeRepository<ContractRegulationModel, Guid> {}
 }

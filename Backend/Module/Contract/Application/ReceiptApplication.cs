@@ -18,13 +18,96 @@ namespace Contract.Application
         ILogPool logPool) : IReceiptApplication
     {
         private const string Module = "Contract";
+
         private const string Layer = "Application";
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly IReceiptRepository _receiptRepository = receiptRepository;
         private readonly IMonthlyInvoiceRepository _invoiceRepository = invoiceRepository;
-        private readonly ILogger<ReceiptApplication> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<ReceiptApplication> _logger = logger;
+
+        private readonly IReceiptRepository _receiptRepository = receiptRepository;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+
+        #region ADD
+
+        public async Task<ReceiptModel> AddReceiptAsync(ReceiptModel receipt,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Creating receipt.");
+            ThrowIfInvalidReceiptModel(receipt);
+            var invoice = await _invoiceRepository.GetTrackedByIdAsync(
+                receipt.ReceiptInvoiceId, cancellationToken);
+            if (invoice is null)
+            {
+                throw new ArgumentException("Invoice was not found.", nameof(receipt));
+            }
+            if (invoice.InvoiceStatus != EInvoiceStatus.Paid)
+            {
+                throw new InvalidOperationException(
+                    "Cannot create receipt for an invoice that is not marked as paid.");
+            }
+
+            await _receiptRepository.AddAsync(receipt, cancellationToken);
+            invoice.SetPaymentDate(receipt.ReceiptPaymentDate);
+            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+            await SaveChangesOrThrowAsync("create receipt", cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt created: {receipt.ReceiptId} for invoice {receipt.ReceiptInvoiceId}.");
+            return receipt;
+        }
+
+        #endregion
+
+        #region UPDATE
+
+        public async Task<ReceiptModel> UpdateReceiptAsync(Guid receiptId, Guid invoiceId, DateTime paymentDate, decimal amount, string? transactionInfo,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Updating receipt.");
+            ThrowIfInvalidReceiptUpdate(receiptId, invoiceId, paymentDate, amount, transactionInfo);
+
+            var existingReceipt = await _receiptRepository.GetByIdAsync(receiptId, cancellationToken);
+            if (existingReceipt is null)
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer,
+                    $"Receipt update rejected because receipt {receiptId} was not found.");
+                throw new ArgumentException("Receipt was not found.", nameof(receiptId));
+            }
+            if (existingReceipt.ReceiptInvoiceId != invoiceId)
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer,
+                    $"Receipt update rejected because receipt {receiptId} does not belong to invoice {invoiceId}.");
+                throw new ArgumentException("Receipt does not belong to the specified invoice.", nameof(invoiceId));
+            }
+
+            var invoice = await _invoiceRepository.GetTrackedByIdAsync(invoiceId, cancellationToken);
+            if (invoice is null)
+            {
+                throw new ArgumentException("Invoice was not found.", nameof(invoiceId));
+            }
+            if (invoice.InvoiceStatus != EInvoiceStatus.Paid)
+            {
+                throw new InvalidOperationException(
+                    "Cannot update receipt for an invoice that is not marked as paid.");
+            }
+
+            // Only these receipt fields are mutable through this operation.
+            existingReceipt.SetPaymentDate(paymentDate);
+            existingReceipt.SetAmount(amount);
+            existingReceipt.SetTransactionInfo(transactionInfo);
+            invoice.SetPaymentDate(paymentDate);
+            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
+            await _receiptRepository.UpdateAsync(existingReceipt, cancellationToken);
+            await SaveChangesOrThrowAsync("update receipt", cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt updated: {existingReceipt.ReceiptId} for invoice {existingReceipt.ReceiptInvoiceId}.");
+            return existingReceipt;
+        }
+
+        #endregion
 
         #region GET
 
@@ -56,7 +139,9 @@ namespace Contract.Application
             ArgumentNullException.ThrowIfNull(receiptIds);
             var ids = receiptIds.Distinct().ToArray();
             if (ids.Length == 0 || ids.Any(id => id == Guid.Empty))
+            {
                 throw new ArgumentException("At least one valid receipt id is required.", nameof(receiptIds));
+            }
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 $"Loading receipts by {ids.Length} ids.");
             var result = await _receiptRepository.GetByIdsAsync(ids, cancellationToken);
@@ -94,7 +179,9 @@ namespace Contract.Application
             CancellationToken cancellationToken = default)
         {
             if (!Enum.IsDefined(paymentMethod))
+            {
                 throw new ArgumentException("Receipt payment method is invalid.", nameof(paymentMethod));
+            }
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 $"Loading receipts by payment method {paymentMethod}.");
             var result = await _receiptRepository.GetByPaymentMethodAsync(paymentMethod, cancellationToken);
@@ -130,76 +217,6 @@ namespace Contract.Application
 
         #endregion
 
-        #region ADD
-
-        public async Task<ReceiptModel> AddReceiptAsync(ReceiptModel receipt,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Creating receipt.");
-            ThrowIfInvalidReceiptModel(receipt);
-            var invoice = await _invoiceRepository.GetTrackedByIdAsync(
-                receipt.ReceiptInvoiceId, cancellationToken);
-            if (invoice is null)
-                throw new ArgumentException("Invoice was not found.", nameof(receipt));
-            if (invoice.InvoiceStatus != EInvoiceStatus.Paid)
-                throw new InvalidOperationException(
-                    "Cannot create receipt for an invoice that is not marked as paid.");
-
-            await _receiptRepository.AddAsync(receipt, cancellationToken);
-            invoice.SetPaymentDate(receipt.ReceiptPaymentDate);
-            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-            await SaveChangesOrThrowAsync("create receipt", cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Receipt created: {receipt.ReceiptId} for invoice {receipt.ReceiptInvoiceId}.");
-            return receipt;
-        }
-
-        #endregion
-
-        #region UPDATE
-
-        public async Task<ReceiptModel> UpdateReceiptAsync(Guid receiptId, Guid invoiceId, DateTime paymentDate, decimal amount, string? transactionInfo,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Updating receipt.");
-            ThrowIfInvalidReceiptUpdate(receiptId, invoiceId, paymentDate, amount, transactionInfo);
-
-            var existingReceipt = await _receiptRepository.GetByIdAsync(receiptId, cancellationToken);
-            if (existingReceipt is null)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    $"Receipt update rejected because receipt {receiptId} was not found.");
-                throw new ArgumentException("Receipt was not found.", nameof(receiptId));
-            }
-            if (existingReceipt.ReceiptInvoiceId != invoiceId)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    $"Receipt update rejected because receipt {receiptId} does not belong to invoice {invoiceId}.");
-                throw new ArgumentException("Receipt does not belong to the specified invoice.", nameof(invoiceId));
-            }
-
-            var invoice = await _invoiceRepository.GetTrackedByIdAsync(invoiceId, cancellationToken);
-            if (invoice is null)
-                throw new ArgumentException("Invoice was not found.", nameof(invoiceId));
-            if (invoice.InvoiceStatus != EInvoiceStatus.Paid)
-                throw new InvalidOperationException(
-                    "Cannot update receipt for an invoice that is not marked as paid.");
-
-            // Only these receipt fields are mutable through this operation.
-            existingReceipt.SetPaymentDate(paymentDate);
-            existingReceipt.SetAmount(amount);
-            existingReceipt.SetTransactionInfo(transactionInfo);
-            invoice.SetPaymentDate(paymentDate);
-            await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-            await _receiptRepository.UpdateAsync(existingReceipt, cancellationToken);
-            await SaveChangesOrThrowAsync("update receipt", cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Receipt updated: {existingReceipt.ReceiptId} for invoice {existingReceipt.ReceiptInvoiceId}.");
-            return existingReceipt;
-        }
-
-        #endregion
-
         #region PRIVATE
 
         private async Task SaveChangesOrThrowAsync(string operation,
@@ -222,24 +239,34 @@ namespace Contract.Application
         private static void ThrowIfEmpty(Guid id, string parameterName)
         {
             if (id == Guid.Empty)
+            {
                 throw new ArgumentException("Id is required.", parameterName);
+            }
         }
 
         private static void ThrowIfInvalidReceiptModel(ReceiptModel receipt)
         {
             ArgumentNullException.ThrowIfNull(receipt);
             if (receipt.ReceiptId == Guid.Empty)
+            {
                 throw new ArgumentException("Receipt id is required.", nameof(receipt));
+            }
             if (receipt.ReceiptInvoiceId == Guid.Empty || receipt.ReceiptCreatedByAccountId == Guid.Empty)
+            {
                 throw new ArgumentException("Invoice and creator account ids are required.", nameof(receipt));
+            }
             if (receipt.ReceiptAmount <= 0)
+            {
                 throw new ArgumentException("Receipt amount must be greater than zero.", nameof(receipt));
+            }
             if (!Enum.IsDefined(receipt.ReceiptPaymentMethod))
+            {
                 throw new ArgumentException("Receipt payment method is invalid.", nameof(receipt));
-            if (receipt.ReceiptTransactionReference?.Length > 100 ||
-                receipt.ReceiptGatewayTransactionNumber?.Length > 100 ||
-                receipt.ReceiptTransactionInfo?.Length > 250 || receipt.ReceiptBankName?.Length > 100)
+            }
+            if (receipt.ReceiptTransactionReference?.Length > 100 || receipt.ReceiptGatewayTransactionNumber?.Length > 100 || receipt.ReceiptTransactionInfo?.Length > 250 || receipt.ReceiptBankName?.Length > 100)
+            {
                 throw new ArgumentException("One or more receipt fields exceed their maximum length.", nameof(receipt));
+            }
         }
 
         private static void ThrowIfInvalidReceiptUpdate(Guid receiptId, Guid invoiceId,
@@ -249,20 +276,28 @@ namespace Contract.Application
             ThrowIfEmpty(invoiceId, nameof(invoiceId));
 
             if (amount <= 0)
+            {
                 throw new ArgumentException("Receipt amount must be greater than zero.", nameof(amount));
-            if (paymentDate <= DateTime.MinValue || paymentDate >= DateTime.MaxValue ||
-                paymentDate > DateTime.Now)
+            }
+            if (paymentDate <= DateTime.MinValue || paymentDate >= DateTime.MaxValue || paymentDate > DateTime.Now)
+            {
                 throw new ArgumentException("Payment date is invalid.", nameof(paymentDate));
+            }
             if (transactionInfo?.Length > 250)
+            {
                 throw new ArgumentException("Transaction info must not exceed 250 characters.", nameof(transactionInfo));
-            if (transactionInfo is not null &&
-                !Regex.IsMatch(
+            }
+            if (transactionInfo is not null
+                && !Regex.IsMatch(
                     transactionInfo, @"^[\p{L}\p{N} -]*$",
                     RegexOptions.CultureInvariant))
+            {
                 throw new ArgumentException(
                     "Transaction info may contain only letters, numbers, spaces, and hyphens.",
                     nameof(transactionInfo));
+            }
         }
+
         #endregion
     }
 }

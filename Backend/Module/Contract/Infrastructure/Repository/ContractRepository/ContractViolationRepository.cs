@@ -14,11 +14,39 @@ namespace Contract.Infrastructure.Repository.ContractRepository
         ILogPool logPool) : IContractViolationRepository
     {
         private const string Module = "Contract";
+
         private const string Layer = "Infrastructure/Repository/ContractRepository";
 
         private readonly ContractDbContext _db = context;
+
         private readonly ILogPool _logPool = logPool;
+
         private readonly ILogger<ContractViolationRepository> _logger = logger;
+
+        #region DELETE
+
+        public async Task DeleteAsync(Guid violationId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Preparing contract violation deletion.");
+            var violation = await GetByIdAsync(violationId, cancellationToken);
+            if (violation is null)
+            {
+                throw new InvalidOperationException(
+                    $"ContractViolationModel not found! \n {violationId}");
+            }
+            if (violation.ViolationIsResolved)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot delete resolved contract violation {violationId}.");
+            }
+            _db.ContractViolations.Remove(violation);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Contract violation staged for deletion.");
+        }
+
+        #endregion
 
         #region GET
 
@@ -89,11 +117,11 @@ namespace Contract.Infrastructure.Repository.ContractRepository
 
         public async Task<RecordBaseCursorPage<ContractViolationModel>>
             GetApplyPagingByViolationContentAsync(
-            Guid? cursor, int pageSize, string violationContent,
-            CancellationToken cancellationToken = default)
+                Guid? cursor, int pageSize, string violationContent,
+                CancellationToken cancellationToken = default)
         {
             var query = CreatePagingQuery(pageSize,
-                "Loading contract violation page by content.")
+                    "Loading contract violation page by content.")
                 .Where(violation => violation.ViolationContent.Contains(violationContent));
 
             if (cursor.HasValue)
@@ -110,7 +138,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 CancellationToken cancellationToken = default)
         {
             var query = CreatePagingQuery(pageSize,
-                "Loading contract violation page by violation date range.")
+                    "Loading contract violation page by violation date range.")
                 .Where(violation => violation.ViolationDate >= minViolationDate
                                     && violation.ViolationDate <= maxViolationDate);
 
@@ -127,7 +155,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             CancellationToken cancellationToken = default)
         {
             var query = CreatePagingQuery(pageSize,
-                "Loading contract violation page by status.")
+                    "Loading contract violation page by status.")
                 .Where(violation => violation.ViolationIsResolved == isResolved);
 
             if (cursor.HasValue)
@@ -209,31 +237,6 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             _db.ContractViolations.UpdateRange(violations);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Contract violation range staged for update.");
-        }
-
-        #endregion
-
-        #region DELETE
-
-        public async Task DeleteAsync(Guid violationId,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Preparing contract violation deletion.");
-            var violation = await GetByIdAsync(violationId, cancellationToken);
-            if (violation is null)
-            {
-                throw new InvalidOperationException(
-                    $"ContractViolationModel not found! \n {violationId}");
-            }
-            if (violation.ViolationIsResolved)
-            {
-                throw new InvalidOperationException(
-                    $"Cannot delete resolved contract violation {violationId}.");
-            }
-            _db.ContractViolations.Remove(violation);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Contract violation staged for deletion.");
         }
 
         #endregion

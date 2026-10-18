@@ -16,38 +16,52 @@ namespace TicketAndNotification.Application
         ILogPool logPool) : INotificationRecipientApplication
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Application";
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly IBaseAssociativeRepository<NotificationRecipientModel, Guid> _recipientRepository = recipientRepository;
-        private readonly INotificationRepository _notificationRepository = notificationRepository;
-        private readonly INotificationRealtimePublisher _notificationPublisher = notificationPublisher;
-        private readonly ILogger<NotificationRecipientApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<NotificationRecipientApplication> _logger = logger;
+
+        private readonly INotificationRealtimePublisher _notificationPublisher = notificationPublisher;
+
+        private readonly INotificationRepository _notificationRepository = notificationRepository;
+
+        private readonly IBaseAssociativeRepository<NotificationRecipientModel, Guid> _recipientRepository = recipientRepository;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         #region GET
 
         public Task<IReadOnlyList<NotificationRecipientModel>> GetAllAsync(
-            CancellationToken cancellationToken = default) =>
-            _recipientRepository.GetAllAsync(cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _recipientRepository.GetAllAsync(cancellationToken);
+        }
 
         public Task<IReadOnlyList<NotificationRecipientModel>> GetByNotificationIdAsync(
             Guid notificationId,
-            CancellationToken cancellationToken = default) =>
-            _recipientRepository.GetByFirstForeignIdAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _recipientRepository.GetByFirstForeignIdAsync(
                 notificationId, cancellationToken);
+        }
 
         public Task<IReadOnlyList<NotificationRecipientModel>> GetByAccountIdAsync(
             Guid accountId,
-            CancellationToken cancellationToken = default) =>
-            _recipientRepository.GetBySecondForeignIdAsync(accountId, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _recipientRepository.GetBySecondForeignIdAsync(accountId, cancellationToken);
+        }
 
         public Task<NotificationRecipientModel?> GetByIdAsync(
             Guid notificationId,
             Guid accountId,
-            CancellationToken cancellationToken = default) =>
-            _recipientRepository.GetByIdsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _recipientRepository.GetByIdsAsync(
                 notificationId, accountId, cancellationToken);
+        }
 
         #endregion
 
@@ -109,8 +123,7 @@ namespace TicketAndNotification.Application
                 .ToArray();
             var notifications = await _notificationRepository.GetByIdsAsync(
                 notificationIds, cancellationToken);
-            var notificationsById = notifications.ToDictionary(
-                notification => notification.NotificationId);
+            var notificationsById = notifications.ToDictionary(notification => notification.NotificationId);
 
             foreach (var recipient in recipients)
             {
@@ -168,9 +181,13 @@ namespace TicketAndNotification.Application
         {
             ArgumentNullException.ThrowIfNull(recipient);
             if (recipient.NotificationId == Guid.Empty)
+            {
                 throw new ArgumentException("Notification id is required.", nameof(recipient));
+            }
             if (recipient.AccountId == Guid.Empty)
+            {
                 throw new ArgumentException("Recipient account id is required.", nameof(recipient));
+            }
         }
 
         #endregion

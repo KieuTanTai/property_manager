@@ -37,7 +37,7 @@ namespace Premise.Infrastructure.DIContainer
 
             services.AddSingleton<ILogPool, LogPool>();
             services.AddScoped<IUnitOfWork, EfPremiseUnitOfWork>();
-            
+
             #endregion
 
             return services;

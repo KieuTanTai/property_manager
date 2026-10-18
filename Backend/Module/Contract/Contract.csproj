@@ -21,10 +21,10 @@
 
         <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.9"/>
 
-        <PackageReference Include="RabbitMQ.Client" Version="7.2.2"/>         
-        
-        <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
-        
+        <PackageReference Include="RabbitMQ.Client" Version="7.2.2"/>
+
+        <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13"/>
+
         <PackageReference Include="MailKit" Version="4.18.1"/>
 
         <PackageReference Include="Serilog" Version="4.4.1-dev-02447"/>

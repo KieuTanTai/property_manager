@@ -15,9 +15,103 @@ namespace Contract.Presentation.Controller
         ILogger<ReceiptController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
     {
-        private readonly IReceiptApplication _receiptApplication = receiptApplication;
-        private readonly ILogger<ReceiptController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<ReceiptController> _logger = logger;
+
+        private readonly IReceiptApplication _receiptApplication = receiptApplication;
+
+        #region POST
+
+        [RequireHttps]
+        [HttpPost]
+        public async Task<IActionResult> AddReceiptAsync(
+            [FromBody] RecordReceiptRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Receipt creation request received.");
+            try
+            {
+                var receipt = CreateReceipt(request);
+                var result = await _receiptApplication.AddReceiptAsync(receipt, cancellationToken);
+                _logger.LogLayerInformation(_logPool, Module, Layer,
+                    $"Receipt created: {result.ReceiptId}.");
+                return Ok(result);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer,
+                    "Receipt creation request was canceled.");
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex,
+                    "Receipt creation request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region PUT
+
+        [RequireHttps]
+        [HttpPut("{receiptId:guid}/invoice/{invoiceId:guid}")]
+        public async Task<IActionResult> UpdateReceiptAsync(
+            [FromRoute] Guid receiptId,
+            [FromRoute] Guid invoiceId,
+            [FromBody] RecordReceiptUpdateRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                $"Receipt update request received for {receiptId}.");
+            try
+            {
+                var result = await _receiptApplication.UpdateReceiptAsync(receiptId, invoiceId,
+                    request.PaymentDate, request.Amount, request.TransactionInfo, cancellationToken);
+                _logger.LogLayerInformation(_logPool, Module, Layer,
+                    $"Receipt updated: {result.ReceiptId}.");
+                return Ok(result);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer,
+                    "Receipt update request was canceled.");
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer,
+                    "Receipt update request was rejected.");
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex,
+                    "Receipt update request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region PRIVATE
+
+        private static ReceiptModel CreateReceipt(RecordReceiptRequest request)
+        {
+            var receipt = new ReceiptModel(request.InvoiceId, request.CreatedByAccountId,
+                request.Amount);
+            receipt.SetPaymentMethod(request.PaymentMethod);
+            receipt.SetPaymentDate(request.PaymentDate);
+            receipt.SetTransactionReference(request.TransactionReference);
+            receipt.SetGatewayTransactionNumber(request.GatewayTransactionNumber);
+            receipt.SetTransactionInfo(request.TransactionInfo);
+            receipt.SetBankName(request.BankName);
+            return receipt;
+        }
+
+        #endregion
 
         #region GET
 
@@ -161,7 +255,9 @@ namespace Contract.Presentation.Controller
             {
                 var result = await _receiptApplication.GetReceiptByInvoiceIdAsync(invoiceId, cancellationToken);
                 if (result is null)
+                {
                     return NotFound("Receipt not found.");
+                }
                 _logger.LogLayerInformation(_logPool, Module, Layer,
                     $"Receipt loaded for invoice {invoiceId}: {result.ReceiptId}.");
                 return Ok(result);
@@ -218,7 +314,9 @@ namespace Contract.Presentation.Controller
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 $"Receipt payment method request received for {paymentMethod}.");
             if (!Enum.IsDefined(paymentMethod))
+            {
                 return BadRequest("Payment method is invalid.");
+            }
             try
             {
                 var result = await _receiptApplication.GetReceiptsByPaymentMethodAsync(
@@ -252,7 +350,9 @@ namespace Contract.Presentation.Controller
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 $"Receipt payment date request received for {paymentDate:yyyy-MM-dd}.");
             if (pageSize <= 0)
+            {
                 return BadRequest("Page size must be greater than 0.");
+            }
             try
             {
                 var result = await _receiptApplication.GetApplyPagingByReceiptPaymentDateAsync(
@@ -273,98 +373,6 @@ namespace Contract.Presentation.Controller
                     "Receipt payment date request failed.");
                 return BadRequest($"An error occurred. {ex.Message}");
             }
-        }
-
-        #endregion
-
-        #region POST
-
-        [RequireHttps]
-        [HttpPost]
-        public async Task<IActionResult> AddReceiptAsync(
-            [FromBody] RecordReceiptRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Receipt creation request received.");
-            try
-            {
-                var receipt = CreateReceipt(request);
-                var result = await _receiptApplication.AddReceiptAsync(receipt, cancellationToken);
-                _logger.LogLayerInformation(_logPool, Module, Layer,
-                    $"Receipt created: {result.ReceiptId}.");
-                return Ok(result);
-            }
-            catch (OperationCanceledException ex)
-            {
-                _logger.LogLayerDebug(_logPool, Module, Layer,
-                    "Receipt creation request was canceled.");
-                return BadRequest($"Request canceled. {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, ex,
-                    "Receipt creation request failed.");
-                return BadRequest($"An error occurred. {ex.Message}");
-            }
-        }
-
-        #endregion
-
-        #region PUT
-
-        [RequireHttps]
-        [HttpPut("{receiptId:guid}/invoice/{invoiceId:guid}")]
-        public async Task<IActionResult> UpdateReceiptAsync(
-            [FromRoute] Guid receiptId,
-            [FromRoute] Guid invoiceId,
-            [FromBody] RecordReceiptUpdateRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                $"Receipt update request received for {receiptId}.");
-            try
-            {
-                var result = await _receiptApplication.UpdateReceiptAsync(receiptId, invoiceId,
-                    request.PaymentDate, request.Amount, request.TransactionInfo, cancellationToken);
-                _logger.LogLayerInformation(_logPool, Module, Layer,
-                    $"Receipt updated: {result.ReceiptId}.");
-                return Ok(result);
-            }
-            catch (OperationCanceledException ex)
-            {
-                _logger.LogLayerDebug(_logPool, Module, Layer,
-                    "Receipt update request was canceled.");
-                return BadRequest($"Request canceled. {ex.Message}");
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    "Receipt update request was rejected.");
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, ex,
-                    "Receipt update request failed.");
-                return BadRequest($"An error occurred. {ex.Message}");
-            }
-        }
-
-        #endregion
-
-        #region PRIVATE
-
-        private static ReceiptModel CreateReceipt(RecordReceiptRequest request)
-        {
-            var receipt = new ReceiptModel(request.InvoiceId, request.CreatedByAccountId,
-                request.Amount);
-            receipt.SetPaymentMethod(request.PaymentMethod);
-            receipt.SetPaymentDate(request.PaymentDate);
-            receipt.SetTransactionReference(request.TransactionReference);
-            receipt.SetGatewayTransactionNumber(request.GatewayTransactionNumber);
-            receipt.SetTransactionInfo(request.TransactionInfo);
-            receipt.SetBankName(request.BankName);
-            return receipt;
         }
 
         #endregion

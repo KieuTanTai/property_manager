@@ -14,12 +14,32 @@ namespace Contract.Application
         ILogPool logPool) : IRegulationApplication
     {
         private const string Module = "Contract";
+
         private const string Layer = "Application";
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly IRegulationRepository _regulationRepository = regulationRepository;
-        private readonly ILogger<RegulationApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<RegulationApplication> _logger = logger;
+
+        private readonly IRegulationRepository _regulationRepository = regulationRepository;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+
+        #region PRIVATE
+
+        private async Task<RecordBaseCursorPage<RegulationModel>> GetApplyingAsync(Func<Guid?, int, CancellationToken, Task<RecordBaseCursorPage<RegulationModel>>> getPageFunc, Guid? cursor, int pageSize,
+            CancellationToken cancellationToken)
+        {
+            var result = await getPageFunc(cursor, pageSize, cancellationToken);
+            if (result.Items.Count != 0)
+            {
+                return result;
+            }
+            _logger.LogLayerWarning(_logPool, Module, Layer, "No regulations found for the requested page.");
+            throw new InvalidOperationException("No regulations found for the requested page.");
+        }
+
+        #endregion
 
         #region GET
 
@@ -53,7 +73,7 @@ namespace Contract.Application
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading regulation page.");
-            return await GetApplyingAsync( _regulationRepository.GetApplyPagingAsync, cursor, pageSize, cancellationToken);
+            return await GetApplyingAsync(_regulationRepository.GetApplyPagingAsync, cursor, pageSize, cancellationToken);
         }
 
         public async Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByRegulationStatusAsync(Guid? cursor,
@@ -130,21 +150,6 @@ namespace Contract.Application
 
             _logger.LogLayerInformation(_logPool, Module, Layer, "Regulation soft deleted.");
             return affectedRows;
-        }
-
-        #endregion
-
-        #region PRIVATE
-
-        private async Task<RecordBaseCursorPage<RegulationModel>> GetApplyingAsync(Func<Guid?, int, CancellationToken, Task<RecordBaseCursorPage<RegulationModel>>> getPageFunc, Guid? cursor, int pageSize, CancellationToken cancellationToken)
-        {
-            var result = await getPageFunc(cursor, pageSize, cancellationToken);
-            if (result.Items.Count != 0)
-            {
-                return result;
-            }
-            _logger.LogLayerWarning(_logPool, Module, Layer, "No regulations found for the requested page.");
-            throw new InvalidOperationException("No regulations found for the requested page.");
         }
 
         #endregion

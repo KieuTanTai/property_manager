@@ -9,12 +9,15 @@ namespace Contract.Application
         IUnitOfWork unitOfWork,
         IContactInfoRepository contactInfoRepository) : IContactInfoApplication
     {
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
         private readonly IContactInfoRepository _contactInfoRepository = contactInfoRepository;
 
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+
         public Task<IReadOnlyList<ContactInfoModel>> GetAllAsync(
-            CancellationToken cancellationToken = default) =>
-            _contactInfoRepository.GetAllAsync(cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _contactInfoRepository.GetAllAsync(cancellationToken);
+        }
 
         public async Task<ContactInfoModel> AddAsync(ContactInfoModel contactInfo,
             CancellationToken cancellationToken = default)

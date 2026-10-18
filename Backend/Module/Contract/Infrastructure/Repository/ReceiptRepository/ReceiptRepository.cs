@@ -227,7 +227,7 @@ namespace Contract.Infrastructure.Repository.ReceiptRepository
             {
                 var isInvoiceReceiptExisted = await _db.Receipts.AnyAsync(
                     receipt => receipt.ReceiptInvoiceId == receiptModel.ReceiptInvoiceId
-                              && receipt.ReceiptId != receiptModel.ReceiptId,
+                               && receipt.ReceiptId != receiptModel.ReceiptId,
                     cancellationToken);
                 if (isInvoiceReceiptExisted)
                 {

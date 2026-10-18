@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces;
 using Shared.Logging;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;
-using TicketAndNotification.Interfaces.Repository;
 using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
@@ -13,11 +12,14 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
         ILogPool logPool) : IBaseAssociativeRepository<NotificationRecipientModel, Guid>
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Infrastructure/Repository/NotificationRepository";
 
         private readonly TicketAndNotificationDbContext _db = context;
-        private readonly ILogger<NotificationRecipientRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<NotificationRecipientRepository> _logger = logger;
 
         #region POST
 
@@ -119,7 +121,7 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Checking notification recipient association existence.");
             return await _db.NotificationRecipients.AnyAsync(recipient =>
-                recipient.NotificationId == firstForeignId && recipient.AccountId == secondForeignId,
+                    recipient.NotificationId == firstForeignId && recipient.AccountId == secondForeignId,
                 cancellationToken);
         }
 

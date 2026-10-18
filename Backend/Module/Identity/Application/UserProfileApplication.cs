@@ -52,7 +52,7 @@ namespace Identity.Application
         public async Task<UserProfileModel> UpdateProfileInfoAsync(UserProfileModel userProfile, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update operation started.");
-            ThrowIfInvalidUserProfileModel(userProfile, requireAccountId: true);
+            ThrowIfInvalidUserProfileModel(userProfile, true);
             if (!string.IsNullOrWhiteSpace(userProfile.UserProfilePhoneNumber))
             {
                 var resultFormated = TryProcessPhoneNumber(userProfile.UserProfilePhoneNumber, out var phoneNumber);
@@ -101,7 +101,7 @@ namespace Identity.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation operation started.");
             // method will raise an argument exception or argument null exception if failed to create a user profile. (check on constructor)
             var baseProfile = new UserProfileModel(identityCode, accountId);
-            ThrowIfInvalidUserProfileModel(baseProfile, requireAccountId: true);
+            ThrowIfInvalidUserProfileModel(baseProfile, true);
             await _userProfileRepository.AddAsync(baseProfile, cancellationToken);
 
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -113,7 +113,7 @@ namespace Identity.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation completed.");
             return baseProfile;
         }
-        
+
         public async Task<int> UpdateRangeAsync(IEnumerable<UserProfileModel> userProfiles, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation started.");
@@ -123,7 +123,7 @@ namespace Identity.Application
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update range operation rejected because the input collection is null or empty.");
                 throw new ArgumentException("User profiles collection cannot be null or empty.", nameof(userProfiles));
             }
-            userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, requireAccountId: true));
+            userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, true));
             _userProfileRepository.UpdateRange(userProfileModels, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation completed.");
             return await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -157,13 +157,21 @@ namespace Identity.Application
         {
             ArgumentNullException.ThrowIfNull(profile);
             if (string.IsNullOrWhiteSpace(profile.UserProfileId) || profile.UserProfileId.Length != 12)
+            {
                 throw new ArgumentException("Identity code is required and must be 12 characters.", nameof(profile));
+            }
             if (requireAccountId && profile.UserProfileAccountId == Guid.Empty)
+            {
                 throw new ArgumentException("User profile account id is required.", nameof(profile));
-            if (profile.UserProfileFirstName?.Length > 30 || profile.UserProfileLastName?.Length > 30 ||
-                profile.UserProfilePhoneNumber?.Length > 10 || profile.UserProfileAddress?.Length > 255 ||
-                profile.UserProfileAvatarUrl?.Length > 255)
+            }
+            if (profile.UserProfileFirstName?.Length > 30
+                || profile.UserProfileLastName?.Length > 30
+                || profile.UserProfilePhoneNumber?.Length > 10
+                || profile.UserProfileAddress?.Length > 255
+                || profile.UserProfileAvatarUrl?.Length > 255)
+            {
                 throw new ArgumentException("One or more profile fields exceed their maximum length.", nameof(profile));
+            }
         }
 
         private static bool TryProcessPhoneNumber(string input, out string stringPhoneNumber)

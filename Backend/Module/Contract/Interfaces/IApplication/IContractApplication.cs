@@ -24,7 +24,7 @@ namespace Contract.Interfaces.IApplication
         Task<ContractModel> UpdateContractAsync(ContractModel contract,
             IReadOnlyCollection<Guid>? regulationIds = null,
             CancellationToken cancellationToken = default);
-        
+
         Task<int> TerminateContractAsync(Guid contractId, DateTime terminationDate, CancellationToken cancellationToken = default);
     }
 }

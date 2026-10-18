@@ -15,14 +15,22 @@ namespace Shared.Services
         ILogger<GoogleDriveImageStorage> logger,
         ILogPool logPool,
         IHostEnvironment environment
-        )
+    )
     {
         private const string LogLayer = "DriveUploader";
-        private readonly HttpClient _httpClient = httpClient;
+
         private readonly IConfiguration _configuration = configuration;
-        private readonly ILogger<GoogleDriveImageStorage> _logger = logger;
+
+        private readonly HttpClient _httpClient = httpClient;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<GoogleDriveImageStorage> _logger = logger;
+
         private readonly string _module = environment.ApplicationName;
+
+
+        #region UPLOAD
 
         public async Task<string> UploadAsync(
             IFormFile file,
@@ -36,10 +44,7 @@ namespace Shared.Services
                 var clientId = _configuration["GoogleDrive:OAuth:ClientId"];
                 var clientSecret = _configuration["GoogleDrive:OAuth:ClientSecret"];
                 var refreshToken = _configuration["GoogleDrive:OAuth:RefreshToken"];
-                if (string.IsNullOrWhiteSpace(folderId) ||
-                    string.IsNullOrWhiteSpace(clientId) ||
-                    string.IsNullOrWhiteSpace(clientSecret) ||
-                    string.IsNullOrWhiteSpace(refreshToken))
+                if (string.IsNullOrWhiteSpace(folderId) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret) || string.IsNullOrWhiteSpace(refreshToken))
                 {
                     throw new InvalidOperationException(
                         "Google Drive OAuth is not configured. Set GoogleDrive__FolderId, GoogleDrive__OAuth__ClientId, GoogleDrive__OAuth__ClientSecret, and GoogleDrive__OAuth__RefreshToken for the API using this service.");
@@ -72,6 +77,10 @@ namespace Shared.Services
             }
         }
 
+        #endregion
+
+        #region PRIVATE
+
         private async Task<string> GetAccessTokenAsync(
             string clientId,
             string clientSecret,
@@ -85,7 +94,7 @@ namespace Shared.Services
                     ["grant_type"] = "refresh_token",
                     ["client_id"] = clientId,
                     ["client_secret"] = clientSecret,
-                    ["refresh_token"] = refreshToken,
+                    ["refresh_token"] = refreshToken
                 }),
                 cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -112,14 +121,14 @@ namespace Shared.Services
                 "image/png" => ".png",
                 "image/webp" => ".webp",
                 "image/gif" => ".gif",
-                _ => throw new InvalidOperationException("The image format is not supported."),
+                _ => throw new InvalidOperationException("The image format is not supported.")
             };
             var fileName = $"image-{Guid.NewGuid():N}{extension}";
             var metadata = new Dictionary<string, object>
             {
                 ["name"] = fileName,
                 ["mimeType"] = file.ContentType,
-                ["parents"] = new[] { folderId },
+                ["parents"] = new[] { folderId }
             };
             using var content = new MultipartContent("related");
             var metadataContent = new StringContent(JsonSerializer.Serialize(metadata), Encoding.UTF8);
@@ -164,5 +173,6 @@ namespace Shared.Services
             }
         }
 
+        #endregion
     }
 }

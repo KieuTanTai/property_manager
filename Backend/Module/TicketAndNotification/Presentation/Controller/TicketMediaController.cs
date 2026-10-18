@@ -16,12 +16,29 @@ namespace TicketAndNotification.Presentation.Controller
         ILogPool logPool) : ControllerBase
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Presentation/Controller";
 
-        private readonly ITicketMediaApplication _ticketMediaApplication = ticketMediaApplication;
         private readonly GoogleDriveImageStorage _googleDriveImageStorage = googleDriveImageStorage;
-        private readonly ILogger<TicketMediaController> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<TicketMediaController> _logger = logger;
+
+        private readonly ITicketMediaApplication _ticketMediaApplication = ticketMediaApplication;
+
+        private IActionResult HandleError(Exception exception, string message)
+        {
+            if (exception is OperationCanceledException)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer,
+                    "Ticket media request was canceled.");
+                return BadRequest("Request was canceled.");
+            }
+
+            _logger.LogLayerError(_logPool, Module, Layer, exception, message);
+            return BadRequest(exception.Message);
+        }
 
         #region GET
 
@@ -123,7 +140,7 @@ namespace TicketAndNotification.Presentation.Controller
 
             var allowedImageTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
-                "image/jpeg", "image/png", "image/webp", "image/gif",
+                "image/jpeg", "image/png", "image/webp", "image/gif"
             };
             if (!allowedImageTypes.Contains(file.ContentType) || file.Length > 10 * 1024 * 1024)
             {
@@ -231,18 +248,5 @@ namespace TicketAndNotification.Presentation.Controller
         }
 
         #endregion
-
-        private IActionResult HandleError(Exception exception, string message)
-        {
-            if (exception is OperationCanceledException)
-            {
-                _logger.LogLayerDebug(_logPool, Module, Layer,
-                    "Ticket media request was canceled.");
-                return BadRequest("Request was canceled.");
-            }
-
-            _logger.LogLayerError(_logPool, Module, Layer, exception, message);
-            return BadRequest(exception.Message);
-        }
     }
 }

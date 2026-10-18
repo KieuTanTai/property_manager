@@ -3,73 +3,36 @@ using Contract.Interfaces.IRepository;
 using Contract.Models.Contract;
 using Contract.Models.Regulation;
 using Contract.Utils.Enum;
-using Shared.Persistence.Record;
 using Shared.Interfaces;
 using Shared.Logging;
+using Shared.Persistence.Record;
 
 namespace Contract.Application
 {
     public class ContractApplication(
         IUnitOfWork unitOfWork,
-        IContractRepository contractRepository, 
+        IContractRepository contractRepository,
         IContractRegulationRepository contractRegulationRepository,
         IRegulationRepository regulationRepository,
-        ILogger<ContractApplication> logger, 
+        ILogger<ContractApplication> logger,
         ILogPool logPool)
         : IContractApplication
     {
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly IContractRepository _contractRepository = contractRepository;
-        private readonly IContractRegulationRepository _contractRegulationRepository = contractRegulationRepository;
-        private readonly IRegulationRepository _regulationRepository = regulationRepository;
-        private readonly ILogger<ContractApplication> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
-        
         private const string Module = "Contract";
+
         private const string Layer = "Application";
 
-        #region GET
+        private readonly IContractRegulationRepository _contractRegulationRepository = contractRegulationRepository;
 
-        public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
-            bool isGetViolations = false, bool isGetInvoices = false,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract page with navigation properties.");
-            var result = await _contractRepository.GetApplyPagingAsync(cursor, pageSize,
-                isGetViolations, isGetInvoices, isGetRegulations: true,
-                cancellationToken: cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer, $"Contract page loaded: {result.Items.Count} records.");
-            return result;
-        }
+        private readonly IContractRepository _contractRepository = contractRepository;
 
-        public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByContractStatusAsync(Guid? cursor,
-            int pageSize, EContractStatus status, bool isGetViolations = false, bool isGetInvoices = false,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract page by status.");
-            var result = await _contractRepository.GetApplyPagingByStatusAsync(cursor, pageSize,
-                isGetViolations, isGetInvoices, isGetRegulations: true, status,
-                cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer, $"Contract page by status loaded: {result.Items.Count} records.");
-            return result;
-        }
+        private readonly ILogPool _logPool = logPool;
 
-        public async Task<ContractModel?> GetByContractIdAsync(Guid contractId, bool isGetViolations = false,
-            bool isGetInvoices = false, CancellationToken cancellationToken = default)
-        {
-            if (contractId == Guid.Empty)
-            {
-                throw new ArgumentException("Contract id is required.", nameof(contractId));
-            }
+        private readonly ILogger<ContractApplication> _logger = logger;
 
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract by id with navigation properties.");
-            var result = await _contractRepository.GetContractAndNavigationByIdAsync(contractId,
-                isGetViolations, isGetInvoices, isGetRegulations: true, cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer, $"Contract by id loaded: {result?.ContractId}.");
-            return result;
-        }
+        private readonly IRegulationRepository _regulationRepository = regulationRepository;
 
-        #endregion
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         #region CREATE
 
@@ -80,7 +43,7 @@ namespace Contract.Application
             ThrowIfInvalidContractModel(contract);
             _logger.LogLayerDebug(_logPool, Module, Layer, "Creating contract.");
 
-            var regulations = await ResolveRegulationsAsync(regulationIds, useAllWhenEmpty: true, cancellationToken);
+            var regulations = await ResolveRegulationsAsync(regulationIds, true, cancellationToken);
             await _contractRepository.AddAsync(contract, cancellationToken);
 
             if (regulations.Count > 0)
@@ -123,7 +86,7 @@ namespace Contract.Application
             IReadOnlyList<RegulationModel>? regulations = null;
             if (regulationIds is not null)
             {
-                regulations = await ResolveRegulationsAsync(regulationIds, useAllWhenEmpty: false, cancellationToken);
+                regulations = await ResolveRegulationsAsync(regulationIds, false, cancellationToken);
                 await _contractRegulationRepository.DeleteByFirstForeignIdAsync(contract.ContractId, cancellationToken);
                 if (regulations.Count > 0)
                 {
@@ -154,16 +117,63 @@ namespace Contract.Application
             CancellationToken cancellationToken = default)
         {
             if (contractId == Guid.Empty)
+            {
                 throw new ArgumentException("Contract id is required.", nameof(contractId));
+            }
             if (terminationDate < DateTime.UtcNow)
+            {
                 throw new ArgumentException("Termination date cannot be in the past.", nameof(terminationDate));
+            }
             _logger.LogLayerDebug(_logPool, Module, Layer, "Terminating contract.");
             await _contractRepository.SoftDeleteAsync(contractId, terminationDate, cancellationToken);
             return await SaveChangesOrThrowAsync("terminate", cancellationToken);
         }
 
         #endregion
-        
+
+        #region GET
+
+        public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
+            bool isGetViolations = false, bool isGetInvoices = false,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract page with navigation properties.");
+            var result = await _contractRepository.GetApplyPagingAsync(cursor, pageSize,
+                isGetViolations, isGetInvoices, true,
+                cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, $"Contract page loaded: {result.Items.Count} records.");
+            return result;
+        }
+
+        public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByContractStatusAsync(Guid? cursor,
+            int pageSize, EContractStatus status, bool isGetViolations = false, bool isGetInvoices = false,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract page by status.");
+            var result = await _contractRepository.GetApplyPagingByStatusAsync(cursor, pageSize,
+                isGetViolations, isGetInvoices, true, status,
+                cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, $"Contract page by status loaded: {result.Items.Count} records.");
+            return result;
+        }
+
+        public async Task<ContractModel?> GetByContractIdAsync(Guid contractId, bool isGetViolations = false,
+            bool isGetInvoices = false, CancellationToken cancellationToken = default)
+        {
+            if (contractId == Guid.Empty)
+            {
+                throw new ArgumentException("Contract id is required.", nameof(contractId));
+            }
+
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract by id with navigation properties.");
+            var result = await _contractRepository.GetContractAndNavigationByIdAsync(contractId,
+                isGetViolations, isGetInvoices, true, cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, $"Contract by id loaded: {result?.ContractId}.");
+            return result;
+        }
+
+        #endregion
+
         #region PRIVATE
 
         private async Task<IReadOnlyList<RegulationModel>> ResolveRegulationsAsync(
@@ -171,7 +181,7 @@ namespace Contract.Application
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Resolving regulations for contract operation.");
-            var allRegulations = regulationIds is null || (useAllWhenEmpty && regulationIds.Count == 0);
+            var allRegulations = regulationIds is null || useAllWhenEmpty && regulationIds.Count == 0;
             var regulations = allRegulations
                 ? await _regulationRepository.GetAllAsync(cancellationToken)
                 : await _regulationRepository.GetByIdsAsync(regulationIds!, cancellationToken);
@@ -223,13 +233,13 @@ namespace Contract.Application
             {
                 throw new ArgumentException("Contract rental price must be non-negative and larger than 0.", nameof(contract));
             }
-            
+
             if (contract.ContractPremiseReturnDate <= contract.ContractCreatedAt)
             {
                 throw new ArgumentException("Contract premise return date must be after the contract creation date.", nameof(contract));
             }
-
         }
+
         #endregion
     }
 }

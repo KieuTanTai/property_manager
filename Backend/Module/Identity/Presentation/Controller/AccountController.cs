@@ -5,8 +5,8 @@ using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
-using Shared.Presentation.Controller;
 using Shared.Persistence.Record.Auth;
+using Shared.Presentation.Controller;
 
 namespace Identity.Presentation.Controller
 {
@@ -28,7 +28,7 @@ namespace Identity.Presentation.Controller
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<AccountController> _logger = logger;
-        
+
         #region PRIVATE
 
         private static List<RecordClaimResponse> CreateClaims(RecordAuthResponse account)
@@ -283,7 +283,7 @@ namespace Identity.Presentation.Controller
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
         }
-        
+
         [RequireHttps]
         [HttpPost("import")]
         public async Task<IActionResult> ImportAccountsAsync([FromBody] RecordImportAccountRequest requestDto, CancellationToken cancellationToken = default)
@@ -293,13 +293,13 @@ namespace Identity.Presentation.Controller
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no accounts were provided.");
                 return BadRequest("No accounts to import.");
             }
-            
+
             if (!requestDto.AccountRoles.Any())
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no account roles were provided.");
                 return BadRequest("No account roles to import.");
             }
-            
+
             try
             {
                 var result = await _accountApplication.ImportAsync(requestDto.Accounts, requestDto.AccountRoles, requestDto.AccountAdditionalPermissions, requestDto.UserProfiles, cancellationToken);
@@ -349,7 +349,7 @@ namespace Identity.Presentation.Controller
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
         }
-        
+
         #endregion
 
         #region DELETE

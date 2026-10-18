@@ -25,16 +25,14 @@ namespace Identity.Application
 
         private const string Layer = "Application";
 
+        private readonly IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> _accountAdditionalPermissionRepository = accountAdditionalPermissionRepository;
+
         private readonly IAccountHelper _accountHelper = accountHelper;
 
 
         private readonly IAccountRepository _accountRepository = accountRepository;
 
         private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
-        
-        private readonly IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> _accountAdditionalPermissionRepository = accountAdditionalPermissionRepository;
-        
-        private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
 
         private readonly ILogPool _logPool = logPool;
 
@@ -43,6 +41,8 @@ namespace Identity.Application
         private readonly IAuthorizationApplication _roleApplication = roleApplication;
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
+
+        private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
 
 
         #region USER
@@ -244,7 +244,7 @@ namespace Identity.Application
             return result;
         }
 
-        public async Task<int> ImportAsync(IEnumerable<AccountModel> entities, IEnumerable<AccountRoleModel> accountRoleModels, 
+        public async Task<int> ImportAsync(IEnumerable<AccountModel> entities, IEnumerable<AccountRoleModel> accountRoleModels,
             IEnumerable<AccountAdditionalPermissionModel>? accountAdditionalPermissionModels, IEnumerable<UserProfileModel>? userProfiles, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account import operation started.");
@@ -254,7 +254,7 @@ namespace Identity.Application
                 throw new ArgumentException("AccountModel collection is required.", nameof(entities));
             }
             accountModels.ForEach(account => ThrowIfInvalidAccountModel(account));
-            
+
             await _accountRepository.AddRangeAsync(accountModels, cancellationToken);
             await _accountRoleRepository.AddRangeAsync([.. accountRoleModels], cancellationToken);
             if (userProfiles != null)
@@ -265,18 +265,18 @@ namespace Identity.Application
                     _logger.LogLayerWarning(_logPool, Module, Layer, "UserProfileModel collection count does not match AccountModel collection count.");
                     throw new ArgumentException("UserProfileModel collection must have the same count as AccountModel collection.", nameof(userProfiles));
                 }
-                userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, requireAccountId: true));
+                userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, true));
                 if (userProfileModels.Count == 0)
                 {
                     await _userProfileRepository.AddRangeAsync([.. userProfileModels], cancellationToken);
                 }
             }
-            
+
             if (accountAdditionalPermissionModels != null)
             {
                 await _accountAdditionalPermissionRepository.AddRangeAsync([.. accountAdditionalPermissionModels], cancellationToken);
             }
-            
+
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectRows == 0)
             {
@@ -295,7 +295,7 @@ namespace Identity.Application
             {
                 throw new ArgumentException("AccountModel collection is required.", nameof(entities));
             }
-            accountModels.ForEach(account => ThrowIfInvalidAccountModel(account, requireId: true));
+            accountModels.ForEach(account => ThrowIfInvalidAccountModel(account, true));
             _accountRepository.UpdateRange(accountModels, cancellationToken);
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectRows == 0)
@@ -370,20 +370,30 @@ namespace Identity.Application
         {
             ArgumentNullException.ThrowIfNull(account);
             if (requireId && account.AccountId == Guid.Empty)
+            {
                 throw new ArgumentException("Account id is required.", nameof(account));
+            }
             if (!_accountHelper.IsEmailValid(account.AccountEmail))
+            {
                 throw new ArgumentException("Account email is invalid.", nameof(account));
+            }
             if (string.IsNullOrWhiteSpace(account.AccountPassword) || account.AccountPassword.Length > 255)
+            {
                 throw new ArgumentException("Account password is required and must not exceed 255 characters.", nameof(account));
+            }
         }
 
         private static void ThrowIfInvalidUserProfileModel(UserProfileModel profile, bool requireAccountId = false)
         {
             ArgumentNullException.ThrowIfNull(profile);
             if (string.IsNullOrWhiteSpace(profile.UserProfileId) || profile.UserProfileId.Length != 12)
+            {
                 throw new ArgumentException("User profile id is required and must be 12 characters.", nameof(profile));
+            }
             if (requireAccountId && profile.UserProfileAccountId == Guid.Empty)
+            {
                 throw new ArgumentException("User profile account id is required.", nameof(profile));
+            }
         }
 
         private InvalidOperationException InvalidPassword()

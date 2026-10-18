@@ -1,7 +1,7 @@
 using Contract.Infrastructure.Persistence.DbContext;
 using Contract.Infrastructure.Repository;
-using Contract.Infrastructure.Repository.ContractRepository;
 using Contract.Infrastructure.Repository.ContactRepository;
+using Contract.Infrastructure.Repository.ContractRepository;
 using Contract.Infrastructure.Repository.InvoiceRepository;
 using Contract.Infrastructure.Repository.ReceiptRepository;
 using Contract.Infrastructure.Repository.RegulationRepository;
@@ -51,7 +51,7 @@ namespace Contract.Infrastructure.DIContainer
             services.AddScoped<IMonthlyInvoiceRepository, MonthlyInvoiceRepository>();
             services.AddScoped<IReceiptRepository, ReceiptRepository>();
             services.AddScoped<IContactInfoRepository, ContactInfoRepository>();
-            
+
             #endregion
 
             return services;

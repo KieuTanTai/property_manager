@@ -1,8 +1,6 @@
 using Contract.Interfaces.IApplication;
 using Contract.Interfaces.IRepository;
 using Contract.Models.Contract;
-using Contract.Models.Invoice;
-using Contract.Utils.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
@@ -18,14 +16,81 @@ namespace Contract.Application
         ILogPool logPool) : IViolationApplication
     {
         private const string Module = "Contract";
+
         private const string Layer = "Application";
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly IContractViolationRepository _violationRepository = violationRepository;
         private readonly IInvoiceApplication _invoiceApplication = invoiceApplication;
-        private readonly IReceiptApplication _receiptApplication = receiptApplication;
-        private readonly ILogger<ViolationApplication> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<ViolationApplication> _logger = logger;
+
+        private readonly IReceiptApplication _receiptApplication = receiptApplication;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
+
+        private readonly IContractViolationRepository _violationRepository = violationRepository;
+
+        #region CREATE
+
+        public async Task<int> AddViolationAsync(ContractViolationModel violation,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateViolation(violation, false);
+            if (violation.ViolationIsResolved)
+            {
+                throw new ArgumentException("Cannot create a resolved violation.", nameof(violation));
+            }
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                $"Creating contract violation for contract {violation.ContractId}.");
+
+            await _violationRepository.AddAsync(violation, cancellationToken);
+            var affectedRows = await SaveChangesOrThrowAsync("create", cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Contract violation {violation.ViolationId} created for contract {violation.ContractId}.");
+            return affectedRows;
+        }
+
+        #endregion
+
+        #region UPDATE
+
+        public async Task<int> UpdateViolationAsync(ContractViolationModel violation,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateViolation(violation, true);
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                $"Updating contract violation {violation.ViolationId}.");
+
+            await _violationRepository.UpdateAsync(violation, cancellationToken);
+            var affectedRows = await SaveChangesOrThrowAsync("update", cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Contract violation {violation.ViolationId} updated.");
+            return affectedRows;
+        }
+
+        #endregion
+
+        #region DELETE
+
+        public async Task<int> DeleteViolationAsync(Guid violationId,
+            CancellationToken cancellationToken = default)
+        {
+            if (violationId == Guid.Empty)
+            {
+                throw new ArgumentException("Violation id is required.", nameof(violationId));
+            }
+
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                $"Deleting contract violation {violationId}.");
+            await _violationRepository.DeleteAsync(violationId, cancellationToken);
+            var affectedRows = await SaveChangesOrThrowAsync("delete", cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Contract violation {violationId} deleted.");
+            return affectedRows;
+        }
+
+        #endregion
 
         #region GET
 
@@ -109,64 +174,6 @@ namespace Contract.Application
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 $"Contract violation page by status loaded: {page.Items.Count} records.");
             return page;
-        }
-
-        #endregion
-
-        #region CREATE
-
-        public async Task<int> AddViolationAsync(ContractViolationModel violation,
-            CancellationToken cancellationToken = default)
-        {
-            ValidateViolation(violation, requireId: false);
-            if (violation.ViolationIsResolved)
-                throw new ArgumentException("Cannot create a resolved violation.", nameof(violation));
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                $"Creating contract violation for contract {violation.ContractId}.");
-
-            await _violationRepository.AddAsync(violation, cancellationToken);
-            var affectedRows = await SaveChangesOrThrowAsync("create", cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Contract violation {violation.ViolationId} created for contract {violation.ContractId}.");
-            return affectedRows;
-        }
-
-        #endregion
-
-        #region UPDATE
-
-        public async Task<int> UpdateViolationAsync(ContractViolationModel violation,
-            CancellationToken cancellationToken = default)
-        {
-            ValidateViolation(violation, requireId: true);
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                $"Updating contract violation {violation.ViolationId}.");
-
-            await _violationRepository.UpdateAsync(violation, cancellationToken);
-            var affectedRows = await SaveChangesOrThrowAsync("update", cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Contract violation {violation.ViolationId} updated.");
-            return affectedRows;
-        }
-        #endregion
-
-        #region DELETE
-
-        public async Task<int> DeleteViolationAsync(Guid violationId,
-            CancellationToken cancellationToken = default)
-        {
-            if (violationId == Guid.Empty)
-            {
-                throw new ArgumentException("Violation id is required.", nameof(violationId));
-            }
-
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                $"Deleting contract violation {violationId}.");
-            await _violationRepository.DeleteAsync(violationId, cancellationToken);
-            var affectedRows = await SaveChangesOrThrowAsync("delete", cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Contract violation {violationId} deleted.");
-            return affectedRows;
         }
 
         #endregion

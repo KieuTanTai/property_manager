@@ -16,7 +16,7 @@ namespace Contract.Interfaces.IApplication
 
         Task<MonthlyInvoiceModel?> GetByInvoiceIdAsync(Guid invoiceId, bool isGetDetails = true,
             bool isGetReceipt = true, CancellationToken cancellationToken = default);
-        
+
         Task<MonthlyInvoiceModel> AddInvoiceAsync(MonthlyInvoiceModel invoice,
             IReadOnlyCollection<InvoiceDetailModel> details,
             CancellationToken cancellationToken = default);
@@ -24,6 +24,5 @@ namespace Contract.Interfaces.IApplication
         Task<MonthlyInvoiceModel> UpdateInvoiceAsync(MonthlyInvoiceModel invoice,
             IReadOnlyCollection<InvoiceDetailModel>? details = null,
             CancellationToken cancellationToken = default);
-        
     }
 }

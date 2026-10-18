@@ -1,7 +1,7 @@
 using Contract.Application;
+using Contract.Infrastructure.Services;
 using Contract.Interfaces.IApplication;
 using Contract.Interfaces.Services;
-using Contract.Infrastructure.Services;
 
 namespace Contract.Infrastructure.DIContainer
 {
@@ -17,6 +17,6 @@ namespace Contract.Infrastructure.DIContainer
             services.AddScoped<IContactInfoApplication, ContactInfoApplication>();
             services.AddScoped<IEmailSender, SmtpEmailSender>();
             return services;
-        }   
+        }
     }
 }

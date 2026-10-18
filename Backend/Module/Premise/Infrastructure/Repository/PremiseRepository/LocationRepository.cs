@@ -76,7 +76,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             await _db.Locations.AddAsync(entity, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Location staged for creation.");
         }
-        
+
         public async Task AddRangeAsync(IEnumerable<LocationModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing location range creation.");
