@@ -14,7 +14,7 @@ namespace Identity.Application
         IAccountRepository accountRepository,
         IBaseAssociativeRepository<AccountRoleModel, Guid> accountRoleRepository,
         IAuthorizationApplication roleApplication,
-        IAccountHelper accountHelper,
+        IIdentityHelper<AccountModel> accountHelper,
         IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> accountAdditionalPermissionRepository,
         IUserProfileRepository userProfileRepository,
         ILogger<AccountApplication> logger,
@@ -27,7 +27,7 @@ namespace Identity.Application
 
         private readonly IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> _accountAdditionalPermissionRepository = accountAdditionalPermissionRepository;
 
-        private readonly IAccountHelper _accountHelper = accountHelper;
+        private readonly IIdentityHelper<AccountModel> _accountHelper = accountHelper;
 
 
         private readonly IAccountRepository _accountRepository = accountRepository;

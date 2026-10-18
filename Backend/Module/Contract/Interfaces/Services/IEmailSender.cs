@@ -2,8 +2,8 @@ namespace Contract.Interfaces.Services
 {
     public interface IEmailSender
     {
-        Task SendAsync(
-            string recipient,
+        Task<string> SendAsync(
+            string senderEmail,
             string subject,
             string body,
             CancellationToken cancellationToken = default);

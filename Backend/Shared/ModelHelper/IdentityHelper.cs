@@ -4,13 +4,21 @@ using Shared.Interfaces;
 
 namespace Shared.ModelHelper
 {
-    public sealed class IdentityHelper<TAccountModel>(AccountRulesModel rules, IPasswordHasher<TAccountModel> hasher) : IIdentityHelper<TAccountModel>
+    public sealed class IdentityHelper<TAccountModel>(IdentityRulesModel rules, IPasswordHasher<TAccountModel> hasher) : IIdentityHelper<TAccountModel>
         where TAccountModel : class
     {
         public bool IsEmailValid(string email)
         {
             var pattern = rules.RegexForEmail;
             return !string.IsNullOrWhiteSpace(email) && Regex.IsMatch(email, pattern);
+        }
+
+        public bool IsPhoneNumberValid(string phoneNumber)
+        {
+            var pattern = rules.RegexForPhoneNumber;
+            return !string.IsNullOrWhiteSpace(phoneNumber)
+                   && !string.IsNullOrWhiteSpace(pattern)
+                   && Regex.IsMatch(phoneNumber, pattern);
         }
 
 

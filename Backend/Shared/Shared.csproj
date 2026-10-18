@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <EmbeddedResource Include="Configuration/account-rules.json" LogicalName="Shared.Configuration.account-rules.json" />
         <FrameworkReference Include="Microsoft.AspNetCore.App"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12"/>

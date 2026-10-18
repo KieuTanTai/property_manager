@@ -9,39 +9,22 @@ namespace Contract.Infrastructure.Services
     {
         private readonly IConfiguration _configuration = configuration;
 
-        public async Task SendAsync(
-            string recipient,
+        public async Task<string> SendAsync(
+            string senderEmail,
             string subject,
             string body,
             CancellationToken cancellationToken = default)
         {
-            var host = _configuration["Email:SmtpHost"];
-            var username = _configuration["Email:Username"];
-            var password = _configuration["Email:Password"];
-            var fromAddress = _configuration["Email:FromAddress"];
-            if (string.IsNullOrWhiteSpace(host)
-                || string.IsNullOrWhiteSpace(username)
-                || string.IsNullOrWhiteSpace(password)
-                || string.IsNullOrWhiteSpace(fromAddress))
-            {
-                throw new InvalidOperationException(
-                    "Chưa cấu hình Email__SmtpHost, Email__Username, Email__Password và Email__FromAddress cho Contract API.");
-            }
-
-            if (!int.TryParse(_configuration["Email:SmtpPort"], out var port))
-            {
-                port = 587;
-            }
-
+            var (host, port, username, password) = GetEmailConfiguration();
             var securityValue = _configuration["Email:SecureSocketOptions"];
             var security = Enum.TryParse<SecureSocketOptions>(securityValue, true, out var configuredSecurity)
                 ? configuredSecurity
                 : SecureSocketOptions.StartTls;
 
             var message = new MimeMessage();
-            var fromName = _configuration["Email:FromName"];
-            message.From.Add(new MailboxAddress(string.IsNullOrWhiteSpace(fromName) ? "ManagerSpace" : fromName, fromAddress));
-            message.To.Add(MailboxAddress.Parse(recipient));
+            message.From.Add(MailboxAddress.Parse(senderEmail));
+            message.To.Add(MailboxAddress.Parse(username));
+            message.ReplyTo.Add(MailboxAddress.Parse(senderEmail));
             message.Subject = subject;
             message.Body = new TextPart("plain") { Text = body };
 
@@ -50,6 +33,35 @@ namespace Contract.Infrastructure.Services
             await client.AuthenticateAsync(username, password, cancellationToken);
             await client.SendAsync(message, cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);
+            return username;
         }
+
+        #region PRIVATE
+
+        private Tuple<string, int, string, string> GetEmailConfiguration()
+        {
+            var settings = _configuration.GetSection("EmailSettings");
+            var host = settings["SmtpServer"];
+            var port = settings["SmtpPort"];
+            var smtpUsername = settings["SmtpUsername"];
+            var smtpPassword = settings["SmtpPassword"];
+            if (string.IsNullOrWhiteSpace(host)
+                || string.IsNullOrWhiteSpace(port)
+                || string.IsNullOrWhiteSpace(smtpUsername)
+                || string.IsNullOrWhiteSpace(smtpPassword))
+            {
+                throw new InvalidOperationException(
+                    "Email SMTP configuration is incomplete. Configure EmailSettings:SmtpServer, EmailSettings:SmtpUsername, and EmailSettings:SmtpPassword for the Contract API.");
+            }
+
+            if (!int.TryParse(port, out var parsedPort))
+            {
+                throw new InvalidOperationException(
+                    "EmailSettings:SmtpPort must be a valid port number.");
+            }
+            return new Tuple<string, int, string, string>(host, parsedPort, smtpUsername, smtpPassword);
+        }
+
+        #endregion
     }
 }

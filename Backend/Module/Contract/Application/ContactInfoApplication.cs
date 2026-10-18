@@ -18,6 +18,7 @@ namespace Contract.Application
         {
             return _contactInfoRepository.GetAllAsync(cancellationToken);
         }
+        
 
         public async Task<ContactInfoModel> AddAsync(ContactInfoModel contactInfo,
             CancellationToken cancellationToken = default)

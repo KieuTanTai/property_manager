@@ -5,6 +5,7 @@ using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
 using Identity.Presentation.Record.Profile;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record.Auth;
 using Shared.Presentation.Controller;
@@ -15,7 +16,7 @@ namespace Identity.Presentation.Controller
     [Route("api/[controller]")]
     public class AccountController(
         IAccountApplication accountApplication,
-        IAccountHelper helper,
+        IIdentityHelper<AccountModel> helper,
         IApiHelper apiHelper,
         ILogger<AccountController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
@@ -24,7 +25,7 @@ namespace Identity.Presentation.Controller
 
         private readonly IApiHelper _apiHelper = apiHelper;
 
-        private readonly IAccountHelper _helper = helper;
+        private readonly IIdentityHelper<AccountModel> _helper = helper;
 
         private readonly ILogPool _logPool = logPool;
 

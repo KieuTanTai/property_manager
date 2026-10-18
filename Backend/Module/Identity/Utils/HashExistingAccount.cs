@@ -3,6 +3,7 @@ using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Microsoft.AspNetCore.Identity;
+using Shared.ModelHelper;
 
 namespace Identity.Utils
 {
@@ -25,7 +26,7 @@ namespace Identity.Utils
 
                 var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
                 var hasher = new PasswordHasher<AccountModel>();
-                var accountHelper = new AccountHelper(null!, hasher);
+                var accountHelper = new IdentityHelper<AccountModel>(null!, hasher);
                 var accountRepository = scope.ServiceProvider.GetRequiredService<IAccountRepository>();
 
                 var accounts = await accountRepository.GetAllAsync(cancellationToken);
