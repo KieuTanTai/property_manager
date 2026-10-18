@@ -3,6 +3,7 @@ using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
 using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
+using Identity.Presentation.Record.Profile;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
 using Shared.Persistence.Record.Auth;
@@ -180,11 +181,23 @@ namespace Identity.Presentation.Controller
             try
             {
                 var result = await _accountApplication.LoginAsync(requestDto.Email, requestDto.Password, cancellationToken);
-                var account = _apiHelper.MappingAuthResult(result);
-                var profile = result.UserProfile is null
+                RecordProfileResponse? profile = null;
+                RecordAuthResponse? account = null;
+                
+                var threadMappingAccount = new Thread(() => {
+                    account = _apiHelper.MappingAuthResult(result);
+                });
+                var threadMappingProfile = new Thread(() => { profile = result.UserProfile is null
                     ? null
-                    : _apiHelper.MappingProfileResult(result.UserProfile);
-                var claims = CreateClaims(account);
+                    : _apiHelper.MappingProfileResult(result.UserProfile); });
+
+                threadMappingAccount.Start();
+                threadMappingProfile.Start();
+
+                threadMappingAccount.Join();
+                threadMappingProfile.Join();
+
+                var claims = CreateClaims(account ?? throw new InvalidOperationException("Account mapping failed."));
                 return Ok(new RecordLoginResponse(account, profile, claims));
             }
             catch (OperationCanceledException ex)

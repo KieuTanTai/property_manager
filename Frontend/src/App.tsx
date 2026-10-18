@@ -22,7 +22,7 @@ function loadSession(): ManagerSession | null {
 export default function App() {
     const [path, setPath] = useState(() => window.location.pathname.replace(/\/$/, "") || "/")
     const [session, setSession] = useState<ManagerSession | null>(loadSession)
-    const [isLoginOpen, setIsLoginOpen] = useState(() => window.location.pathname === MANAGER_PATH || window.location.pathname === "/login")
+    const [isLoginOpen, setIsLoginOpen] = useState(false)
 
     const navigate = (nextPath: string) => {
         if (window.location.pathname !== nextPath) window.history.pushState({}, "", nextPath)
@@ -36,9 +36,12 @@ export default function App() {
     }, [])
 
     useEffect(() => {
-        if (path === MANAGER_PATH && !session) setIsLoginOpen(true)
-        if (path === "/login") setIsLoginOpen(true)
-        if (path !== MANAGER_PATH && path !== "/login") setIsLoginOpen(false)
+        if (session) {
+            setIsLoginOpen(false)
+            return
+        }
+
+        setIsLoginOpen(path === MANAGER_PATH || path === "/login")
     }, [path, session])
 
     const openManager = () => {
@@ -48,7 +51,11 @@ export default function App() {
 
     const closeLogin = () => {
         setIsLoginOpen(false)
-        if (!session && (path === MANAGER_PATH || path === "/login")) navigate("/")
+        if (path === MANAGER_PATH || path === "/login") {
+            sessionStorage.removeItem(SESSION_KEY)
+            setSession(null)
+            navigate("/")
+        }
     }
 
     const handleLogin = (account: ManagerSession) => {

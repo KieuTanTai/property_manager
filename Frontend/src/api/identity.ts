@@ -56,7 +56,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         throw new Error(detail || `Identity API trả về HTTP ${response.status}.`)
     }
     if (response.status === 204) return undefined as T
-    return response.json() as Promise<T>
+    return await response.json() as Promise<T>
 }
 
 function accountPagePath(cursor: string | null, pageSize: number, status: "all" | "active" | "inactive") {

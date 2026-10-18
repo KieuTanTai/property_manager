@@ -1,4 +1,4 @@
-import {useState} from "react"
+import React, {useState} from "react"
 import {identityApi} from "@/api/identity.ts"
 import type {LoginModalProps as Props} from "./types"
 

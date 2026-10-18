@@ -40,20 +40,12 @@ namespace Shared.Services
                 $"Google Drive upload started. FileName={Path.GetFileName(file.FileName)}, ContentType={file.ContentType}, Size={file.Length} bytes.");
             try
             {
-                var folderId = _configuration["GoogleDrive:FolderId"];
-                var clientId = _configuration["GoogleDrive:OAuth:ClientId"];
-                var clientSecret = _configuration["GoogleDrive:OAuth:ClientSecret"];
-                var refreshToken = _configuration["GoogleDrive:OAuth:RefreshToken"];
-                if (string.IsNullOrWhiteSpace(folderId) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret) || string.IsNullOrWhiteSpace(refreshToken))
-                {
-                    throw new InvalidOperationException(
-                        "Google Drive OAuth is not configured. Set GoogleDrive__FolderId, GoogleDrive__OAuth__ClientId, GoogleDrive__OAuth__ClientSecret, and GoogleDrive__OAuth__RefreshToken for the API using this service.");
-                }
-
+                var (folderId, clientId, clientSecret, refreshToken) = GetOAuthConfig();
                 var accessToken = await GetAccessTokenAsync(clientId, clientSecret, refreshToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, "Google OAuth access token acquired.");
                 var fileId = await UploadFileAsync(file, folderId, accessToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, $"Image uploaded to Google Drive. FileId={fileId}.");
+                
                 await MakeFileReadableAsync(fileId, accessToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, $"Google Drive image permission created. FileId={fileId}.");
                 return $"https://lh3.googleusercontent.com/d/{Uri.EscapeDataString(fileId)}?authuser=0";
@@ -81,6 +73,21 @@ namespace Shared.Services
 
         #region PRIVATE
 
+        private Tuple<string, string, string, string> GetOAuthConfig() 
+        {
+            var folderId = _configuration["GoogleDrive:FolderId"];
+            var clientId = _configuration["GoogleDrive:OAuth:ClientId"];
+            var clientSecret = _configuration["GoogleDrive:OAuth:ClientSecret"];
+            var refreshToken = _configuration["GoogleDrive:OAuth:RefreshToken"];
+            if (string.IsNullOrWhiteSpace(folderId) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret) || string.IsNullOrWhiteSpace(refreshToken))
+            {
+                throw new InvalidOperationException(
+                    "Google Drive OAuth is not configured. Set GoogleDrive__FolderId, GoogleDrive__OAuth__ClientId, GoogleDrive__OAuth__ClientSecret, and GoogleDrive__OAuth__RefreshToken for the API using this service.");
+            }
+
+            return Tuple.Create(folderId, clientId, clientSecret, refreshToken);
+        }
+        
         private async Task<string> GetAccessTokenAsync(
             string clientId,
             string clientSecret,
