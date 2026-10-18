@@ -94,6 +94,7 @@ export type ContactInfoRequest = Pick<ContactInfoModel,
 export type ConsultationRequest = {
     name: string
     phone: string
+    senderEmail: string
     premiseName: string | null
     message: string
 }

@@ -1,20 +1,15 @@
 using System.Text.RegularExpressions;
-using Identity.Interfaces;
-using Identity.Models;
-using Identity.Models.Account;
 using Microsoft.AspNetCore.Identity;
+using Shared.Interfaces;
 
-namespace Identity.Utils
+namespace Shared.ModelHelper
 {
-    public sealed class AccountHelper(AccountRulesModel rules, IPasswordHasher<AccountModel> hasher) : IAccountHelper
+    public sealed class IdentityHelper<TAccountModel>(AccountRulesModel rules, IPasswordHasher<TAccountModel> hasher) : IIdentityHelper<TAccountModel>
+        where TAccountModel : class
     {
-        private readonly IPasswordHasher<AccountModel> _hasher = hasher;
-
-        private readonly AccountRulesModel _rules = rules;
-
         public bool IsEmailValid(string email)
         {
-            var pattern = _rules.RegexForEmail;
+            var pattern = rules.RegexForEmail;
             return !string.IsNullOrWhiteSpace(email) && Regex.IsMatch(email, pattern);
         }
 
@@ -26,42 +21,42 @@ namespace Identity.Utils
                 return false;
             }
 
-            if (password.Length < _rules.MinPasswordLength)
+            if (password.Length < rules.MinPasswordLength)
             {
                 return false;
             }
 
-            if (password.Length > _rules.MaxPasswordLength)
+            if (password.Length > rules.MaxPasswordLength)
             {
                 return false;
             }
 
-            if (_rules.RequireDigit && !password.Any(char.IsDigit))
+            if (rules.RequireDigit && !password.Any(char.IsDigit))
             {
                 return false;
             }
 
-            if (_rules.RequireUppercase && !password.Any(char.IsUpper))
+            if (rules.RequireUppercase && !password.Any(char.IsUpper))
             {
                 return false;
             }
 
-            if (_rules.RequireLowercase && !password.Any(char.IsLower))
+            if (rules.RequireLowercase && !password.Any(char.IsLower))
             {
                 return false;
             }
 
-            return !_rules.RequiredSpecialCharacter || password.Any(char.IsPunctuation);
+            return !rules.RequiredSpecialCharacter || password.Any(char.IsPunctuation);
         }
 
-        public string GetHashPassword(AccountModel account, string password)
+        public string GetHashPassword(TAccountModel account, string password)
         {
-            return _hasher.HashPassword(account, password);
+            return hasher.HashPassword(account, password);
         }
 
-        public bool VerifyPassword(AccountModel account, string password, string hash)
+        public bool VerifyPassword(TAccountModel account, string password, string hash)
         {
-            return _hasher.VerifyHashedPassword(account, hash, password) == PasswordVerificationResult.Success;
+            return hasher.VerifyHashedPassword(account, hash, password) == PasswordVerificationResult.Success;
         }
 
         public Tuple<bool, string> ValidateEmailAndPassword(string email, string password)

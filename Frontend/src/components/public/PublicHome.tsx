@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from "react"
+import React, {useEffect, useMemo, useRef, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
 import {LOCATIONS, PREMISE_MEDIA, PREMISES} from "@/mocks/shared.ts"
 import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
@@ -6,6 +6,7 @@ import {contractApi} from "@/api/contracts"
 import {Modal, PremiseStatusBadge, premiseStatusSurface} from "../modules/shared"
 import type {Premise} from "../premises/types"
 import {PublicHomeProps} from "@/components/public/types.ts";
+import {throttle} from "lodash";
 
 const PREMISE_STATUS_TABS = [
     {key: "all", label: "Tất cả"},
@@ -18,6 +19,30 @@ type PremiseStatusTab = (typeof PREMISE_STATUS_TABS)[number]["key"]
 
 const fallbackEmail = import.meta.env.VITE_PUBLIC_CONTACT_EMAIL?.trim() ?? ""
 const fallbackPhone = import.meta.env.VITE_PUBLIC_CONTACT_PHONE?.trim() ?? ""
+const GOOGLE_LOGIN_SESSION_KEY = "contact-google-login"
+const GOOGLE_LOGIN_SESSION_MS = 5 * 60 * 1000
+const GOOGLE_LOGIN_EXTENSION_STEP = 60 * 1000
+
+let googleIdentityScriptPromise: Promise<any> | null = null
+let googleIdentityInitialized = false
+let googleCredentialHandler: ((response: {credential?: string}) => void) | null = null
+
+function loadGoogleIdentity() {
+    const google = (window as any).google
+    if (google?.accounts?.id) return Promise.resolve(google)
+    if (!googleIdentityScriptPromise) {
+        googleIdentityScriptPromise = new Promise((resolve, reject) => {
+            const script = document.createElement("script")
+            script.src = "https://accounts.google.com/gsi/client"
+            script.async = true
+            script.defer = true
+            script.onload = () => resolve((window as any).google)
+            script.onerror = () => reject(new Error("Không tải được Google Identity Services."))
+            document.head.appendChild(script)
+        })
+    }
+    return googleIdentityScriptPromise
+}
 
 const formatArea = (value: string) => value.replace(/m²?$/i, " m²")
 
@@ -27,6 +52,26 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [page, setPage] = useState(1)
     const [contactName, setContactName] = useState("")
     const [contactPhoneNumber, setContactPhoneNumber] = useState("")
+    const [contactSenderEmail, setContactSenderEmail] = useState(() => {
+        try {
+            const session = JSON.parse(sessionStorage.getItem(GOOGLE_LOGIN_SESSION_KEY) ?? "null")
+            return session?.expiresAt > Date.now() ? session.email as string : ""
+        } catch {
+            return ""
+        }
+    })
+    const [googleLoginExpiresAt, setGoogleLoginExpiresAt] = useState<number | null>(() => {
+        try {
+            const session = JSON.parse(sessionStorage.getItem(GOOGLE_LOGIN_SESSION_KEY) ?? "null")
+            return session?.expiresAt > Date.now() ? session.expiresAt as number : null
+        } catch {
+            return null
+        }
+    })
+    
+    const [logout, setLogout] = useState(false)
+    const [googleIdentityReady, setGoogleIdentityReady] = useState(false)
+    const googleButtonRef = useRef<HTMLDivElement>(null)
     const [contactPremiseId, setContactPremiseId] = useState("")
     const [contactMessage, setContactMessage] = useState("")
     const [contactError, setContactError] = useState<string | null>(null)
@@ -36,6 +81,78 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [selectedPremise, setSelectedPremise] = useState<Premise | null>(null)
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isImageFullscreen, setIsImageFullscreen] = useState(false)
+    const googleLoginMaxExpiresAt =
+        googleLoginExpiresAt ? googleLoginExpiresAt + GOOGLE_LOGIN_SESSION_MS : GOOGLE_LOGIN_SESSION_MS
+
+    useEffect(() => {
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
+        if (!clientId) return
+        let isCurrent = true
+        const handleGoogleCredential = (response: {credential?: string}) => {
+            try {
+                const payload = response.credential?.split(".")[1]
+                if (!payload) throw new Error("Google không trả về email.")
+                const claims = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")))
+                if (!claims.email || !claims.email_verified || !claims.email.toLowerCase().endsWith("@gmail.com")) {
+                    throw new Error("Vui lòng đăng nhập bằng tài khoản Gmail đã xác minh.")
+                }
+                setContactSenderEmail(claims.email)
+                const expiresAt = Date.now() + GOOGLE_LOGIN_SESSION_MS
+                sessionStorage.setItem(GOOGLE_LOGIN_SESSION_KEY, JSON.stringify({email: claims.email, expiresAt}))
+                setGoogleLoginExpiresAt(expiresAt)
+                setContactError(null)
+            } catch (cause) {
+                setContactError(cause instanceof Error ? cause.message : "Không đọc được email Google.")
+            }
+        }
+        googleCredentialHandler = handleGoogleCredential
+        void loadGoogleIdentity().then((google) => {
+            if (!isCurrent || !google?.accounts?.id) return
+            if (!googleIdentityInitialized) {
+                google.accounts.id.initialize({
+                    client_id: clientId,
+                    callback: (response: {credential?: string}) => googleCredentialHandler?.(response),
+                })
+                googleIdentityInitialized = true
+            }
+            if (googleButtonRef.current) {
+                googleButtonRef.current.replaceChildren()
+                google.accounts.id.renderButton(googleButtonRef.current, {
+                    type: "standard",
+                    theme: "outline",
+                    size: "large",
+                    text: "signin_with",
+                    shape: "rectangular",
+                    width: 360,
+                })
+            }
+            setGoogleIdentityReady(true)
+        }).catch((cause) => {
+            if (isCurrent) setContactError(cause instanceof Error ? cause.message : "Không tải được đăng nhập Google.")
+        })
+        return () => {
+            isCurrent = false
+            if (googleCredentialHandler === handleGoogleCredential) googleCredentialHandler = null
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!contactSenderEmail || !googleLoginExpiresAt) return
+        const remaining = googleLoginExpiresAt - Date.now()
+        if (remaining <= 0) {
+            sessionStorage.removeItem(GOOGLE_LOGIN_SESSION_KEY)
+            setContactSenderEmail("")
+            setGoogleLoginExpiresAt(null)
+            return
+        }
+        const timeout = window.setTimeout(() => {
+            sessionStorage.removeItem(GOOGLE_LOGIN_SESSION_KEY)
+            setContactSenderEmail("")
+            setGoogleLoginExpiresAt(null)
+            setContactError("Phiên đăng nhập Google đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.")
+        }, remaining)
+        return () => window.clearTimeout(timeout)
+    }, [contactSenderEmail, googleLoginExpiresAt])
 
     useEffect(() => {
         let isCurrent = true
@@ -103,6 +220,10 @@ export function PublicHome({onManager}: PublicHomeProps) {
 
     const sendInquiry = async (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
+        if (!contactSenderEmail) {
+            setContactError("Vui lòng đăng nhập Google để gửi kèm Gmail của bạn.")
+            return
+        }
         setContactError(null)
         setContactSuccess(null)
         setContactSending(true)
@@ -111,6 +232,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
             const result = await contractApi.sendConsultationRequest({
                 name: contactName,
                 phone: contactPhoneNumber,
+                senderEmail: contactSenderEmail,
                 premiseName: premise?.name ?? null,
                 message: contactMessage,
             })
@@ -134,6 +256,24 @@ export function PublicHome({onManager}: PublicHomeProps) {
             document.getElementById("contact")?.scrollIntoView({behavior: "smooth", block: "start"})
         }, 0)
     }
+
+    const logoutGoogle = () => {
+        setLogout(true)
+        sessionStorage.removeItem(GOOGLE_LOGIN_SESSION_KEY)
+        setContactSenderEmail("")
+        setGoogleLoginExpiresAt(null)
+    }
+    
+    const throttleExtendGoogleLogin = useMemo(
+    () => throttle(() => {
+        if (!contactSenderEmail || !googleLoginExpiresAt) return
+        const now = Date.now()
+        const remaining = googleLoginExpiresAt - now
+        
+        if (remaining < GOOGLE_LOGIN_SESSION_MS)
+            setGoogleLoginExpiresAt(Math.min(googleLoginExpiresAt + GOOGLE_LOGIN_EXTENSION_STEP, googleLoginMaxExpiresAt))
+        
+    }, 10000), [contactSenderEmail, googleLoginExpiresAt, googleLoginMaxExpiresAt])
 
     return (
         <div className="min-h-screen bg-[#f7f8fa] text-slate-900">
@@ -443,22 +583,29 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         xã hội</a>}
                             </div>
                         </div>
-                        <form onSubmit={sendInquiry} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
+                        <form onSubmit={sendInquiry} onChange={() => throttleExtendGoogleLogin()} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
                             <h3 className="text-lg font-semibold">Yêu cầu tư vấn</h3>
                             <p className="mt-1 text-sm text-slate-500">Thông tin sẽ được gửi đến ban quản lý qua
                                 email.</p>
-                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                            <div ref={googleButtonRef} className={contactSenderEmail ? "hidden" : "flex mt-4 justify-center"}/>
+                            {contactSenderEmail && <div className="flex justify-between">
+                                <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium border-2 border-gradient-success text-emerald-800">Đăng nhập thành công! Phiên kết thúc sau 5 phút.</p>
+                                <button onClick={logoutGoogle} className="mt-4 rounded-xl border-gradient-error bg-red-500 px-4 py-3 text-sm font-medium text-white">Đăng xuất</button>
+                            </div>}
+                            {contactSenderEmail && <p className="mt-2 text-xs font-bold italic text-yellow-500">Email này chỉ được dùng để gửi yêu cầu và trả lời thư.</p>}
+                            {!googleIdentityReady && <p className="mt-2 text-xs text-slate-400">Đăng nhập Google chưa khả dụng. Kiểm tra VITE_GOOGLE_CLIENT_ID và kết nối mạng.</p>}
+                            <fieldset disabled={!contactSenderEmail || contactSending} className="mt-5 grid gap-4 disabled:opacity-50 sm:grid-cols-2">
                                 <label className="block"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Họ tên</span><input
                                     required value={contactName}
                                     onChange={(event) => setContactName(event.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                    className="w-full rounded-xl border px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                                     placeholder="Tên của bạn"/></label>
                                 <label className="block"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Số điện thoại</span><input
                                     required type="tel" value={contactPhoneNumber}
                                     onChange={(event) => setContactPhoneNumber(event.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                    className="w-full rounded-xl border px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                                     placeholder="09xx xxx xxx"/></label>
                                 <label className="block sm:col-span-2"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Mặt bằng quan tâm</span><select
@@ -475,12 +622,12 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                     onChange={(event) => setContactMessage(event.target.value)}
                                     className="w-full resize-y rounded-xl border px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                                     placeholder="Thời gian muốn tham quan, mô hình kinh doanh..."/></label>
-                            </div>
+                            </fieldset>
                             {contactError && <p role="alert"
-                                                className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">{contactError}</p>}
+                                                className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 border-2 border-gradient-error text-amber-800">{contactError}</p>}
                             {contactSuccess && <p role="status"
-                                                  className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800">{contactSuccess}</p>}
-                            <button type="submit" disabled={contactSending}
+                                                  className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-5 border-2 border-gradient-success text-emerald-800">{contactSuccess}</p>}
+                            <button type="submit" disabled={!contactSenderEmail || contactSending}
                                     className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                                 {contactSending ? "Đang gửi yêu cầu..." : "Gửi yêu cầu tư vấn"}
                             </button>

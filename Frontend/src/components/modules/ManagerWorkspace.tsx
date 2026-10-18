@@ -39,7 +39,7 @@ export function ManagerWorkspace({accountId, email, roleCodes, onLogout}: Props)
     const accountInitial = email.charAt(0).toUpperCase()
 
     return (
-        <div className="flex min-h-screen" style={{fontFamily: "Inter, sans-serif"}}>
+        <div className="flex" style={{fontFamily: "Inter, sans-serif"}}>
             <aside className="flex w-56 shrink-0 flex-col" style={{background: "#0f1629", minHeight: "100vh"}}>
                 <div className="border-b px-5 py-5" style={{borderColor: "rgba(255,255,255,0.06)"}}>
                     <div className="flex items-center gap-2.5">
@@ -76,7 +76,7 @@ export function ManagerWorkspace({accountId, email, roleCodes, onLogout}: Props)
                 <div className="border-t px-3 py-4" style={{borderColor: "rgba(255,255,255,0.06)"}}>
                     <div className="flex items-center gap-3 px-2">
                         <div
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-violet-500 text-xs font-bold text-white">{accountInitial}</div>
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-violet-500 text-xs font-bold text-white">{accountInitial}</div>
                         <div className="min-w-0 flex-1">
                             <div className="truncate text-xs font-medium text-white">{email}</div>
                             <div className="truncate text-xs"

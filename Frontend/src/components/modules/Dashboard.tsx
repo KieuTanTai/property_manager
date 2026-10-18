@@ -1,5 +1,5 @@
-import {CONTRACTS, INVOICES, PREMISES, TICKETS, VIOLATIONS} from "../../mocks/shared"
-import {fmt} from "../../scripts/format"
+import {CONTRACTS, INVOICES, PREMISES, TICKETS, VIOLATIONS} from "@/mocks/shared.ts"
+import {fmt} from "@/scripts/format.ts"
 import type {PremiseStatus} from "../premises/types"
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────

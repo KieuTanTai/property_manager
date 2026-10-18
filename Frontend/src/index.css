@@ -37,6 +37,20 @@
     --font-mono: 'JetBrains Mono', monospace;
 }
 
+@layer utilities {
+    /* Success: Light/Bright Green to Teal Gradient */
+    .border-gradient-success {
+        border-image: linear-gradient(to right, #4ade80, #2dd4bf) 1;
+        border-radius: 4px;
+    }
+
+    /* Error: Dark/Deep Crimson to Maroon Gradient */
+    .border-gradient-error {
+        border-image: linear-gradient(to right, #991b1b, #450a0a) 1;
+        border-radius: 4px;
+    }
+}
+
 * {
     box-sizing: border-box;
 }
