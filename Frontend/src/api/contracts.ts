@@ -51,6 +51,15 @@ export const contractApi = {
         if (cursor) query.set("cursor", cursor)
         return request<CursorPage<RegulationModel>>(`/Regulation?${query}`)
     },
+    createRegulation(body: Omit<RegulationModel, "regulationId" | "regulationCreatedAt" | "regulationUpdatedAt">) {
+        return request<RegulationModel>("/Regulation", {method: "POST", body: JSON.stringify(body)})
+    },
+    updateRegulation(id: string, body: Omit<RegulationModel, "regulationId" | "regulationCreatedAt" | "regulationUpdatedAt">) {
+        return request<RegulationModel>(`/Regulation/${encodeURIComponent(id)}`, {method: "PUT", body: JSON.stringify(body)})
+    },
+    deleteRegulation(id: string) {
+        return request<void>(`/Regulation/${encodeURIComponent(id)}`, {method: "DELETE"})
+    },
     violations(cursor: string | null = null, pageSize = APP_SETTINGS.pagination.defaultPageSize) {
         const query = new URLSearchParams({pageSize: String(pageSize)})
         if (cursor) query.set("cursor", cursor)

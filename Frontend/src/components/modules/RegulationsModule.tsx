@@ -1,9 +1,9 @@
-import {useState} from "react"
-import {BaseTable, FormField, inputCls, Modal} from "./shared"
-import {MOCK_REGULATIONS} from "../../mocks/regulations"
+import {useEffect, useState} from "react"
+import {contractApi} from "@/api/contracts.ts"
+import type {RegulationModel} from "@/types/contracts"
+import {BaseTable, FormField, inputCls, Modal, ProcessingForm} from "./shared"
 import {fmt, formatDateTime} from "../../scripts/format"
-import type {Regulation, RegulationForm} from "../../types/regulations"
-import {createUuidV7} from "../../scripts/ids"
+import type {RegulationForm} from "../../types/regulations"
 
 const EMPTY_FORM: RegulationForm = {
     name: "",
@@ -13,11 +13,25 @@ const EMPTY_FORM: RegulationForm = {
 }
 
 export function RegulationsModule() {
-    const [regulations, setRegulations] = useState<Regulation[]>(MOCK_REGULATIONS)
+    const [regulations, setRegulations] = useState<RegulationModel[]>([])
+    const [loading, setLoading] = useState(true)
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const [modal, setModal] = useState<"add" | "view" | null>(null)
-    const [selected, setSelected] = useState<Regulation | null>(null)
+    const [selected, setSelected] = useState<RegulationModel | null>(null)
     const [form, setForm] = useState<RegulationForm>(EMPTY_FORM)
     const [isEditing, setIsEditing] = useState(false)
+
+    useEffect(() => {
+        let active = true
+        contractApi.regulations()
+            .then((page) => { if (active) setRegulations(page.items) })
+            .catch((reason: unknown) => {
+                if (active) setError(reason instanceof Error ? reason.message : "Không thể tải danh sách quy định.")
+            })
+            .finally(() => { if (active) setLoading(false) })
+        return () => { active = false }
+    }, [])
 
     const openAdd = () => {
         setSelected(null)
@@ -39,7 +53,7 @@ export function RegulationsModule() {
         setIsEditing(true)
     }
 
-    const openView = (regulation: Regulation) => {
+    const openView = (regulation: RegulationModel) => {
         setSelected(regulation)
         setIsEditing(false)
         setModal("view")
@@ -52,46 +66,52 @@ export function RegulationsModule() {
         setIsEditing(false)
     }
 
-    const saveRegulation = () => {
+    const saveRegulation = async () => {
         const name = form.name.trim()
         if (!name) return
 
-        const now = new Date().toISOString()
         const description = form.description.trim() || null
         const fineAmount = form.fineAmount === "" ? null : Number(form.fineAmount)
-
-        if (modal === "view" && selected) {
-            const updated: Regulation = {
-                ...selected,
+        setSaving(true)
+        setError(null)
+        try {
+            const body = {
                 regulationName: name,
                 regulationDescription: description,
                 regulationFineAmount: fineAmount,
-                regulationIsActive: form.active,
-                regulationUpdatedAt: now,
+                regulationIsActive: modal === "view" ? form.active : true,
             }
-            setRegulations(
-                regulations.map((regulation) =>
-                    regulation.regulationId === selected.regulationId
-                        ? updated
-                        : regulation,
-                ),
-            )
-            setSelected(updated)
-            setIsEditing(false)
-        } else {
-            setRegulations([
-                ...regulations,
-                {
-                    regulationId: createUuidV7(),
-                    regulationName: name,
-                    regulationDescription: description,
-                    regulationFineAmount: fineAmount,
-                    regulationIsActive: true,
-                    regulationCreatedAt: now,
-                    regulationUpdatedAt: now,
-                },
-            ])
+            if (modal === "view" && selected) {
+                const updated = await contractApi.updateRegulation(selected.regulationId, body)
+                setRegulations((current) => current.map((item) => item.regulationId === updated.regulationId ? updated : item))
+                setSelected(updated)
+                setIsEditing(false)
+            } else {
+                const created = await contractApi.createRegulation(body)
+                setRegulations((current) => [...current, created])
+                closeModal()
+            }
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Không thể lưu quy định.")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    const deleteRegulation = async () => {
+        if (!selected || !window.confirm(`Ngừng áp dụng quy định “${selected.regulationName}”?`)) return
+        setSaving(true)
+        setError(null)
+        try {
+            await contractApi.deleteRegulation(selected.regulationId)
+            setRegulations((current) => current.map((item) => item.regulationId === selected.regulationId
+                ? {...item, regulationIsActive: false, regulationUpdatedAt: new Date().toISOString()}
+                : item))
             closeModal()
+        } catch (reason) {
+            setError(reason instanceof Error ? reason.message : "Không thể ngừng áp dụng quy định.")
+        } finally {
+            setSaving(false)
         }
     }
 
@@ -126,9 +146,12 @@ export function RegulationsModule() {
                 </button>
             </div>
 
+            {error && !modal && <p role="alert" className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
             <BaseTable
                 rows={regulations}
                 getRowKey={(item) => item.regulationId}
+                loading={loading}
                 emptyMessage="Chưa có quy định nào."
                 tableClassName="w-full min-w-5xl text-sm"
                 rowClassName={() => "hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none transition-colors"}
@@ -157,6 +180,7 @@ export function RegulationsModule() {
                     }
                     onClose={closeModal}
                 >
+                    {error && <p role="alert" className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
                     {modal === "view" && selected && !isEditing ? (
                         <div className="space-y-5">
                             <div>
@@ -236,6 +260,13 @@ export function RegulationsModule() {
                             </div>
                             <div className="flex justify-end gap-2 pt-1">
                                 <button
+                                    onClick={deleteRegulation}
+                                    disabled={saving || !selected.regulationIsActive}
+                                    className="mr-auto px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                                >
+                                    Ngừng áp dụng
+                                </button>
+                                <button
                                     onClick={closeModal}
                                     className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                                 >
@@ -250,7 +281,7 @@ export function RegulationsModule() {
                             </div>
                         </div>
                     ) : (
-                        <>
+                        <ProcessingForm processing={saving} onSubmit={(event) => { event.preventDefault(); void saveRegulation() }}>
                             <FormField label="Tên quy định">
                                 <input
                                     className={inputCls}
@@ -331,22 +362,21 @@ export function RegulationsModule() {
                             )}
                             <div className="flex justify-end gap-2 mt-2">
                                 <button
-                                    onClick={
-                                        modal === "view" ? () => setIsEditing(false) : closeModal
-                                    }
+                                    type="button"
+                                    onClick={modal === "view" ? () => setIsEditing(false) : closeModal}
                                     className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                                 >
                                     Hủy
                                 </button>
                                 <button
-                                    onClick={saveRegulation}
+                                    type="submit"
                                     disabled={!isValid}
                                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                                 >
-                                    {modal === "add" ? "Thêm quy định" : "Lưu thay đổi"}
+                                    {saving ? "Đang lưu..." : modal === "add" ? "Thêm quy định" : "Lưu thay đổi"}
                                 </button>
                             </div>
-                        </>
+                        </ProcessingForm>
                     )}
                 </Modal>
             )}

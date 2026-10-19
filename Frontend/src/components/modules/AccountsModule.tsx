@@ -386,9 +386,8 @@ export function AccountsModule() {
                 <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
                     <section className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
                         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                            <div><h2 className="font-semibold text-slate-900">Danh sách tài khoản</h2><p
-                                className="mt-1 text-xs text-slate-500">{visibleAccounts.length} tài khoản phù hợp</p></div>
-                            <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-600">Identity AccountModel</span>
+                            <div className="flex"><h2 className="font-semibold text-slate-900">Danh sách tài khoản</h2><div
+                                className="ml-2 mt-1 text-xs text-slate-500">{visibleAccounts.length} tài khoản phù hợp</div></div>
                         </div>
                         <BaseTable
                             rows={visibleAccounts}
@@ -575,7 +574,7 @@ export function AccountsModule() {
                     </div>
                 </Modal>}
 
-            {showCreate && <Modal title="Tạo tài khoản Identity" onClose={() => setShowCreate(false)}>
+            {showCreate && <Modal title="Tạo tài khoản" onClose={() => setShowCreate(false)}>
                 <ProcessingForm processing={saving} onSubmit={createAccount}>
                     <FormField label="Email"><input className={inputCls} type="email" required maxLength={255}
                                                     value={createForm.email} onChange={(event) => setCreateForm({
