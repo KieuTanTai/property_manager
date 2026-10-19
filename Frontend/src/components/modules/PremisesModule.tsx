@@ -980,7 +980,7 @@ export function PremisesModule() {
                             </div>
                             <div className="bg-white/70 rounded-lg p-3">
                                 <p className="text-xs text-gray-400 mb-1">Diện tích</p>
-                                <p className="text-sm font-mono font-medium">{selected.area}</p>
+                                <p className="text-sm font-mono font-medium">{selected.area} m²</p>
                             </div>
                             <div className="bg-white/70 rounded-lg p-3">
                                 <p className="text-xs text-gray-400 mb-1">Tầng / Vị trí</p>
