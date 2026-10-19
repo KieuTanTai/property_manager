@@ -7,7 +7,7 @@ import {
   premiseStatusSurface,
   selectCls
 } from "./shared"
-import { LOCATIONS, PREMISES, BUSINESS_TYPES, PREMISE_MEDIA, WHITELIST_PRODUCTS } from "@/mocks/shared.ts"
+import { BUSINESS_TYPES, WHITELIST_PRODUCTS } from "@/mocks/shared.ts"
 import type { BusinessType, Location, WhitelistProduct } from "@/types/modules.ts"
 import type {
   Premise,
@@ -23,13 +23,114 @@ import { BusinessTypesTab } from "../premises/BusinessTypesTab"
 import { LocationsTab } from "../premises/LocationsTab"
 import { PremisesSubTabs } from "../premises/PremisesSubTabs"
 import { PremisesTab } from "../premises/PremisesTab"
+import { ImageAttachments } from "./ImageAttachments"
+import { premiseMediaApi } from "@/api/premiseMedia"
+import { premiseApi, type PremiseRequest } from "@/api/premise"
+import type { LocationModel, PremiseMediaModel, PremiseModel } from "../premises/types"
 
-// ─── Premises Module ────────────────────────────────────────────────────────
+function toPremiseStatus(status: string): PremiseStatus {
+  switch (status.toLowerCase()) {
+    case "available":
+      return "available"
+    case "reserved":
+      return "reserved"
+    case "rented":
+      return "rented"
+    case "maintenance":
+      return "maintenance"
+    default:
+      throw new Error(`Trạng thái mặt bằng không được hỗ trợ: ${status}`)
+  }
+}
+
+function toApiStatus(status: PremiseStatus): PremiseRequest["premiseStatus"] {
+  switch (status) {
+    case "available":
+      return "Available"
+    case "reserved":
+      return "Reserved"
+    case "rented":
+      return "Rented"
+    case "maintenance":
+      return "Maintenance"
+  }
+}
+
+function toPremise(model: PremiseModel, locations: Location[]): Premise {
+  return {
+    id: model.premiseId,
+    name: model.premiseName,
+    floor: model.premiseFloor,
+    position: model.premisePosition,
+    area: model.premiseArea,
+    status: toPremiseStatus(model.premiseStatus),
+    locationId: model.premiseLocationId,
+    location:
+      locations.find((location) => location.locationId === model.premiseLocationId)?.address ??
+      model.premiseLocation?.locationAddress ??
+      "",
+    description: model.premiseDescription ?? "",
+  }
+}
+
+function toPremiseMedia(model: PremiseMediaModel): PremiseMedia {
+  return {
+    premiseMediaId: model.premiseMediaId,
+    premiseMediaPremiseId: model.premiseMediaPremiseId,
+    premiseMediaImageUrl: model.premiseMediaImageUrl,
+    premiseMediaCreatedAt: model.premiseMediaCreatedAt,
+    premiseMediaUpdatedAt: model.premiseMediaUpdatedAt,
+  }
+}
+
+function toLocation(model: LocationModel): Location {
+  return {
+    locationId: model.locationId,
+    address: model.locationAddress,
+    createdAt: model.locationCreatedAt,
+    updatedAt: model.locationUpdatedAt,
+  }
+}
+
+function toPremiseRequest(form: {
+  name: string
+  floor: string
+  position: string
+  area: string
+  status: PremiseStatus
+  locationId: string
+  description: string
+}): PremiseRequest {
+  const floor = Number(form.floor)
+  const position = Number(form.position)
+  if (!form.name.trim()) throw new Error("Tên mặt bằng là bắt buộc.")
+  if (!form.area.trim()) throw new Error("Diện tích là bắt buộc.")
+  if (!Number.isInteger(floor) || !Number.isInteger(position)) {
+    throw new Error("Tầng và vị trí phải là số nguyên.")
+  }
+  if (form.area.length > 10) throw new Error("Diện tích không được vượt quá 10 ký tự.")
+  if (form.name.trim().length > 50) throw new Error("Tên mặt bằng không được vượt quá 50 ký tự.")
+  if (form.description.length > 100) throw new Error("Mô tả không được vượt quá 100 ký tự.")
+  return {
+    premiseName: form.name.trim(),
+    premiseLocationId: form.locationId,
+    premiseStatus: toApiStatus(form.status),
+    premisePosition: position,
+    premiseFloor: floor,
+    premiseArea: form.area.trim(),
+    premiseDescription: form.description.trim() || null,
+  }
+}
 
 export function PremisesModule() {
-  const [premises, setPremises] = useState<Premise[]>(PREMISES)
-  const [premiseMedia] = useState<PremiseMedia[]>(PREMISE_MEDIA)
-  const [locations, setLocations] = useState<Location[]>(LOCATIONS)
+  const [premises, setPremises] = useState<Premise[]>([])
+  const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>([])
+  const [premiseImages, setPremiseImages] = useState<File[]>([])
+  const [isUploadingPremiseImages, setIsUploadingPremiseImages] = useState(false)
+  const [isSavingPremise, setIsSavingPremise] = useState(false)
+  const [isLoadingPremises, setIsLoadingPremises] = useState(true)
+  const [premiseError, setPremiseError] = useState<string | null>(null)
+  const [locations, setLocations] = useState<Location[]>([])
   const [businessTypes, setBusinessTypes] =
     useState<BusinessType[]>(BUSINESS_TYPES)
   const [whitelistProducts, setWhitelistProducts] =
@@ -45,7 +146,7 @@ export function PremisesModule() {
     null,
   )
   const [businessIsEditing, setBusinessIsEditing] = useState(false)
-  const [selected, setSelected] = useState<Premise | null>(null)
+  const [selectedPremise, setSelectedPremise] = useState<Premise | null>(null)
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [isImageFullscreen, setIsImageFullscreen] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
@@ -73,8 +174,8 @@ export function PremisesModule() {
 
   const filtered =
     filter === "all" ? premises : premises.filter((p) => p.status === filter)
-  const selectedPremiseMedia = selected
-    ? premiseMedia.filter((media) => media.premiseMediaPremiseId === selected.id)
+  const selectedPremiseMedia = selectedPremise
+    ? premiseMedia.filter((media) => media.premiseMediaPremiseId === selectedPremise.id)
     : []
 
   useEffect(() => {
@@ -87,6 +188,47 @@ export function PremisesModule() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [isImageFullscreen])
+
+  useEffect(() => {
+    let isActive = true
+    const load = async () => {
+      setIsLoadingPremises(true)
+      setPremiseError(null)
+      console.log("start!");
+      try {
+        console.log("start try!");
+        const [premiseModels, locationModels] = await Promise.all([
+          premiseApi.getPremise(),
+          premiseApi.getLocations(),
+        ]);
+        
+        if (!isActive) return
+        const activeLocations = locationModels
+          .filter((location) => location.locationIsActive !== false)
+          .map(toLocation)
+        console.log("location model: "+ locationModels);
+        setLocations(activeLocations);
+        console.log("active location: "+ activeLocations);
+        setPremises(premiseModels.map((premise) => toPremise(premise, activeLocations)))
+        const imageGroups = await Promise.all(
+          premiseModels.map((premise) => premiseApi.getImages(premise.premiseId)),
+        )
+        if (isActive) setPremiseMedia(imageGroups.flat().map(toPremiseMedia))
+      } 
+      catch (error) {
+        if (isActive) {
+          setPremiseError(error instanceof Error ? error.message : "Không tải được dữ liệu mặt bằng.")
+          console.log("load premise: " + premiseError);
+        }
+      } finally {
+        if (isActive) setIsLoadingPremises(false)
+      }
+    }
+    void load()
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   const openAdd = () => {
     if (!locations.length) {
@@ -103,95 +245,128 @@ export function PremisesModule() {
       locationId: locations[0].locationId,
       description: "",
     })
+    setPremiseImages([])
     setModal("add")
   }
 
   const openView = (p: Premise) => {
-    setSelected(p)
+    setSelectedPremise(p)
     setActiveMediaIndex(0)
     setPremiseIsEditing(false)
     setModal("view")
   }
 
   const startEditingPremise = () => {
-    if (!selected) return
+    if (!selectedPremise) return
     setForm({
-      name: selected.name,
-      floor: String(selected.floor),
-      position: String(selected.position),
-      area: selected.area,
-      status: selected.status,
-      locationId: selected.locationId,
-      description: selected.description,
+      name: selectedPremise.name,
+      floor: String(selectedPremise.floor),
+      position: String(selectedPremise.position),
+      area: selectedPremise.area,
+      status: selectedPremise.status,
+      locationId: selectedPremise.locationId,
+      description: selectedPremise.description,
     })
     setPremiseIsEditing(true)
   }
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const location = locations.find(
       (item) => item.locationId === form.locationId,
     )
-    if (!location) return
-    const newP: Premise = {
-      id: `PRE-${String(premises.length + 1).padStart(3, "0")}`,
-      name: form.name,
-      floor: Number(form.floor),
-      position: Number(form.position),
-      area: form.area,
-      status: form.status,
-      locationId: location.locationId,
-      location: location.address,
-      description: form.description,
+    if (!location) {
+      setPremiseError("Vui lòng chọn địa chỉ hợp lệ trước khi tạo mặt bằng.")
+      return
     }
-    setPremises([...premises, newP])
-    setModal(null)
+    setPremiseError(null)
+    setIsSavingPremise(true)
+    try {
+      const created = await premiseApi.createPremise(toPremiseRequest(form))
+      const newPremise = toPremise(created, locations)
+      setPremises((current) => [...current, newPremise])
+      setSelectedPremise(newPremise)
+      setPremiseImages([])
+      setModal(null)
+      setIsUploadingPremiseImages(premiseImages.length > 0)
+      for (const file of premiseImages) {
+        const imageUrl = await premiseMediaApi.uploadImage(file)
+        const image = await premiseApi.addImage(created.premiseId, imageUrl)
+        setPremiseMedia((current) => [...current, toPremiseMedia(image)])
+      }
+    } catch (error) {
+      setPremiseError(error instanceof Error ? error.message : "Không lưu được mặt bằng.")
+    } finally {
+      setIsUploadingPremiseImages(false)
+      setIsSavingPremise(false)
+    }
   }
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     const location = locations.find(
       (item) => item.locationId === form.locationId,
     )
-    if (!location || !selected) return
-    const updated: Premise = {
-      ...selected,
-      ...form,
-      location: location.address,
-      floor: Number(form.floor),
-      position: Number(form.position),
+    if (!location || !selectedPremise) {
+      setPremiseError("Vui lòng chọn địa chỉ hợp lệ trước khi cập nhật mặt bằng.")
+      return
     }
-    setPremises(premises.map((p) => (p.id === selected.id ? updated : p)))
-    setSelected(updated)
-    setPremiseIsEditing(false)
+    setPremiseError(null)
+    setIsSavingPremise(true)
+    try {
+      const updatedModel = await premiseApi.updatePremise(selectedPremise.id, toPremiseRequest(form))
+      const updated = toPremise(updatedModel, locations)
+      setPremises((current) => current.map((premise) => premise.id === selectedPremise.id ? updated : premise))
+      setSelectedPremise(updated)
+      setPremiseIsEditing(false)
+    } catch (error) {
+      setPremiseError(error instanceof Error ? error.message : "Không cập nhật được mặt bằng.")
+    } finally {
+      setIsSavingPremise(false)
+    }
   }
 
-  const handleSaveLocation = () => {
+  const handleDeletePremise = async () => {
+    if (!selectedPremise || !confirm(`Xác nhận xóa mặt bằng "${selectedPremise.name}"?`)) return
+    setPremiseError(null)
+    setIsSavingPremise(true)
+    try {
+      await premiseApi.deletePremise(selectedPremise.id)
+      setPremises((current) => current.filter((premise) => premise.id !== selectedPremise.id))
+      setPremiseMedia((current) => current.filter((media) => media.premiseMediaPremiseId !== selectedPremise.id))
+      setModal(null)
+      setSelectedPremise(null)
+    } catch (error) {
+      setPremiseError(error instanceof Error ? error.message : "Không xóa được mặt bằng.")
+    } finally {
+      setIsSavingPremise(false)
+    }
+  }
+
+  const handleSaveLocation = async () => {
     const address = locationAddress.trim()
     if (!address) return
-    const now = new Date().toISOString()
-    if (locationModal === "edit" && selectedLocation) {
-      setLocations(
-        locations.map((location) =>
-          location.locationId === selectedLocation.locationId
-            ? { ...location, address, updatedAt: now }
-            : location,
-        ),
-      )
-      setPremises(
-        premises.map((premise) =>
-          premise.locationId === selectedLocation.locationId
-            ? { ...premise, location: address }
+    setPremiseError(null)
+    try {
+      if (locationModal === "edit" && selectedLocation) {
+        const model = await premiseApi.updateLocation(selectedLocation.locationId, address)
+        const updatedLocation = toLocation(model)
+        setLocations((current) => current.map((location) =>
+          location.locationId === updatedLocation.locationId ? updatedLocation : location,
+        ))
+        setPremises((current) => current.map((premise) =>
+          premise.locationId === updatedLocation.locationId
+            ? { ...premise, location: updatedLocation.address }
             : premise,
-        ),
-      )
-    } else {
-      setLocations([
-        ...locations,
-        { locationId: createUuidV7(), address, createdAt: now, updatedAt: now },
-      ])
+        ))
+      } else {
+        const model = await premiseApi.createLocation(address)
+        setLocations((current) => [...current, toLocation(model)])
+      }
+      setLocationModal(null)
+      setSelectedLocation(null)
+      setLocationAddress("")
+    } catch (error) {
+      setPremiseError(error instanceof Error ? error.message : "Không lưu được địa chỉ.")
     }
-    setLocationModal(null)
-    setSelectedLocation(null)
-    setLocationAddress("")
   }
 
   const handleDeleteLocation = (location: Location) => {
@@ -201,10 +376,12 @@ export function PremisesModule() {
       alert("Không thể xóa địa chỉ đang được sử dụng bởi mặt bằng.")
       return
     }
-    if (confirm("Xác nhận xóa địa chỉ này?"))
-      setLocations(
-        locations.filter((item) => item.locationId !== location.locationId),
-      )
+    if (!confirm("Xác nhận xóa địa chỉ này?")) return
+    void premiseApi.deleteLocation(location.locationId).then(() => {
+      setLocations((current) => current.filter((item) => item.locationId !== location.locationId))
+    }).catch((error: unknown) => {
+      setPremiseError(error instanceof Error ? error.message : "Không xóa được địa chỉ.")
+    })
   }
 
   const openAddBusinessType = () => {
@@ -298,9 +475,6 @@ export function PremisesModule() {
                 ? `${businessTypes.length} loại mặt hàng`
                 : `${premises.length} mặt bằng tổng cộng`}
           </p>
-          <p className="mt-1 text-[11px] text-amber-700">
-            Dữ liệu mẫu cục bộ · Premise Backend chưa có API controller
-          </p>
         </div>
         <button
           onClick={
@@ -324,6 +498,19 @@ export function PremisesModule() {
               : "Thêm mặt bằng"}
         </button>
       </div>
+
+      {premiseError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {premiseError}
+          <button
+            type="button"
+            onClick={() => setPremiseError(null)}
+            className="ml-3 font-semibold underline"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
 
       <PremisesSubTabs
         activeTab={activeSubTab}
@@ -355,14 +542,32 @@ export function PremisesModule() {
           }}
         />
       ) : (
-        <PremisesTab
-          premises={premises}
-          premiseMedia={premiseMedia}
-          filteredPremises={filtered}
-          filter={filter}
-          onFilterChange={setFilter}
-          onView={openView}
-        />
+        isLoadingPremises ? (
+          <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-500">
+            Đang tải mặt bằng...
+          </div>
+        ) : premises.length === 0 ? (
+          <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center">
+            <p className="text-sm text-gray-500">Chưa có mặt bằng nào.</p>
+            <button
+              type="button"
+              onClick={openAdd}
+              disabled={!locations.length}
+              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Thêm mặt bằng
+            </button>
+          </div>
+        ) : (
+          <PremisesTab
+            premises={premises}
+            premiseMedia={premiseMedia}
+            filteredPremises={filtered}
+            filter={filter}
+            onFilterChange={setFilter}
+            onView={openView}
+          />
+        )
       )}
 
       {locationModal && (
@@ -395,7 +600,7 @@ export function PremisesModule() {
               Hủy
             </button>
             <button
-              onClick={handleSaveLocation}
+              onClick={() => void handleSaveLocation()}
               disabled={!locationAddress.trim()}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
@@ -738,7 +943,7 @@ export function PremisesModule() {
           title={
             modal === "add"
               ? "Thêm mặt bằng mới"
-              : `Chỉnh sửa: ${selected?.name ?? ""}`
+              : `Chỉnh sửa: ${selectedPremise?.name ?? ""}`
           }
           onClose={() => setModal(null)}
           panelClassName={premiseStatusSurface[form.status]}
@@ -814,6 +1019,11 @@ export function PremisesModule() {
               }
             />
           </FormField>
+          {modal === "add" && (
+            <FormField label="Ảnh mặt bằng">
+              <ImageAttachments files={premiseImages} onChange={setPremiseImages} />
+            </FormField>
+          )}
           <div className="flex justify-end gap-2 mt-2">
             <button
               onClick={
@@ -826,32 +1036,35 @@ export function PremisesModule() {
               Hủy
             </button>
             <button
-              onClick={modal === "add" ? handleAdd : handleEdit}
+              onClick={modal === "add" ? () => void handleAdd() : () => void handleEdit()}
+              disabled={isSavingPremise}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              {modal === "add" ? "Thêm mới" : "Lưu thay đổi"}
+              {isSavingPremise
+                ? isUploadingPremiseImages ? "Đang lưu ảnh..." : "Đang lưu..."
+                : modal === "add" ? "Thêm mới" : "Lưu thay đổi"}
             </button>
           </div>
         </Modal>
       )}
 
       {/* View Modal */}
-      {modal === "view" && selected && !premiseIsEditing && (
+      {modal === "view" && selectedPremise && !premiseIsEditing && (
         <Modal
-          title={`Chi tiết: ${selected.name}`}
+          title={`Chi tiết: ${selectedPremise.name}`}
           onClose={() => setModal(null)}
-          panelClassName={premiseStatusSurface[selected.status]}
+          panelClassName={premiseStatusSurface[selectedPremise.status]}
         >
           <div className="space-y-3">
             {premiseMedia.some(
-              (media) => media.premiseMediaPremiseId === selected.id,
+              (media) => media.premiseMediaPremiseId === selectedPremise.id,
             ) && (
               <div className="-mx-6 -mt-5 mb-4">
                 <div className="relative h-56 overflow-hidden bg-gray-900">
                   <img
                     src={
                       premiseMedia.filter(
-                        (media) => media.premiseMediaPremiseId === selected.id,
+                        (media) => media.premiseMediaPremiseId === selectedPremise.id,
                       )[activeMediaIndex].premiseMediaImageUrl
                     }
                     alt=""
@@ -861,10 +1074,10 @@ export function PremisesModule() {
                   <img
                     src={
                       premiseMedia.filter(
-                        (media) => media.premiseMediaPremiseId === selected.id,
+                        (media) => media.premiseMediaPremiseId === selectedPremise.id,
                       )[activeMediaIndex].premiseMediaImageUrl
                     }
-                    alt={`${selected.name} — ảnh ${activeMediaIndex + 1}`}
+                    alt={`${selectedPremise.name} — ảnh ${activeMediaIndex + 1}`}
                     role="button"
                     tabIndex={0}
                     onClick={() => setIsImageFullscreen(true)}
@@ -877,14 +1090,14 @@ export function PremisesModule() {
                     className="relative w-full h-full object-contain object-center cursor-zoom-in"
                   />
                   {premiseMedia.filter(
-                    (media) => media.premiseMediaPremiseId === selected.id,
+                    (media) => media.premiseMediaPremiseId === selectedPremise.id,
                   ).length > 1 && (
                     <>
                       <button
                         onClick={() => {
                           const count = premiseMedia.filter(
                             (media) =>
-                              media.premiseMediaPremiseId === selected.id,
+                              media.premiseMediaPremiseId === selectedPremise.id,
                           ).length
                           setActiveMediaIndex(
                             (activeMediaIndex - 1 + count) % count,
@@ -899,7 +1112,7 @@ export function PremisesModule() {
                         onClick={() => {
                           const count = premiseMedia.filter(
                             (media) =>
-                              media.premiseMediaPremiseId === selected.id,
+                              media.premiseMediaPremiseId === selectedPremise.id,
                           ).length
                           setActiveMediaIndex((activeMediaIndex + 1) % count)
                         }}
@@ -915,7 +1128,7 @@ export function PremisesModule() {
                     {activeMediaIndex + 1} /{" "}
                     {
                       premiseMedia.filter(
-                        (media) => media.premiseMediaPremiseId === selected.id,
+                        (media) => media.premiseMediaPremiseId === selectedPremise.id,
                       ).length
                     }
                   </span>
@@ -923,7 +1136,7 @@ export function PremisesModule() {
                 <div className="flex justify-center gap-1.5 mt-3 px-6">
                   {premiseMedia
                     .filter(
-                      (media) => media.premiseMediaPremiseId === selected.id,
+                      (media) => media.premiseMediaPremiseId === selectedPremise.id,
                     )
                     .map((media, index) => (
                       <button
@@ -943,32 +1156,40 @@ export function PremisesModule() {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">ID</p>
-                <p className="text-sm font-mono font-medium">{selected.id}</p>
+                <p className="text-sm font-mono font-medium">{selectedPremise.id}</p>
               </div>
               <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">Diện tích</p>
-                <p className="text-sm font-mono font-medium">{selected.area}</p>
+                <p className="text-sm font-mono font-medium">{selectedPremise.area}</p>
               </div>
               <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">Tầng / Vị trí</p>
                 <p className="text-sm font-medium">
-                  Tầng {selected.floor} - {selected.position}
+                  Tầng {selectedPremise.floor} - {selectedPremise.position}
                 </p>
               </div>
               <div className="bg-white/70 rounded-lg p-3">
                 <p className="text-xs text-gray-400 mb-1">Trạng thái</p>
-                <PremiseStatusBadge status={selected.status} />
+                <PremiseStatusBadge status={selectedPremise.status} />
               </div>
             </div>
             <div className="bg-white/70 rounded-lg p-3">
               <p className="text-xs text-gray-400 mb-1">Địa chỉ</p>
-              <p className="text-sm">{selected.location}</p>
+              <p className="text-sm">{selectedPremise.location}</p>
             </div>
             <div className="bg-white/70 rounded-lg p-3">
               <p className="text-xs text-gray-400 mb-1">Mô tả</p>
-              <p className="text-sm text-gray-600">{selected.description}</p>
+              <p className="text-sm text-gray-600">{selectedPremise.description}</p>
             </div>
             <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => void handleDeletePremise()}
+                disabled={isSavingPremise}
+                className="mr-auto px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+              >
+                Xóa mặt bằng
+              </button>
               <button
                 onClick={() => setModal(null)}
                 className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -986,11 +1207,11 @@ export function PremisesModule() {
         </Modal>
       )}
 
-      {isImageFullscreen && selected && selectedPremiseMedia[activeMediaIndex] && (
+      {isImageFullscreen && selectedPremise && selectedPremiseMedia[activeMediaIndex] && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`Ảnh ${activeMediaIndex + 1} của mặt bằng ${selected.name}`}
+          aria-label={`Ảnh ${activeMediaIndex + 1} của mặt bằng ${selectedPremise.name}`}
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4"
           onClick={() => setIsImageFullscreen(false)}
         >
@@ -1004,7 +1225,7 @@ export function PremisesModule() {
           </button>
           <img
             src={selectedPremiseMedia[activeMediaIndex].premiseMediaImageUrl}
-            alt={`${selected.name} — ảnh ${activeMediaIndex + 1}`}
+            alt={`${selectedPremise.name} — ảnh ${activeMediaIndex + 1}`}
             className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] object-contain"
             onClick={(event) => event.stopPropagation()}
           />

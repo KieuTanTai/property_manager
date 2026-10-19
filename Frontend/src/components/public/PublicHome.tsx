@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
 import {LOCATIONS, PREMISES, PREMISE_MEDIA} from "@/mocks/shared.ts"
 import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
+import {contractApi} from "@/api/contracts"
 import {Modal, PremiseStatusBadge, premiseStatusSurface} from "../modules/shared"
 import type {Premise} from "../premises/types"
 import {PublicHomeProps} from "@/components/public/types.ts";
@@ -29,10 +30,25 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [contactPremiseId, setContactPremiseId] = useState("")
     const [contactMessage, setContactMessage] = useState("")
     const [contactError, setContactError] = useState<string | null>(null)
-    const ownerContact = MOCK_CONTACTS[0] ?? null
+    const [contactSuccess, setContactSuccess] = useState<string | null>(null)
+    const [contactSending, setContactSending] = useState(false)
+    const [ownerContact, setOwnerContact] = useState(MOCK_CONTACTS[0] ?? null)
     const [selectedPremise, setSelectedPremise] = useState<Premise | null>(null)
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isImageFullscreen, setIsImageFullscreen] = useState(false)
+
+    useEffect(() => {
+        let isCurrent = true
+        void contractApi.contactInfos().then((contacts) => {
+            const currentContact = [...contacts].sort((left, right) =>
+                new Date(right.contactInfoUpdatedAt).getTime() - new Date(left.contactInfoUpdatedAt).getTime(),
+            )[0]
+            if (isCurrent && currentContact) setOwnerContact(currentContact)
+        }).catch(() => {
+            // Keep the contact sample visible when the Contract API is unavailable.
+        })
+        return () => { isCurrent = false }
+    }, [])
 
     useEffect(() => {
         if (!selectedPremise && !isImageFullscreen) return
@@ -83,20 +99,29 @@ export function PublicHome({onManager}: PublicHomeProps) {
         setSelectedPremise(premise)
     }
 
-    const sendInquiry = (event: React.SubmitEvent<HTMLFormElement>) => {
+    const sendInquiry = async (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
         setContactError(null)
-        if (!contactEmail) {
-            setContactError("Kênh email liên hệ chưa được cấu hình. Vui lòng liên hệ ban quản lý trực tiếp.")
-            return
-        }
-
+        setContactSuccess(null)
+        setContactSending(true)
         const premise = availablePremises.find((item) => item.id === contactPremiseId)
-        const subject = encodeURIComponent(`Quan tâm thuê mặt bằng${premise ? ` ${premise.name}` : ""}`)
-        const body = encodeURIComponent(
-            `Họ tên: ${contactName}\nĐiện thoại: ${contactPhoneNumber}\nMặt bằng quan tâm: ${premise?.name ?? "Chưa chọn"}\nNội dung: ${contactMessage || "Vui lòng liên hệ tư vấn."}`,
-        )
-        window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`
+        try {
+            const result = await contractApi.sendConsultationRequest({
+                name: contactName,
+                phone: contactPhoneNumber,
+                premiseName: premise?.name ?? null,
+                message: contactMessage,
+            })
+            setContactSuccess(`Đã gửi yêu cầu tư vấn đến ${result.recipientEmail}.`)
+            setContactName("")
+            setContactPhoneNumber("")
+            setContactPremiseId("")
+            setContactMessage("")
+        } catch (cause) {
+            setContactError(cause instanceof Error ? cause.message : "Không gửi được yêu cầu tư vấn.")
+        } finally {
+            setContactSending(false)
+        }
     }
 
     const requestPremiseConsultation = () => {
@@ -444,9 +469,11 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             </div>
                             {contactError && <p role="alert"
                                                 className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">{contactError}</p>}
-                            <button type="submit"
-                                    className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">Gửi
-                                yêu cầu tư vấn
+                            {contactSuccess && <p role="status"
+                                                className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800">{contactSuccess}</p>}
+                            <button type="submit" disabled={contactSending}
+                                    className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                                {contactSending ? "Đang gửi yêu cầu..." : "Gửi yêu cầu tư vấn"}
                             </button>
                         </form>
                     </div>

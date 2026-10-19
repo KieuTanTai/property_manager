@@ -383,6 +383,40 @@ namespace Premise.Application
             return existingPremise;
         }
 
+        public async Task DeleteAsync(
+            Guid premiseId,
+            CancellationToken cancellationToken = default)
+        {
+            if (premiseId == Guid.Empty)
+            {
+                var exception = new ArgumentException("Premise id is required.", nameof(premiseId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise deletion rejected because the id is missing.");
+                throw exception;
+            }
+
+            var premise = await _premiseRepository.GetTrackedByIdAsync(premiseId, cancellationToken);
+            if (premise is null)
+            {
+                var exception = new KeyNotFoundException($"Premise not found: {premiseId}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise deletion failed because the premise was not found.");
+                throw exception;
+            }
+
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Deleting premise.");
+            await _premiseRepository.DeleteAsync(premise, cancellationToken);
+            var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (affectedRows == 0)
+            {
+                var exception = new InvalidOperationException("Failed to delete premise.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise deletion failed.");
+                throw exception;
+            }
+
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Premise deleted.");
+        }
+
         public async Task<PremiseMediaModel> AddImageAsync(
             Guid premiseId,
             string imageUrl,

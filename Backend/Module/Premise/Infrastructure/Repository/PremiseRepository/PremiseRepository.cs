@@ -26,6 +26,29 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
 
         #region DELETE
 
+        public async Task DeleteAsync(PremiseModel premise, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise deletion.");
+            var hasRental = await _db.RentedPremiseModels.AnyAsync(
+                rental => rental.PremiseId == premise.PremiseId,
+                cancellationToken);
+            if (hasRental)
+            {
+                var exception = new InvalidOperationException(
+                    $"Premise cannot be deleted while it is linked to a rental contract: {premise.PremiseId}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise deletion rejected because it is linked to a rental contract.");
+                throw exception;
+            }
+
+            var businessTypeLinks = await _db.PremiseBusinessTypes
+                .Where(link => link.PremiseId == premise.PremiseId)
+                .ToListAsync(cancellationToken);
+            _db.PremiseBusinessTypes.RemoveRange(businessTypeLinks);
+            _db.Premises.Remove(premise);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Premise staged for deletion.");
+        }
+
         public async Task DeletePremiseBusinessTypesByPremiseIdAsync(Guid premiseId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
@@ -319,7 +342,29 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 cancellationToken);
         }
 
-
+        public async Task<long> CountTotalAvailablePremiseAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total available premise!");
+            return await _db.Premises.LongCountAsync(
+                premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Available,
+                cancellationToken);
+        }
+        
+        public async Task<long> CountTotalMaintenancePremiseAsync(CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total available premise!");
+            return await _db.Premises.LongCountAsync(
+                premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Maintenance,
+                cancellationToken);
+        }
+        
+        public async Task<long> CountTotalReservedPremiseAsync(CancellationToken cancellationToken = default)
+                {
+                    _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total available premise!");
+                    return await _db.Premises.LongCountAsync(
+                        premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Reserved,
+                        cancellationToken);
+                }
         #endregion
     }
 }

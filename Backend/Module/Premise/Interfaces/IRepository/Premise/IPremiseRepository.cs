@@ -29,6 +29,8 @@ namespace Premise.Interfaces.IRepository.Premise
 
         Task DeletePremiseBusinessTypesByPremiseIdAsync(Guid premiseId, CancellationToken cancellationToken = default);
 
+        Task DeleteAsync(PremiseModel premise, CancellationToken cancellationToken = default);
+
         Task<long> CountTotalPremiseAsync(CancellationToken cancellationToken = default);
 
         Task<long> CountTotalRentedPremiseAsync(CancellationToken cancellationToken = default);

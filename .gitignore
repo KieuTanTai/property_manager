@@ -99,3 +99,5 @@ Frontend/.cache/
 /docs/
 /docs/sql/
 ./claude/
+.postman/
+/postman/

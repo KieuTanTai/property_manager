@@ -47,6 +47,7 @@ export default defineConfig(({ mode, command }) => {
         "/api/profile": { target: apiProxyTarget, changeOrigin: true, secure: false },
         // Local ASP.NET development endpoints use a self-signed certificate.
         "/api/Premise": { target: "https://localhost:7255", changeOrigin: true, secure: false },
+        "/api/Location": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Contract": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Regulation": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Invoice": { target: "https://localhost:7255", changeOrigin: true, secure: false },
@@ -57,6 +58,7 @@ export default defineConfig(({ mode, command }) => {
         "/api/ticket-medias": { target: "https://localhost:7092", changeOrigin: true, secure: false },
         "/api/notifications": { target: "https://localhost:7092", changeOrigin: true, secure: false },
         "/api/notification-recipients": { target: "https://localhost:7092", changeOrigin: true, secure: false },
+        "/api/premise-medias": { target: "https://localhost:7081", changeOrigin: true, secure: false },
       },
     },
     preview: {

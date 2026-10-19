@@ -41,9 +41,6 @@
         <File Path="Frontend/src/main.tsx" />
         <File Path="Frontend/src/vite-env.d.ts" />
     </Folder>
-    <Folder Name="/Frontend/src/imports/">
-        <File Path="Frontend/src/imports/dtb_test.txt" />
-    </Folder>
     <Folder Name="/Frontend/src/components/" />
     <Folder Name="/Frontend/src/components/modules/">
         <File Path="Frontend/src/components/modules/AccountsModule.tsx" />

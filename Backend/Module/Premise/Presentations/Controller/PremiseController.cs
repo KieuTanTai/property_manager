@@ -342,6 +342,38 @@ namespace Premise.Presentations.Controller
             }
         }
 
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> DeleteAsync(
+            [FromRoute] Guid id,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _premiseApplication.DeleteAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new ProblemDetails { Title = exception.Message });
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = exception.Message });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Conflict(new ProblemDetails { Title = exception.Message });
+            }
+            catch (OperationCanceledException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = $"Request canceled. {exception.Message}" });
+            }
+        }
+
         [HttpPost("{id:guid}/images")]
         [ProducesResponseType(typeof(RecordPremiseImageResponse), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

@@ -91,6 +91,13 @@ export type ContactInfoModel = {
 export type ContactInfoRequest = Pick<ContactInfoModel,
   "contactInfoEmail" | "contactInfoPhone" | "contactInfoAddress" | "contactSocialLink">
 
+export type ConsultationRequest = {
+  name: string
+  phone: string
+  premiseName: string | null
+  message: string
+}
+
 const base = (import.meta.env.VITE_CONTRACT_API_BASE_URL || "/api").replace(/\/$/, "")
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -153,6 +160,12 @@ export const contractApi = {
   },
   contactInfos() {
     return request<ContactInfoModel[]>("/ContactInfo")
+  },
+  sendConsultationRequest(body: ConsultationRequest) {
+    return request<{ recipientEmail: string }>("/ContactInfo/consultation", {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
   },
   createContactInfo(body: ContactInfoRequest) {
     return request<ContactInfoModel>("/ContactInfo", { method: "POST", body: JSON.stringify(body) })

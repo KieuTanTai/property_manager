@@ -46,6 +46,8 @@ public interface IPremiseApplication
 
     Task<PremiseModel> UpdateAsync(PremiseModel premise, CancellationToken cancellationToken = default);
 
+    Task DeleteAsync(Guid premiseId, CancellationToken cancellationToken = default);
+
     Task<PremiseMediaModel> AddImageAsync(
         Guid premiseId,
         string imageUrl,

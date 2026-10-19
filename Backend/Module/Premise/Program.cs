@@ -11,11 +11,15 @@ using Premise.Interfaces.IRepository.Premise;
 using Premise.Interfaces.IRepository.Product;
 using Shared.Interfaces;
 using Shared.Logging;
+using Premise.Infrastructure.DIContainer;
+using Shared.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
+builder.Services.AddPremiseRepositoryCollection(builder.Configuration, builder.Environment);
+builder.Services.AddHttpClient<GoogleDriveImageStorage>();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var connectionString = builder.Configuration.GetConnectionString("Premise")

@@ -360,7 +360,7 @@ export const PREMISE_MEDIA: PremiseMedia[] = [
     premiseMediaId: 8,
     premiseMediaPremiseId: PREMISES[2].id,
     premiseMediaImageUrl:
-      "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?auto=format&fit=crop&w=1600&q=80",
+    "https://lh3.googleusercontent.com/d/19A57tOeyQZS0wMGLYgOEpknN7E3ooJNe?authuser=0",
     premiseMediaCreatedAt: "2026-01-20T11:10:00",
     premiseMediaUpdatedAt: "2026-01-20T11:10:00",
   },
@@ -368,7 +368,8 @@ export const PREMISE_MEDIA: PremiseMedia[] = [
     premiseMediaId: 9,
     premiseMediaPremiseId: PREMISES[2].id,
     premiseMediaImageUrl:
-      "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1600&q=80",
+    "https://lh3.googleusercontent.com/d/1sDN6yuw5s1xa-w07bDyUnzQTcUiEtdyF?authuser=0",
+
     premiseMediaCreatedAt: "2026-01-05T08:40:00",
     premiseMediaUpdatedAt: "2026-01-05T08:40:00",
   },

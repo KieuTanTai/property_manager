@@ -23,6 +23,9 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasMaxLength(50)
                 .IsRequired();
 
+            entity.Property(premise => premise.PremiseLocationId)
+                .HasColumnName("premise_location_id");
+
             entity.Property(premise => premise.PremiseStatus)
                 .HasColumnName("premise_status")
                 .HasConversion<string>()

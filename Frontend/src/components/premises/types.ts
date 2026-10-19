@@ -33,6 +33,7 @@ export interface PremiseMediaModel {
 export interface LocationModel {
   locationId: string
   locationAddress: string
+  locationIsActive: boolean
   locationCreatedAt: string
   locationUpdatedAt: string
 }
