@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.SignalR;
 using Shared.Interfaces;
 using Shared.Logging;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;
@@ -22,8 +21,7 @@ namespace TicketAndNotification.Infrastructure.DIContainer
                                    ?? throw new InvalidOperationException(
                                        "Connection string 'IdentityTest' was not found.");
 
-            services.AddDbContext<TicketAndNotificationDbContext>(options =>
-            {
+            services.AddDbContext<TicketAndNotificationDbContext>(options => {
                 options.UseMySQL(connectionString);
                 options.EnableThreadSafetyChecks();
 

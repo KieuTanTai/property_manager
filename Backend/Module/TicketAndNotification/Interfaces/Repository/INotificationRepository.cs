@@ -6,7 +6,6 @@ namespace TicketAndNotification.Interfaces.Repository
 {
     public interface INotificationRepository : IBaseReadRepository<NotificationModel, Guid>, IBaseUpsertRepository<NotificationModel>
     {
-
         Task<IReadOnlyList<NotificationModel>> GetBySenderAccountIdAsync(
             Guid senderAccountId,
             CancellationToken cancellationToken = default);

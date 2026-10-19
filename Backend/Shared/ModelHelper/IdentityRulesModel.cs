@@ -1,6 +1,6 @@
-namespace Identity.Models
+namespace Shared.ModelHelper
 {
-    public sealed class AccountRulesModel
+    public sealed class IdentityRulesModel
     {
         public int MaxPasswordLength { get; init; }
         public int MinPasswordLength { get; init; }

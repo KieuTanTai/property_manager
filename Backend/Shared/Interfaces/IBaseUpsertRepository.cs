@@ -7,6 +7,5 @@ namespace Shared.Interfaces
         Task AddRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
         Task UpdateAsync(T entity, CancellationToken cancellationToken = default);
         void UpdateRange(IEnumerable<T> entities, CancellationToken cancellationToken = default);
-        
     }
 }

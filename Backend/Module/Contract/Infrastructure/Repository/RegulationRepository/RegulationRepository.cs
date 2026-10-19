@@ -1,6 +1,5 @@
 using Contract.Infrastructure.Persistence.DbContext;
 using Contract.Interfaces.IRepository;
-using Contract.Models.Contract;
 using Contract.Models.Regulation;
 using Microsoft.EntityFrameworkCore;
 using Shared.Logging;
@@ -81,7 +80,6 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 "Regulation lookup rejected because the regulation was not found by name.");
             throw exception;
-
         }
 
         public async Task<RegulationModel> GetTrackedRegulationByNameAsync(string regulationName,
@@ -98,7 +96,6 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 "Tracked regulation lookup rejected because the regulation was not found by name.");
             throw exception;
-
         }
 
         public async Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
@@ -162,7 +159,7 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
             return await SharedGetApplyPagingRepository.ApplyPaging(
                 regulations, pageSize, regulation => regulation.RegulationId, cancellationToken);
         }
-        
+
         public async Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByRangeFineAmountAsync(Guid? cursor, int pageSize, decimal minFineAmount, decimal maxFineAmount,
             CancellationToken cancellationToken = default)
         {
@@ -310,6 +307,5 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
         }
 
         #endregion
-
     }
 }

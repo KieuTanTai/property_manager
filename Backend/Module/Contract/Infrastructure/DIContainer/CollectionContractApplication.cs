@@ -1,7 +1,9 @@
 using Contract.Application;
+using Contract.Infrastructure.Services;
 using Contract.Interfaces.IApplication;
 using Contract.Interfaces.Services;
-using Contract.Infrastructure.Services;
+using Contract.Presentation.Record.Contact;
+using Shared.DIContainer;
 
 namespace Contract.Infrastructure.DIContainer
 {
@@ -9,6 +11,8 @@ namespace Contract.Infrastructure.DIContainer
     {
         public static IServiceCollection AddContractApplicationCollection(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddSharedIdentityHelper<SendConsultationRequest>(configuration);
+
             services.AddScoped<IRegulationApplication, RegulationApplication>();
             services.AddScoped<IContractApplication, ContractApplication>();
             services.AddScoped<IInvoiceApplication, InvoiceApplication>();
@@ -17,6 +21,6 @@ namespace Contract.Infrastructure.DIContainer
             services.AddScoped<IContactInfoApplication, ContactInfoApplication>();
             services.AddScoped<IEmailSender, SmtpEmailSender>();
             return services;
-        }   
+        }
     }
 }

@@ -14,11 +14,27 @@ namespace TicketAndNotification.Presentation.Controller
         ILogPool logPool) : ControllerBase
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Presentation/Controller";
 
-        private readonly INotificationRecipientApplication _recipientApplication = recipientApplication;
-        private readonly ILogger<NotificationRecipientController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<NotificationRecipientController> _logger = logger;
+
+        private readonly INotificationRecipientApplication _recipientApplication = recipientApplication;
+
+        private IActionResult HandleError(Exception exception, string message)
+        {
+            if (exception is OperationCanceledException)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer,
+                    "Notification recipient request was canceled.");
+                return BadRequest("Request was canceled.");
+            }
+
+            _logger.LogLayerError(_logPool, Module, Layer, exception, message);
+            return BadRequest(exception.Message);
+        }
 
         #region GET
 
@@ -152,18 +168,5 @@ namespace TicketAndNotification.Presentation.Controller
         }
 
         #endregion
-
-        private IActionResult HandleError(Exception exception, string message)
-        {
-            if (exception is OperationCanceledException)
-            {
-                _logger.LogLayerDebug(_logPool, Module, Layer,
-                    "Notification recipient request was canceled.");
-                return BadRequest("Request was canceled.");
-            }
-
-            _logger.LogLayerError(_logPool, Module, Layer, exception, message);
-            return BadRequest(exception.Message);
-        }
     }
 }

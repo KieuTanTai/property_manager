@@ -1,7 +1,7 @@
-import { chmodSync, existsSync, mkdirSync } from "node:fs"
-import { execFileSync } from "node:child_process"
+import {chmodSync, existsSync, mkdirSync} from "node:fs"
+import {execFileSync} from "node:child_process"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
+import {fileURLToPath} from "node:url"
 
 const frontendDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const hasCustomCertificate = Boolean(process.env.HTTPS_CERT_FILE)
@@ -19,8 +19,8 @@ const keyPath = hasCustomKey
     : path.join(frontendDirectory, ".cert", "localhost-key.pem")
 
 if (!existsSync(certificatePath) || !existsSync(keyPath)) {
-    mkdirSync(path.dirname(certificatePath), { recursive: true })
-    mkdirSync(path.dirname(keyPath), { recursive: true })
+    mkdirSync(path.dirname(certificatePath), {recursive: true})
+    mkdirSync(path.dirname(keyPath), {recursive: true})
 
     execFileSync("openssl", [
         "req",
@@ -39,7 +39,7 @@ if (!existsSync(certificatePath) || !existsSync(keyPath)) {
         "/CN=localhost",
         "-addext",
         "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1",
-    ], { stdio: "inherit" })
+    ], {stdio: "inherit"})
 
     chmodSync(keyPath, 0o600)
 }

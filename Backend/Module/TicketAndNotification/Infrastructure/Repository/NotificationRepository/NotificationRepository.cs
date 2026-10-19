@@ -13,11 +13,14 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
         ILogPool logPool) : INotificationRepository
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Infrastructure/Repository/NotificationRepository";
 
         private readonly TicketAndNotificationDbContext _db = context;
-        private readonly ILogger<NotificationRepository> _logger = logger;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<NotificationRepository> _logger = logger;
 
         #region POST
 

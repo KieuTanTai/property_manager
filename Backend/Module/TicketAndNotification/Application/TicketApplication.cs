@@ -14,48 +14,66 @@ namespace TicketAndNotification.Application
         ILogPool logPool) : ITicketApplication
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Application";
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly ITicketRepository _ticketRepository = ticketRepository;
-        private readonly ILogger<TicketApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<TicketApplication> _logger = logger;
+
+        private readonly ITicketRepository _ticketRepository = ticketRepository;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         #region GET
 
         public Task<IReadOnlyList<TicketModel>> GetAllAsync(
-            CancellationToken cancellationToken = default) =>
-            _ticketRepository.GetAllAsync(cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketRepository.GetAllAsync(cancellationToken);
+        }
 
         public Task<TicketModel?> GetByIdAsync(
             Guid ticketId,
-            CancellationToken cancellationToken = default) =>
-            _ticketRepository.GetByIdAsync(ticketId, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketRepository.GetByIdAsync(ticketId, cancellationToken);
+        }
 
         public Task<IReadOnlyList<TicketModel>> GetByIdsAsync(
             IEnumerable<Guid> ticketIds,
-            CancellationToken cancellationToken = default) =>
-            _ticketRepository.GetByIdsAsync(ticketIds, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketRepository.GetByIdsAsync(ticketIds, cancellationToken);
+        }
 
         public Task<IReadOnlyList<TicketModel>> GetByAccountIdAsync(
             Guid accountId,
-            CancellationToken cancellationToken = default) =>
-            _ticketRepository.GetByAccountIdAsync(accountId, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketRepository.GetByAccountIdAsync(accountId, cancellationToken);
+        }
 
         public Task<IReadOnlyList<TicketModel>> GetByTypeAsync(
             ETicketType type,
-            CancellationToken cancellationToken = default) =>
-            _ticketRepository.GetByTypeAsync(type, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketRepository.GetByTypeAsync(type, cancellationToken);
+        }
 
         public Task<IReadOnlyList<TicketModel>> GetByIsResolvedAsync(
             bool isResolved,
-            CancellationToken cancellationToken = default) =>
-            _ticketRepository.GetByIsResolvedAsync(isResolved, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketRepository.GetByIsResolvedAsync(isResolved, cancellationToken);
+        }
 
         public Task<string?> GetContentByIdAsync(
             Guid ticketId,
-            CancellationToken cancellationToken = default) =>
-            _ticketRepository.GetContentByIdAsync(ticketId, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketRepository.GetContentByIdAsync(ticketId, cancellationToken);
+        }
 
         #endregion
 
@@ -99,7 +117,7 @@ namespace TicketAndNotification.Application
             TicketModel ticket,
             CancellationToken cancellationToken = default)
         {
-            ThrowIfInvalidTicketModel(ticket, requireId: true);
+            ThrowIfInvalidTicketModel(ticket, true);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket update operation started.");
             await _ticketRepository.UpdateAsync(ticket, cancellationToken);
@@ -114,7 +132,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var ticketModels = RequireItems(tickets, nameof(tickets));
-            ticketModels.ForEach(ticketModel => ThrowIfInvalidTicketModel(ticketModel, requireId: true));
+            ticketModels.ForEach(ticketModel => ThrowIfInvalidTicketModel(ticketModel, true));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket range update operation started.");
             _ticketRepository.UpdateRange(ticketModels, cancellationToken);
@@ -143,7 +161,6 @@ namespace TicketAndNotification.Application
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 $"Ticket operation failed to {operation}.");
             throw exception;
-
         }
 
         private List<TicketModel> RequireItems(
@@ -160,20 +177,27 @@ namespace TicketAndNotification.Application
             _logger.LogLayerWarning(_logPool, Module, Layer,
                 "Ticket batch operation rejected because the collection is empty.");
             throw exception;
-
         }
 
         private static void ThrowIfInvalidTicketModel(TicketModel ticket, bool requireId = false)
         {
             ArgumentNullException.ThrowIfNull(ticket);
             if (requireId && ticket.TicketId == Guid.Empty)
+            {
                 throw new ArgumentException("Ticket id is required.", nameof(ticket));
+            }
             if (ticket.TicketAccountId == Guid.Empty)
+            {
                 throw new ArgumentException("Ticket account id is required.", nameof(ticket));
+            }
             if (string.IsNullOrWhiteSpace(ticket.TicketContent) || ticket.TicketContent.Length > 255)
+            {
                 throw new ArgumentException("Ticket content is required and must not exceed 255 characters.", nameof(ticket));
+            }
             if (!Enum.IsDefined(ticket.TicketType))
+            {
                 throw new ArgumentException("Ticket type is invalid.", nameof(ticket));
+            }
         }
 
         #endregion

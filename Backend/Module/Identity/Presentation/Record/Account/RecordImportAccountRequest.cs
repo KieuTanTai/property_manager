@@ -8,5 +8,5 @@ namespace Identity.Presentation.Record.Account
         IEnumerable<AccountRoleModel> AccountRoles,
         IEnumerable<UserProfileModel>? UserProfiles,
         IEnumerable<AccountAdditionalPermissionModel>? AccountAdditionalPermissions
-        );
+    );
 }

@@ -9,8 +9,10 @@ namespace TicketAndNotification.Infrastructure.SignalR
     {
         public const string Route = "/hubs/notifications";
 
-        public static string GetAccountGroupName(Guid accountId) =>
-            $"account:{accountId:D}";
+        public static string GetAccountGroupName(Guid accountId)
+        {
+            return $"account:{accountId:D}";
+        }
 
         public override async Task OnConnectedAsync()
         {

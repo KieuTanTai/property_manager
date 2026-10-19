@@ -10,6 +10,5 @@ namespace Contract.Interfaces.IRepository
 
         Task<IReadOnlyList<InvoiceDetailModel>> GetByPremiseIdAsync(Guid premiseId,
             CancellationToken cancellationToken = default);
-        
     }
 }

@@ -5,8 +5,8 @@ using Identity.Presentation.Record.Authorization;
 using Identity.Utils.Enum;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
-using Shared.Presentation.Controller;
 using Shared.ModelHelper;
+using Shared.Presentation.Controller;
 
 namespace Identity.Presentation.Controller
 {

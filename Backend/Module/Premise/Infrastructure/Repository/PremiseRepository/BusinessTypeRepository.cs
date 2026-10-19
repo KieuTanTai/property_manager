@@ -138,7 +138,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Business type staged for update.");
         }
-        
+
         public void UpdateRange(IEnumerable<BusinessTypeModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing business type range update.");

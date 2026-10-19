@@ -1,4 +1,5 @@
 using Identity.Models.Account;
+using Identity.Utils.Enum;
 using Shared.Interfaces;
 using Shared.Persistence.Record;
 
@@ -20,5 +21,8 @@ namespace Identity.Interfaces.IRepository
 
         Task<AccountModel?> GetAccountAndNavigationByEmailAsync(string email, bool isGetRole = true, bool isGetAdditionalPermission = true, bool isGetProfile = false,
             CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<AccountModel>> GetAllAccountsByRoleCodeAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default);
+
     }
 }

@@ -1,28 +1,28 @@
-import { defineConfig } from "vite"
+import {defineConfig} from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
+import {fileURLToPath} from "node:url"
 
 const frontendDirectory = path.dirname(fileURLToPath(import.meta.url))
 const certificatePath = process.env.HTTPS_CERT_FILE
-  ? path.resolve(process.env.HTTPS_CERT_FILE)
-  : path.join(frontendDirectory, ".cert", "localhost.pem")
+    ? path.resolve(process.env.HTTPS_CERT_FILE)
+    : path.join(frontendDirectory, ".cert", "localhost.pem")
 const keyPath = process.env.HTTPS_KEY_FILE
-  ? path.resolve(process.env.HTTPS_KEY_FILE)
-  : path.join(frontendDirectory, ".cert", "localhost-key.pem")
+    ? path.resolve(process.env.HTTPS_KEY_FILE)
+    : path.join(frontendDirectory, ".cert", "localhost-key.pem")
 
 const apiProxyTarget = process.env.IDENTITY_API_PROXY_TARGET || "https://localhost:7048"
 
-export default defineConfig(({ mode, command }) => {
-  const emitSourcemaps = mode === "development"
-  const https = command === "build"
-    ? undefined
-    : {
-        cert: fs.readFileSync(certificatePath),
-        key: fs.readFileSync(keyPath),
-      }
+export default defineConfig(({mode, command}) => {
+    const emitSourcemaps = mode === "development"
+    const https = command === "build"
+        ? undefined
+        : {
+            cert: fs.readFileSync(certificatePath),
+            key: fs.readFileSync(keyPath),
+        }
 
   return {
     base: "/",

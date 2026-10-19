@@ -1,0 +1,10 @@
+{
+  "MaxPasswordLength": 50,
+  "MinPasswordLength": 6,
+  "RequireUppercase": true,
+  "RequireLowercase": true,
+  "RequireDigit": true,
+  "RequiredSpecialCharacter": true,
+  "RegexForEmail": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
+  "RegexForPhoneNumber": "^0[235789]\\d{8}$"
+}

@@ -24,7 +24,7 @@ import { LocationsTab } from "../premises/LocationsTab"
 import { PremisesSubTabs } from "../premises/PremisesSubTabs"
 import { PremisesTab } from "../premises/PremisesTab"
 import { ImageAttachments } from "./ImageAttachments"
-import { premiseMediaApi } from "@/api/premiseMedia"
+import { mediaApi } from "@/api/media"
 import { premiseApi, type PremiseRequest } from "@/api/premise"
 import type { LocationModel, PremiseMediaModel, PremiseModel } from "../premises/types"
 
@@ -204,7 +204,6 @@ export function PremisesModule() {
         
         if (!isActive) return
         const activeLocations = locationModels
-          .filter((location) => location.locationIsActive !== false)
           .map(toLocation)
         console.log("location model: "+ locationModels);
         setLocations(activeLocations);
@@ -289,7 +288,7 @@ export function PremisesModule() {
       setModal(null)
       setIsUploadingPremiseImages(premiseImages.length > 0)
       for (const file of premiseImages) {
-        const imageUrl = await premiseMediaApi.uploadImage(file)
+        const imageUrl = await mediaApi.uploadImage(file, "premise")
         const image = await premiseApi.addImage(created.premiseId, imageUrl)
         setPremiseMedia((current) => [...current, toPremiseMedia(image)])
       }

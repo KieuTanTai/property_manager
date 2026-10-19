@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using ContractStatus = global::Contract.Utils.Enum.EContractStatus;
+using ContractStatus=Contract.Utils.Enum.EContractStatus;
 
 namespace Contract.Presentation.Record.Contract
 {

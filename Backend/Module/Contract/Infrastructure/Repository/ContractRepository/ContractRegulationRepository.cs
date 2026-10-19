@@ -61,7 +61,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             return await _db.ContractRegulations.AsNoTracking()
                 .FirstOrDefaultAsync(
                     association => association.ContractId == contractId
-                                  && association.RegulationId == regulationId,
+                                   && association.RegulationId == regulationId,
                     cancellationToken);
         }
 
@@ -72,7 +72,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 "Checking contract regulation association existence.");
             return await _db.ContractRegulations.AnyAsync(
                 association => association.ContractId == contractId
-                              && association.RegulationId == regulationId,
+                               && association.RegulationId == regulationId,
                 cancellationToken);
         }
 
@@ -94,7 +94,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                     "Contract regulation association creation rejected because an id is missing.");
                 throw exception;
             }
-            
+
             var existedAssociation = await GetByIdsAsync(
                 entity.ContractId, entity.RegulationId, cancellationToken);
             if (existedAssociation is not null)
@@ -206,6 +206,5 @@ namespace Contract.Infrastructure.Repository.ContractRepository
         }
 
         #endregion
-
     }
 }

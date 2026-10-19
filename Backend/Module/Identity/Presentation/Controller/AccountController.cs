@@ -3,10 +3,13 @@ using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
 using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
+using Identity.Presentation.Record.Profile;
+using Identity.Utils.Enum;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Interfaces;
 using Shared.Logging;
-using Shared.Presentation.Controller;
 using Shared.Persistence.Record.Auth;
+using Shared.Presentation.Controller;
 
 namespace Identity.Presentation.Controller
 {
@@ -14,21 +17,23 @@ namespace Identity.Presentation.Controller
     [Route("api/[controller]")]
     public class AccountController(
         IAccountApplication accountApplication,
-        IAccountHelper helper,
+        IIdentityHelper<AccountModel> helper,
         IApiHelper apiHelper,
         ILogger<AccountController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
+        private static readonly string SessionInstanceId = Guid.NewGuid().ToString("N");
+
         private readonly IAccountApplication _accountApplication = accountApplication;
 
         private readonly IApiHelper _apiHelper = apiHelper;
 
-        private readonly IAccountHelper _helper = helper;
+        private readonly IIdentityHelper<AccountModel> _helper = helper;
 
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<AccountController> _logger = logger;
-        
+
         #region PRIVATE
 
         private static List<RecordClaimResponse> CreateClaims(RecordAuthResponse account)
@@ -79,6 +84,36 @@ namespace Identity.Presentation.Controller
             {
                 _logger.LogLayerError(_logPool, Module, Layer, ex, "Account analytics request failed.");
                 return BadRequest($"An error occurred \n {ex.Message}");
+            }
+        }
+
+        [RequireHttps]
+        [HttpGet("role")]
+        public async Task<IActionResult> GetAllAccountsByRoleCodeAsync(
+            [FromQuery] ESystemRoleCode roleCode,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code request received.");
+            try
+            {
+                var result = await _accountApplication.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
+                if (result.Count == 0) return NotFound("No accounts found.");
+
+                var accounts = result.Select(account => new RecordAccountProfileOption(
+                    account.AccountId,
+                    account.AccountEmail,
+                    account.UserProfile is null ? null : _apiHelper.MappingProfileResult(account.UserProfile)));
+                return Ok(accounts);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code request was canceled.");
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Get all accounts by role code request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
             }
         }
 
@@ -180,11 +215,23 @@ namespace Identity.Presentation.Controller
             try
             {
                 var result = await _accountApplication.LoginAsync(requestDto.Email, requestDto.Password, cancellationToken);
-                var account = _apiHelper.MappingAuthResult(result);
-                var profile = result.UserProfile is null
+                RecordProfileResponse? profile = null;
+                RecordAuthResponse? account = null;
+                
+                var threadMappingAccount = new Thread(() => {
+                    account = _apiHelper.MappingAuthResult(result);
+                });
+                var threadMappingProfile = new Thread(() => { profile = result.UserProfile is null
                     ? null
-                    : _apiHelper.MappingProfileResult(result.UserProfile);
-                var claims = CreateClaims(account);
+                    : _apiHelper.MappingProfileResult(result.UserProfile); });
+
+                threadMappingAccount.Start();
+                threadMappingProfile.Start();
+
+                threadMappingAccount.Join();
+                threadMappingProfile.Join();
+
+                var claims = CreateClaims(account ?? throw new InvalidOperationException("Account mapping failed."));
                 return Ok(new RecordLoginResponse(account, profile, claims));
             }
             catch (OperationCanceledException ex)
@@ -197,6 +244,13 @@ namespace Identity.Presentation.Controller
                 _logger.LogLayerError(_logPool, Module, Layer, ex, "Account login request failed.");
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
+        }
+
+        [HttpGet("session-instance")]
+        public IActionResult GetSessionInstance()
+        {
+            Response.Headers.CacheControl = "no-store";
+            return Ok(new { sessionInstanceId = SessionInstanceId });
         }
 
         /// ! NOTE: DON'T USE THIS ENDPOINT FOR LOGOUT, IT WILL CALL A NOT IMPLEMENTED METHOD ON APPLICATION LAYER
@@ -283,7 +337,7 @@ namespace Identity.Presentation.Controller
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
         }
-        
+
         [RequireHttps]
         [HttpPost("import")]
         public async Task<IActionResult> ImportAccountsAsync([FromBody] RecordImportAccountRequest requestDto, CancellationToken cancellationToken = default)
@@ -293,13 +347,13 @@ namespace Identity.Presentation.Controller
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no accounts were provided.");
                 return BadRequest("No accounts to import.");
             }
-            
+
             if (!requestDto.AccountRoles.Any())
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no account roles were provided.");
                 return BadRequest("No account roles to import.");
             }
-            
+
             try
             {
                 var result = await _accountApplication.ImportAsync(requestDto.Accounts, requestDto.AccountRoles, requestDto.AccountAdditionalPermissions, requestDto.UserProfiles, cancellationToken);
@@ -349,7 +403,7 @@ namespace Identity.Presentation.Controller
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
         }
-        
+
         #endregion
 
         #region DELETE

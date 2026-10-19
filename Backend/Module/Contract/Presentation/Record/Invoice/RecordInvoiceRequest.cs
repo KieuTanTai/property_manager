@@ -18,7 +18,7 @@ namespace Contract.Presentation.Record.Invoice
         [Required] DateTime DueDate,
         [Range(typeof(decimal), "0", "79228162514264337593543950335")] decimal? TotalAmount,
         EInvoiceStatus Status,
-        [Required, MinLength(1)] IReadOnlyCollection<RecordInvoiceDetailRequest> Details);
+        [Required] [MinLength(1)] IReadOnlyCollection<RecordInvoiceDetailRequest> Details);
 
     public sealed record RecordInvoiceUpdateRequest(
         [Required] Guid ContractId,

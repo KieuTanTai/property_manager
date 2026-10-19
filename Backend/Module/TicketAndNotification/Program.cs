@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Shared.Services;
 using TicketAndNotification.Infrastructure.DIContainer;
 using TicketAndNotification.Infrastructure.SignalR;
 
@@ -7,13 +6,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
-                     ["http://localhost:8443", "https://localhost:8443"];
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["http://localhost:8443", "https://localhost:8443"];
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-builder.Services.AddHttpClient<GoogleDriveImageStorage>();
 builder.Services.AddTicketAndNotificationRepositoryCollection(
     builder.Configuration, builder.Environment);
 builder.Services.AddTicketAndNotificationApplicationCollection();

@@ -18,7 +18,7 @@ namespace Contract.Models.Contact
             ContactInfoId = contactInfoId;
         }
 
-        public ContactInfoModel() { }
+        public ContactInfoModel() {}
 
         public Guid ContactInfoId { get; init; }
         public string ContactInfoEmail { get; private set; } = string.Empty;
@@ -30,24 +30,37 @@ namespace Contract.Models.Contact
 
         #region Setter
 
-        public void SetContactInfoEmail(string email) =>
+        public void SetContactInfoEmail(string email)
+        {
             ContactInfoEmail = ModelFieldGuard.Required(email, 255, nameof(email));
+        }
 
-        public void SetContactInfoPhone(string phone) =>
+        public void SetContactInfoPhone(string phone)
+        {
             ContactInfoPhone = ModelFieldGuard.Required(phone, 20, nameof(phone));
+        }
 
-        public void SetContactInfoAddress(string address) =>
+        public void SetContactInfoAddress(string address)
+        {
             ContactInfoAddress = ModelFieldGuard.Required(address, 255, nameof(address));
+        }
 
-        public void SetContactSocialLink(string? socialLink) =>
+        public void SetContactSocialLink(string? socialLink)
+        {
             ContactSocialLink = Optional(socialLink);
+        }
 
         private static string? Optional(string? value)
         {
             var trimmed = value?.Trim();
-            if (string.IsNullOrEmpty(trimmed)) return null;
+            if (string.IsNullOrEmpty(trimmed))
+            {
+                return null;
+            }
             if (trimmed.Length > 255)
+            {
                 throw new ArgumentOutOfRangeException(nameof(value), "Social link cannot exceed 255 characters.");
+            }
             return trimmed;
         }
 

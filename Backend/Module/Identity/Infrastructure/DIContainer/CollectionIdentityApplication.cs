@@ -5,6 +5,7 @@ using Identity.Models;
 using Identity.Models.Account;
 using Identity.Utils;
 using Microsoft.AspNetCore.Identity;
+using Shared.DIContainer;
 
 namespace Identity.Infrastructure.DIContainer
 {
@@ -14,8 +15,7 @@ namespace Identity.Infrastructure.DIContainer
         {
             #region CONFIG
 
-            var accountRules = new AccountRulesModel();
-            configuration.GetSection("AccountRules").Bind(accountRules);
+            services.AddSharedIdentityHelper<AccountModel>(configuration);
 
             services.Configure<PasswordHasherOptions>(options => {
                 options.CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3;
@@ -24,8 +24,6 @@ namespace Identity.Infrastructure.DIContainer
 
             #endregion
 
-            services.AddSingleton(accountRules);
-            services.AddSingleton<IAccountHelper, AccountHelper>();
             services.AddSingleton<IApiHelper, ApiHelper>();
             services.AddSingleton<IPasswordHasher<AccountModel>, PasswordHasher<AccountModel>>();
             services.AddScoped<IAuthorizationApplication, AuthorizationApplication>();

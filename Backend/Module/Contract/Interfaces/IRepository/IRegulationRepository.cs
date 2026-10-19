@@ -1,4 +1,3 @@
-using Contract.Models.Contract;
 using Contract.Models.Regulation;
 using Shared.Interfaces;
 using Shared.Persistence.Record;
@@ -15,16 +14,16 @@ namespace Contract.Interfaces.IRepository
 
         Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize,
             bool isActive, CancellationToken cancellationToken = default);
-        
+
         Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByRangeFineAmountAsync(Guid? cursor, int pageSize, decimal minFineAmount, decimal maxFineAmount,
             CancellationToken cancellationToken = default);
 
         Task<RecordBaseCursorPage<RegulationModel>> GetApplyPagingByRangeCreatedAtAsync(Guid? cursor, int pageSize, DateTime minCreatedAt, DateTime maxCreatedAt,
             CancellationToken cancellationToken = default);
- 
+
         Task<RegulationModel> GetRegulationByNameAsync(string regulationName,
-            CancellationToken cancellationToken = default); 
-        
+            CancellationToken cancellationToken = default);
+
         Task<RegulationModel> GetTrackedRegulationByNameAsync(string regulationName,
             CancellationToken cancellationToken = default);
     }

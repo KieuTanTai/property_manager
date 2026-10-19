@@ -8,7 +8,7 @@ namespace TicketAndNotification.Interfaces.Repository
         Task<IReadOnlyList<TicketMediaModel>> GetByTicketIdAsync(
             Guid ticketId,
             CancellationToken cancellationToken = default);
-        
+
         Task DeleteByTicketIdAsync(Guid ticketId, CancellationToken cancellationToken = default);
     }
 }

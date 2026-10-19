@@ -15,40 +15,43 @@ namespace Shared.Services
         ILogger<GoogleDriveImageStorage> logger,
         ILogPool logPool,
         IHostEnvironment environment
-        )
+    )
     {
         private const string LogLayer = "DriveUploader";
-        private readonly HttpClient _httpClient = httpClient;
+
         private readonly IConfiguration _configuration = configuration;
-        private readonly ILogger<GoogleDriveImageStorage> _logger = logger;
+
+        private readonly HttpClient _httpClient = httpClient;
+
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<GoogleDriveImageStorage> _logger = logger;
+
         private readonly string _module = environment.ApplicationName;
+
+
+        #region UPLOAD
 
         public async Task<string> UploadAsync(
             IFormFile file,
+            string folderId,
             CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(folderId))
+            {
+                throw new InvalidOperationException("Google Drive upload folder is not configured for this media purpose.");
+            }
+
             _logger.LogLayerInformation(_logPool, _module, LogLayer,
                 $"Google Drive upload started. FileName={Path.GetFileName(file.FileName)}, ContentType={file.ContentType}, Size={file.Length} bytes.");
             try
             {
-                var folderId = _configuration["GoogleDrive:FolderId"];
-                var clientId = _configuration["GoogleDrive:OAuth:ClientId"];
-                var clientSecret = _configuration["GoogleDrive:OAuth:ClientSecret"];
-                var refreshToken = _configuration["GoogleDrive:OAuth:RefreshToken"];
-                if (string.IsNullOrWhiteSpace(folderId) ||
-                    string.IsNullOrWhiteSpace(clientId) ||
-                    string.IsNullOrWhiteSpace(clientSecret) ||
-                    string.IsNullOrWhiteSpace(refreshToken))
-                {
-                    throw new InvalidOperationException(
-                        "Google Drive OAuth is not configured. Set GoogleDrive__FolderId, GoogleDrive__OAuth__ClientId, GoogleDrive__OAuth__ClientSecret, and GoogleDrive__OAuth__RefreshToken for the API using this service.");
-                }
-
+                var (clientId, clientSecret, refreshToken) = GetOAuthConfig();
                 var accessToken = await GetAccessTokenAsync(clientId, clientSecret, refreshToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, "Google OAuth access token acquired.");
                 var fileId = await UploadFileAsync(file, folderId, accessToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, $"Image uploaded to Google Drive. FileId={fileId}.");
+                
                 await MakeFileReadableAsync(fileId, accessToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, $"Google Drive image permission created. FileId={fileId}.");
                 return $"https://lh3.googleusercontent.com/d/{Uri.EscapeDataString(fileId)}?authuser=0";
@@ -72,6 +75,51 @@ namespace Shared.Services
             }
         }
 
+        public async Task<(byte[] Content, string ContentType)> DownloadAsync(
+            string fileId,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(fileId))
+            {
+                throw new ArgumentException("A Google Drive file ID is required.", nameof(fileId));
+            }
+
+            var (clientId, clientSecret, refreshToken) = GetOAuthConfig();
+            var accessToken = await GetAccessTokenAsync(clientId, clientSecret, refreshToken, cancellationToken);
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"https://www.googleapis.com/drive/v3/files/{Uri.EscapeDataString(fileId)}?alt=media");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException(
+                    $"Google Drive could not read the image (HTTP {(int)response.StatusCode}): {responseBody}");
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            return (await response.Content.ReadAsByteArrayAsync(cancellationToken), contentType);
+        }
+
+        #endregion
+
+        #region PRIVATE
+
+        private Tuple<string, string, string> GetOAuthConfig()
+        {
+            var clientId = _configuration["GoogleDrive:OAuth:ClientId"];
+            var clientSecret = _configuration["GoogleDrive:OAuth:ClientSecret"];
+            var refreshToken = _configuration["GoogleDrive:OAuth:RefreshToken"];
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret) || string.IsNullOrWhiteSpace(refreshToken))
+            {
+                throw new InvalidOperationException(
+                    "Google Drive OAuth is not configured. Set GoogleDrive__OAuth__ClientId, GoogleDrive__OAuth__ClientSecret, and GoogleDrive__OAuth__RefreshToken for the Gateway.");
+            }
+
+            return Tuple.Create(clientId, clientSecret, refreshToken);
+        }
+        
         private async Task<string> GetAccessTokenAsync(
             string clientId,
             string clientSecret,
@@ -85,7 +133,7 @@ namespace Shared.Services
                     ["grant_type"] = "refresh_token",
                     ["client_id"] = clientId,
                     ["client_secret"] = clientSecret,
-                    ["refresh_token"] = refreshToken,
+                    ["refresh_token"] = refreshToken
                 }),
                 cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -112,14 +160,14 @@ namespace Shared.Services
                 "image/png" => ".png",
                 "image/webp" => ".webp",
                 "image/gif" => ".gif",
-                _ => throw new InvalidOperationException("The image format is not supported."),
+                _ => throw new InvalidOperationException("The image format is not supported.")
             };
             var fileName = $"image-{Guid.NewGuid():N}{extension}";
             var metadata = new Dictionary<string, object>
             {
                 ["name"] = fileName,
                 ["mimeType"] = file.ContentType,
-                ["parents"] = new[] { folderId },
+                ["parents"] = new[] { folderId }
             };
             using var content = new MultipartContent("related");
             var metadataContent = new StringContent(JsonSerializer.Serialize(metadata), Encoding.UTF8);
@@ -164,5 +212,6 @@ namespace Shared.Services
             }
         }
 
+        #endregion
     }
 }

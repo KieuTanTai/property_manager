@@ -13,33 +13,45 @@ namespace TicketAndNotification.Application
         ILogPool logPool) : ITicketMediaApplication
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Application";
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly ITicketMediaRepository _ticketMediaRepository = ticketMediaRepository;
-        private readonly ILogger<TicketMediaApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<TicketMediaApplication> _logger = logger;
+
+        private readonly ITicketMediaRepository _ticketMediaRepository = ticketMediaRepository;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         #region GET
 
         public Task<IReadOnlyList<TicketMediaModel>> GetAllAsync(
-            CancellationToken cancellationToken = default) =>
-            _ticketMediaRepository.GetAllAsync(cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketMediaRepository.GetAllAsync(cancellationToken);
+        }
 
         public Task<TicketMediaModel?> GetByIdAsync(
             int ticketMediaId,
-            CancellationToken cancellationToken = default) =>
-            _ticketMediaRepository.GetByIdAsync(ticketMediaId, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketMediaRepository.GetByIdAsync(ticketMediaId, cancellationToken);
+        }
 
         public Task<IReadOnlyList<TicketMediaModel>> GetByIdsAsync(
             IEnumerable<int> ticketMediaIds,
-            CancellationToken cancellationToken = default) =>
-            _ticketMediaRepository.GetByIdsAsync(ticketMediaIds, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketMediaRepository.GetByIdsAsync(ticketMediaIds, cancellationToken);
+        }
 
         public Task<IReadOnlyList<TicketMediaModel>> GetByTicketIdAsync(
             Guid ticketId,
-            CancellationToken cancellationToken = default) =>
-            _ticketMediaRepository.GetByTicketIdAsync(ticketId, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _ticketMediaRepository.GetByTicketIdAsync(ticketId, cancellationToken);
+        }
 
         #endregion
 
@@ -83,7 +95,7 @@ namespace TicketAndNotification.Application
             TicketMediaModel ticketMedia,
             CancellationToken cancellationToken = default)
         {
-            ThrowIfInvalidTicketMediaModel(ticketMedia, requireId: true);
+            ThrowIfInvalidTicketMediaModel(ticketMedia, true);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket media update operation started.");
             await _ticketMediaRepository.UpdateAsync(ticketMedia, cancellationToken);
@@ -98,7 +110,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var ticketMediaModels = RequireItems(ticketMedias, nameof(ticketMedias));
-            ticketMediaModels.ForEach(ticketMediaModel => ThrowIfInvalidTicketMediaModel(ticketMediaModel, requireId: true));
+            ticketMediaModels.ForEach(ticketMediaModel => ThrowIfInvalidTicketMediaModel(ticketMediaModel, true));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Ticket media range update operation started.");
             _ticketMediaRepository.UpdateRange(ticketMediaModels, cancellationToken);
@@ -127,7 +139,6 @@ namespace TicketAndNotification.Application
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 $"Ticket media operation failed to {operation}.");
             throw exception;
-
         }
 
         private List<TicketMediaModel> RequireItems(
@@ -144,18 +155,23 @@ namespace TicketAndNotification.Application
             _logger.LogLayerWarning(_logPool, Module, Layer,
                 "Ticket media batch operation rejected because the collection is empty.");
             throw exception;
-
         }
 
         private static void ThrowIfInvalidTicketMediaModel(TicketMediaModel ticketMedia, bool requireId = false)
         {
             ArgumentNullException.ThrowIfNull(ticketMedia);
             if (requireId && ticketMedia.TicketMediaId <= 0)
+            {
                 throw new ArgumentException("Ticket media id is required.", nameof(ticketMedia));
+            }
             if (ticketMedia.TicketMediaTicketId == Guid.Empty)
+            {
                 throw new ArgumentException("Ticket id is required.", nameof(ticketMedia));
+            }
             if (string.IsNullOrWhiteSpace(ticketMedia.TicketMediaImageUrl) || ticketMedia.TicketMediaImageUrl.Length > 255)
+            {
                 throw new ArgumentException("Ticket media image URL is required and must not exceed 255 characters.", nameof(ticketMedia));
+            }
         }
 
         #endregion

@@ -1,6 +1,7 @@
 using Contract.Models.Invoice;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Shared.Enum;
 
 namespace Contract.Infrastructure.Persistence.Configurations
 {
@@ -25,7 +26,9 @@ namespace Contract.Infrastructure.Persistence.Configurations
 
             entity.Property(receipt => receipt.ReceiptPaymentMethod)
                 .HasColumnName("receipt_payment_method")
-                .HasConversion<string>()
+                .HasConversion(
+                    method => SnakeCaseEnum.ToSnakeCase(method),
+                    method => SnakeCaseEnum.FromSnakeCase<EReceiptPaymentMethod>(method))
                 .HasMaxLength(10)
                 .HasDefaultValueSql("'cash'")
                 .IsRequired();

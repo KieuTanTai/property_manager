@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
-using Shared.Services;
 using TicketAndNotification.Interfaces.Application;
 using TicketAndNotification.Models.Ticket;
 using TicketAndNotification.Presentation.Record.TicketMedia;
@@ -11,17 +10,31 @@ namespace TicketAndNotification.Presentation.Controller
     [Route("api/[controller]")]
     public class TicketMediaController(
         ITicketMediaApplication ticketMediaApplication,
-        GoogleDriveImageStorage googleDriveImageStorage,
         ILogger<TicketMediaController> logger,
         ILogPool logPool) : ControllerBase
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Presentation/Controller";
 
-        private readonly ITicketMediaApplication _ticketMediaApplication = ticketMediaApplication;
-        private readonly GoogleDriveImageStorage _googleDriveImageStorage = googleDriveImageStorage;
-        private readonly ILogger<TicketMediaController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<TicketMediaController> _logger = logger;
+
+        private readonly ITicketMediaApplication _ticketMediaApplication = ticketMediaApplication;
+
+        private IActionResult HandleError(Exception exception, string message)
+        {
+            if (exception is OperationCanceledException)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer,
+                    "Ticket media request was canceled.");
+                return BadRequest("Request was canceled.");
+            }
+
+            _logger.LogLayerError(_logPool, Module, Layer, exception, message);
+            return BadRequest(exception.Message);
+        }
 
         #region GET
 
@@ -108,38 +121,6 @@ namespace TicketAndNotification.Presentation.Controller
         #endregion
 
         #region POST
-
-        [HttpPost("upload")]
-        [Consumes("multipart/form-data")]
-        [RequestSizeLimit(10 * 1024 * 1024 + 64 * 1024)]
-        public async Task<IActionResult> UploadImageAsync(
-            [FromForm] IFormFile? file,
-            CancellationToken cancellationToken = default)
-        {
-            if (file is null || file.Length == 0)
-            {
-                return BadRequest("Chọn ảnh trước khi tải lên.");
-            }
-
-            var allowedImageTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "image/jpeg", "image/png", "image/webp", "image/gif",
-            };
-            if (!allowedImageTypes.Contains(file.ContentType) || file.Length > 10 * 1024 * 1024)
-            {
-                return BadRequest("Ảnh phải là JPEG, PNG, WebP hoặc GIF và không vượt quá 10 MB.");
-            }
-
-            try
-            {
-                var imageUrl = await _googleDriveImageStorage.UploadAsync(file, cancellationToken);
-                return Ok(new { imageUrl });
-            }
-            catch (Exception exception)
-            {
-                return HandleError(exception, "Google Drive image upload failed.");
-            }
-        }
 
         [HttpPost]
         public async Task<IActionResult> AddAsync(
@@ -231,18 +212,5 @@ namespace TicketAndNotification.Presentation.Controller
         }
 
         #endregion
-
-        private IActionResult HandleError(Exception exception, string message)
-        {
-            if (exception is OperationCanceledException)
-            {
-                _logger.LogLayerDebug(_logPool, Module, Layer,
-                    "Ticket media request was canceled.");
-                return BadRequest("Request was canceled.");
-            }
-
-            _logger.LogLayerError(_logPool, Module, Layer, exception, message);
-            return BadRequest(exception.Message);
-        }
     }
 }

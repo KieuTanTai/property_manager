@@ -14,50 +14,68 @@ namespace TicketAndNotification.Application
         ILogPool logPool) : INotificationApplication
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Application";
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly INotificationRepository _notificationRepository = notificationRepository;
-        private readonly ILogger<NotificationApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<NotificationApplication> _logger = logger;
+
+        private readonly INotificationRepository _notificationRepository = notificationRepository;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         #region GET
 
         public Task<IReadOnlyList<NotificationModel>> GetAllAsync(
-            CancellationToken cancellationToken = default) =>
-            _notificationRepository.GetAllAsync(cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationRepository.GetAllAsync(cancellationToken);
+        }
 
         public Task<NotificationModel?> GetByIdAsync(
             Guid notificationId,
-            CancellationToken cancellationToken = default) =>
-            _notificationRepository.GetByIdAsync(notificationId, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationRepository.GetByIdAsync(notificationId, cancellationToken);
+        }
 
         public Task<IReadOnlyList<NotificationModel>> GetByIdsAsync(
             IEnumerable<Guid> notificationIds,
-            CancellationToken cancellationToken = default) =>
-            _notificationRepository.GetByIdsAsync(notificationIds, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationRepository.GetByIdsAsync(notificationIds, cancellationToken);
+        }
 
         public Task<IReadOnlyList<NotificationModel>> GetBySenderAccountIdAsync(
             Guid senderAccountId,
-            CancellationToken cancellationToken = default) =>
-            _notificationRepository.GetBySenderAccountIdAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationRepository.GetBySenderAccountIdAsync(
                 senderAccountId, cancellationToken);
+        }
 
         public Task<IReadOnlyList<NotificationModel>> GetByRecipientAccountIdAsync(
             Guid recipientAccountId,
-            CancellationToken cancellationToken = default) =>
-            _notificationRepository.GetByRecipientAccountIdAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationRepository.GetByRecipientAccountIdAsync(
                 recipientAccountId, cancellationToken);
+        }
 
         public Task<IReadOnlyList<NotificationModel>> GetByTypeAsync(
             ENotificationType type,
-            CancellationToken cancellationToken = default) =>
-            _notificationRepository.GetByTypeAsync(type, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationRepository.GetByTypeAsync(type, cancellationToken);
+        }
 
         public Task<IReadOnlyList<NotificationModel>> GetByIsReadAsync(
             bool isRead,
-            CancellationToken cancellationToken = default) =>
-            _notificationRepository.GetByIsReadAsync(isRead, cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            return _notificationRepository.GetByIsReadAsync(isRead, cancellationToken);
+        }
 
         #endregion
 
@@ -102,7 +120,7 @@ namespace TicketAndNotification.Application
             NotificationModel notification,
             CancellationToken cancellationToken = default)
         {
-            ThrowIfInvalidNotificationModel(notification, requireId: true);
+            ThrowIfInvalidNotificationModel(notification, true);
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification update operation started.");
             await _notificationRepository.UpdateAsync(notification, cancellationToken);
@@ -117,7 +135,7 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken = default)
         {
             var notificationModels = RequireItems(notifications, nameof(notifications));
-            notificationModels.ForEach(notification => ThrowIfInvalidNotificationModel(notification, requireId: true));
+            notificationModels.ForEach(notification => ThrowIfInvalidNotificationModel(notification, true));
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification range update operation started.");
             _notificationRepository.UpdateRange(notificationModels, cancellationToken);
@@ -146,7 +164,6 @@ namespace TicketAndNotification.Application
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 $"Notification operation failed to {operation}.");
             throw exception;
-
         }
 
         private List<NotificationModel> RequireItems(
@@ -163,20 +180,27 @@ namespace TicketAndNotification.Application
             _logger.LogLayerWarning(_logPool, Module, Layer,
                 "Notification batch operation rejected because the collection is empty.");
             throw exception;
-
         }
 
         private static void ThrowIfInvalidNotificationModel(NotificationModel notification, bool requireId = false)
         {
             ArgumentNullException.ThrowIfNull(notification);
             if (requireId && notification.NotificationId == Guid.Empty)
+            {
                 throw new ArgumentException("Notification id is required.", nameof(notification));
+            }
             if (notification.NotificationSenderAccountId == Guid.Empty)
+            {
                 throw new ArgumentException("Notification sender account id is required.", nameof(notification));
+            }
             if (!Enum.IsDefined(notification.NotificationType))
+            {
                 throw new ArgumentException("Notification type is invalid.", nameof(notification));
+            }
             if (string.IsNullOrWhiteSpace(notification.NotificationContent) || notification.NotificationContent.Length > 255)
+            {
                 throw new ArgumentException("Notification content is required and must not exceed 255 characters.", nameof(notification));
+            }
         }
 
         #endregion

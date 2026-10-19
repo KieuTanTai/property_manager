@@ -24,6 +24,65 @@ namespace Contract.Infrastructure.Repository.ContractRepository
 
         private readonly ILogger<ContractRepository> _logger = logger;
 
+        #region DELETE
+
+        public async Task SoftDeleteAsync(Guid contractId, DateTime deletionDate,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing contract deletion.");
+
+            var existedContract = await GetTrackedByIdAsync(contractId, cancellationToken);
+
+            if (existedContract is null)
+            {
+                var exception = new InvalidOperationException(
+                    $"ContractModel not found! \n {contractId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Contract deletion rejected because the contract was not found.");
+                throw exception;
+            }
+            if (existedContract.ContractStatus == EContractStatus.Terminated || existedContract.ContractTerminationDate.HasValue)
+            {
+                var exception = new InvalidOperationException(
+                    $"ContractModel is already terminated! \n {contractId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Contract deletion rejected because the contract is already terminated.");
+                throw exception;
+            }
+            existedContract.SetContractTerminationDate(deletionDate);
+            existedContract.SetContractStatus(EContractStatus.Terminated);
+            _db.Contracts.Update(existedContract);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Contract staged for deletion.");
+        }
+
+        #endregion
+
+        #region PRIVATE
+
+        private IQueryable<ContractModel> GetIncludeQuery(bool isGetViolations, bool isGetInvoices, bool isGetRegulations)
+        {
+            var query = _db.Contracts.AsNoTracking().AsSplitQuery();
+
+            if (isGetViolations)
+            {
+                query = query.Include(contract => contract.ContractViolations);
+            }
+
+            if (isGetInvoices)
+            {
+                query = query.Include(contract => contract.ContractInvoices);
+            }
+
+            if (isGetRegulations)
+            {
+                query = query.Include(contract => contract.ContractRegulations);
+            }
+
+            return query;
+        }
+
+        #endregion
+
         #region GET
 
         public async Task<IReadOnlyList<ContractModel>> GetAllAsync(
@@ -115,7 +174,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
         }
 
         public async Task<RecordBaseCursorPage<ContractModel>> GetApplyPagingByStatusAsync(Guid? cursor,
-            int pageSize, bool isGetViolations, bool isGetInvoices, bool isGetRegulations, 
+            int pageSize, bool isGetViolations, bool isGetInvoices, bool isGetRegulations,
             EContractStatus status, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract page by status.");
@@ -155,7 +214,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             return await SharedGetApplyPagingRepository.ApplyPaging(
                 contracts, pageSize, contract => contract.ContractId, cancellationToken);
         }
-        
+
         #endregion
 
         #region POST
@@ -226,65 +285,6 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             _db.Contracts.UpdateRange(contractModels);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Contract range staged for update.");
-        }
-
-        #endregion
-
-        #region DELETE
-
-        public async Task SoftDeleteAsync(Guid contractId, DateTime deletionDate,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing contract deletion.");
-            
-            var existedContract = await GetTrackedByIdAsync(contractId, cancellationToken);
-
-            if (existedContract is null)
-            {
-                var exception = new InvalidOperationException(
-                    $"ContractModel not found! \n {contractId}");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Contract deletion rejected because the contract was not found.");
-                throw exception;
-            }
-            if (existedContract.ContractStatus == EContractStatus.Terminated || existedContract.ContractTerminationDate.HasValue)
-            {
-                var exception = new InvalidOperationException(
-                    $"ContractModel is already terminated! \n {contractId}");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Contract deletion rejected because the contract is already terminated.");
-                throw exception;
-            }
-            existedContract.SetContractTerminationDate(deletionDate);
-            existedContract.SetContractStatus(EContractStatus.Terminated);
-            _db.Contracts.Update(existedContract);
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Contract staged for deletion.");
-        }
-
-        #endregion
-
-        #region PRIVATE
-
-        private IQueryable<ContractModel> GetIncludeQuery(bool isGetViolations, bool isGetInvoices, bool isGetRegulations)
-        {
-            var query = _db.Contracts.AsNoTracking().AsSplitQuery();
-
-            if (isGetViolations)
-            {
-                query = query.Include(contract => contract.ContractViolations);
-            }
-
-            if (isGetInvoices)
-            {
-                query = query.Include(contract => contract.ContractInvoices);
-            }
-
-            if (isGetRegulations)
-            {
-                query = query.Include(contract => contract.ContractRegulations);
-            }
-
-            return query;
         }
 
         #endregion

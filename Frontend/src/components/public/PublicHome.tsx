@@ -1,11 +1,13 @@
-import React, {useEffect, useMemo, useState} from "react"
+import React, {useEffect, useMemo, useRef, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
-import {LOCATIONS, PREMISES, PREMISE_MEDIA} from "@/mocks/shared.ts"
+import {LOCATIONS, PREMISES} from "@/mocks/shared.ts"
+import {getMockPremiseData, subscribeToMockPremiseChanges} from "@/mocks/premises.ts"
 import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
 import {contractApi} from "@/api/contracts"
-import {Modal, PremiseStatusBadge, premiseStatusSurface} from "../modules/shared"
+import {Modal, PremiseStatusBadge, ProcessingForm, premiseStatusSurface} from "../modules/shared"
 import type {Premise} from "../premises/types"
 import {PublicHomeProps} from "@/components/public/types.ts";
+import {throttle} from "lodash";
 
 const PREMISE_STATUS_TABS = [
     {key: "all", label: "Tất cả"},
@@ -18,15 +20,60 @@ type PremiseStatusTab = (typeof PREMISE_STATUS_TABS)[number]["key"]
 
 const fallbackEmail = import.meta.env.VITE_PUBLIC_CONTACT_EMAIL?.trim() ?? ""
 const fallbackPhone = import.meta.env.VITE_PUBLIC_CONTACT_PHONE?.trim() ?? ""
+const GOOGLE_LOGIN_SESSION_KEY = "contact-google-login"
+const GOOGLE_LOGIN_SESSION_MS = 5 * 60 * 1000
+const GOOGLE_LOGIN_EXTENSION_STEP = 60 * 1000
+
+let googleIdentityScriptPromise: Promise<any> | null = null
+let googleIdentityInitialized = false
+let googleCredentialHandler: ((response: {credential?: string}) => void) | null = null
+
+function loadGoogleIdentity() {
+    const google = (window as any).google
+    if (google?.accounts?.id) return Promise.resolve(google)
+    if (!googleIdentityScriptPromise) {
+        googleIdentityScriptPromise = new Promise((resolve, reject) => {
+            const script = document.createElement("script")
+            script.src = "https://accounts.google.com/gsi/client"
+            script.async = true
+            script.defer = true
+            script.onload = () => resolve((window as any).google)
+            script.onerror = () => reject(new Error("Không tải được Google Identity Services."))
+            document.head.appendChild(script)
+        })
+    }
+    return googleIdentityScriptPromise
+}
 
 const formatArea = (value: string) => value.replace(/m²?$/i, " m²")
 
 export function PublicHome({onManager}: PublicHomeProps) {
     const [query, setQuery] = useState("")
+    const [mockPremiseData, setMockPremiseData] = useState(getMockPremiseData)
     const [statusTab, setStatusTab] = useState<PremiseStatusTab>("all")
     const [page, setPage] = useState(1)
     const [contactName, setContactName] = useState("")
     const [contactPhoneNumber, setContactPhoneNumber] = useState("")
+    const [contactSenderEmail, setContactSenderEmail] = useState(() => {
+        try {
+            const session = JSON.parse(sessionStorage.getItem(GOOGLE_LOGIN_SESSION_KEY) ?? "null")
+            return session?.expiresAt > Date.now() ? session.email as string : ""
+        } catch {
+            return ""
+        }
+    })
+    const [googleLoginExpiresAt, setGoogleLoginExpiresAt] = useState<number | null>(() => {
+        try {
+            const session = JSON.parse(sessionStorage.getItem(GOOGLE_LOGIN_SESSION_KEY) ?? "null")
+            return session?.expiresAt > Date.now() ? session.expiresAt as number : null
+        } catch {
+            return null
+        }
+    })
+    
+    const [logout, setLogout] = useState(false)
+    const [googleIdentityReady, setGoogleIdentityReady] = useState(false)
+    const googleButtonRef = useRef<HTMLDivElement>(null)
     const [contactPremiseId, setContactPremiseId] = useState("")
     const [contactMessage, setContactMessage] = useState("")
     const [contactError, setContactError] = useState<string | null>(null)
@@ -36,6 +83,80 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [selectedPremise, setSelectedPremise] = useState<Premise | null>(null)
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isImageFullscreen, setIsImageFullscreen] = useState(false)
+
+    useEffect(() => subscribeToMockPremiseChanges(() => setMockPremiseData(getMockPremiseData())), [])
+    const googleLoginMaxExpiresAt =
+        googleLoginExpiresAt ? googleLoginExpiresAt + GOOGLE_LOGIN_SESSION_MS : GOOGLE_LOGIN_SESSION_MS
+
+    useEffect(() => {
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
+        if (!clientId) return
+        let isCurrent = true
+        const handleGoogleCredential = (response: {credential?: string}) => {
+            try {
+                const payload = response.credential?.split(".")[1]
+                if (!payload) throw new Error("Google không trả về email.")
+                const claims = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")))
+                if (!claims.email || !claims.email_verified || !claims.email.toLowerCase().endsWith("@gmail.com")) {
+                    throw new Error("Vui lòng đăng nhập bằng tài khoản Gmail đã xác minh.")
+                }
+                setContactSenderEmail(claims.email)
+                const expiresAt = Date.now() + GOOGLE_LOGIN_SESSION_MS
+                sessionStorage.setItem(GOOGLE_LOGIN_SESSION_KEY, JSON.stringify({email: claims.email, expiresAt}))
+                setGoogleLoginExpiresAt(expiresAt)
+                setContactError(null)
+            } catch (cause) {
+                setContactError(cause instanceof Error ? cause.message : "Không đọc được email Google.")
+            }
+        }
+        googleCredentialHandler = handleGoogleCredential
+        void loadGoogleIdentity().then((google) => {
+            if (!isCurrent || !google?.accounts?.id) return
+            if (!googleIdentityInitialized) {
+                google.accounts.id.initialize({
+                    client_id: clientId,
+                    callback: (response: {credential?: string}) => googleCredentialHandler?.(response),
+                })
+                googleIdentityInitialized = true
+            }
+            if (googleButtonRef.current) {
+                googleButtonRef.current.replaceChildren()
+                google.accounts.id.renderButton(googleButtonRef.current, {
+                    type: "standard",
+                    theme: "outline",
+                    size: "large",
+                    text: "signin_with",
+                    shape: "rectangular",
+                    width: 360,
+                })
+            }
+            setGoogleIdentityReady(true)
+        }).catch((cause) => {
+            if (isCurrent) setContactError(cause instanceof Error ? cause.message : "Không tải được đăng nhập Google.")
+        })
+        return () => {
+            isCurrent = false
+            if (googleCredentialHandler === handleGoogleCredential) googleCredentialHandler = null
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!contactSenderEmail || !googleLoginExpiresAt) return
+        const remaining = googleLoginExpiresAt - Date.now()
+        if (remaining <= 0) {
+            sessionStorage.removeItem(GOOGLE_LOGIN_SESSION_KEY)
+            setContactSenderEmail("")
+            setGoogleLoginExpiresAt(null)
+            return
+        }
+        const timeout = window.setTimeout(() => {
+            sessionStorage.removeItem(GOOGLE_LOGIN_SESSION_KEY)
+            setContactSenderEmail("")
+            setGoogleLoginExpiresAt(null)
+            setContactError("Phiên đăng nhập Google đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.")
+        }, remaining)
+        return () => window.clearTimeout(timeout)
+    }, [contactSenderEmail, googleLoginExpiresAt])
 
     useEffect(() => {
         let isCurrent = true
@@ -47,7 +168,9 @@ export function PublicHome({onManager}: PublicHomeProps) {
         }).catch(() => {
             // Keep the contact sample visible when the Contract API is unavailable.
         })
-        return () => { isCurrent = false }
+        return () => {
+            isCurrent = false
+        }
     }, [])
 
     useEffect(() => {
@@ -67,15 +190,15 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const contactEmail = ownerContact?.contactInfoEmail?.trim() || fallbackEmail
     const contactPhone = ownerContact?.contactInfoPhone?.trim() || fallbackPhone
 
-    const allPremises = useMemo(() => PREMISES, [])
+    const allPremises = mockPremiseData.premises
     const availablePremises = useMemo(
         () => allPremises.filter((premise) => premise.status === "available"),
         [allPremises],
     )
-    const heroPremise = PREMISES.find((premise) => premise.id === "0195c8f6-cd51-7222-8222-200000000002") ?? PREMISES[0]
-    const heroMedia = PREMISE_MEDIA.filter((item) => item.premiseMediaPremiseId === heroPremise?.id)
+    const heroPremise = allPremises.find((premise) => premise.id === "0195c8f6-cd51-7222-8222-200000000002") ?? PREMISES[0]
+    const heroMedia = mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === heroPremise?.id)
     const selectedPremiseMedia = selectedPremise
-        ? PREMISE_MEDIA.filter((item) => item.premiseMediaPremiseId === selectedPremise.id)
+        ? mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === selectedPremise.id)
         : []
     const searchedPremises = allPremises.filter((premise) => {
         const searchText = `${premise.name} ${premise.location} ${premise.description}`.toLowerCase()
@@ -101,6 +224,10 @@ export function PublicHome({onManager}: PublicHomeProps) {
 
     const sendInquiry = async (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
+        if (!contactSenderEmail) {
+            setContactError("Vui lòng đăng nhập Google để gửi kèm Gmail của bạn.")
+            return
+        }
         setContactError(null)
         setContactSuccess(null)
         setContactSending(true)
@@ -109,6 +236,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
             const result = await contractApi.sendConsultationRequest({
                 name: contactName,
                 phone: contactPhoneNumber,
+                senderEmail: contactSenderEmail,
                 premiseName: premise?.name ?? null,
                 message: contactMessage,
             })
@@ -132,6 +260,24 @@ export function PublicHome({onManager}: PublicHomeProps) {
             document.getElementById("contact")?.scrollIntoView({behavior: "smooth", block: "start"})
         }, 0)
     }
+
+    const logoutGoogle = () => {
+        setLogout(true)
+        sessionStorage.removeItem(GOOGLE_LOGIN_SESSION_KEY)
+        setContactSenderEmail("")
+        setGoogleLoginExpiresAt(null)
+    }
+    
+    const throttleExtendGoogleLogin = useMemo(
+    () => throttle(() => {
+        if (!contactSenderEmail || !googleLoginExpiresAt) return
+        const now = Date.now()
+        const remaining = googleLoginExpiresAt - now
+        
+        if (remaining < GOOGLE_LOGIN_SESSION_MS)
+            setGoogleLoginExpiresAt(Math.min(googleLoginExpiresAt + GOOGLE_LOGIN_EXTENSION_STEP, googleLoginMaxExpiresAt))
+        
+    }, 10000), [contactSenderEmail, googleLoginExpiresAt, googleLoginMaxExpiresAt])
 
     return (
         <div className="min-h-screen bg-[#f7f8fa] text-slate-900">
@@ -200,7 +346,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <div className="absolute -inset-5 rounded-4xl bg-blue-400/15 blur-2xl"/>
                             <div
                                 className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-white/5 p-3 shadow-2xl backdrop-blur-sm">
-                                <img src={heroMedia[0]?.premiseMediaImageUrl} alt={`Mặt bằng ${heroPremise?.name ?? ""}`}
+                                <img src={heroMedia[0]?.premiseMediaImageUrl}
+                                     alt={`Mặt bằng ${heroPremise?.name ?? ""}`}
                                      className="h-85 w-full rounded-[1.25rem] object-cover sm:h-105"/>
                                 <div
                                     className="absolute inset-x-3 bottom-3 rounded-b-[1.25rem] bg-linear-to-t from-slate-950/90 to-transparent p-6 pt-20">
@@ -267,7 +414,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                         </div>
 
                         {pageCount > 1 && (
-                            <nav className="mt-8 flex items-center justify-center gap-1.5" aria-label="Phân trang mặt bằng">
+                            <nav className="mt-8 flex items-center justify-center gap-1.5"
+                                 aria-label="Phân trang mặt bằng">
                                 <button
                                     type="button"
                                     onClick={() => setPage(currentPage - 1)}
@@ -308,7 +456,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                     {visiblePremises.length ? (
                         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                             {pagedPremises.map((premise) => {
-                                const media = PREMISE_MEDIA.filter((item) => item.premiseMediaPremiseId === premise.id)
+                                const media = mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === premise.id)
                                 const location = LOCATIONS.find((item) => item.locationId === premise.locationId)
                                 const canRequestConsultation = premise.status === "available"
                                 return (
@@ -318,7 +466,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         onClick={() => openPremise(premise)}
                                         className={`group flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 ${premiseStatusSurface[premise.status]} text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-500/20`}
                                     >
-                                        <div className="relative aspect-16/10 w-full shrink-0 overflow-hidden bg-slate-100">
+                                        <div
+                                            className="relative aspect-16/10 w-full shrink-0 overflow-hidden bg-slate-100">
                                             {media[0] ? (
                                                 <img
                                                     src={media[0].premiseMediaImageUrl}
@@ -326,7 +475,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                                                 />
                                             ) : (
-                                                <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                                                <div
+                                                    className="flex h-full items-center justify-center text-sm text-slate-400">
                                                     Chưa có hình ảnh
                                                 </div>
                                             )}
@@ -345,7 +495,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                                     {location?.address ?? premise.location}
                                                 </p>
                                             </div>
-                                            <div className="mt-5 flex min-h-19 gap-5 border-y border-slate-100 py-4 text-sm">
+                                            <div
+                                                className="mt-5 flex min-h-19 gap-5 border-y border-slate-100 py-4 text-sm">
                                                 <div><p className="text-xs text-slate-400">Diện tích</p><p
                                                     className="mt-1 font-semibold text-slate-800">{formatArea(premise.area)}</p>
                                                 </div>
@@ -354,11 +505,13 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                                     Vị trí {premise.position}</p></div>
                                             </div>
                                             <p className="mt-4 min-h-12 text-sm leading-6 text-slate-600">{premise.description}</p>
-                                            <span className={`mt-auto flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold bg-white text-slate-800 transition ${
-                                                canRequestConsultation ? "group-hover:bg-blue-50 group-hover:text-blue-700" : ""
-                                            }`}>
+                                            <span
+                                                className={`mt-auto flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold bg-white text-slate-800 transition ${
+                                                    canRequestConsultation ? "group-hover:bg-blue-50 group-hover:text-blue-700" : ""
+                                                }`}>
                                                 {canRequestConsultation ? "Xem chi tiết và liên hệ" : "Xem chi tiết mặt bằng"}
-                                                <span className="material-symbols-outlined text-base" aria-hidden="true">
+                                                <span className="material-symbols-outlined text-base"
+                                                      aria-hidden="true">
                                                     open_in_new
                                                 </span>
                                             </span>
@@ -434,22 +587,29 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         xã hội</a>}
                             </div>
                         </div>
-                        <form onSubmit={sendInquiry} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
+                        <ProcessingForm processing={contactSending} onSubmit={sendInquiry} onChange={() => throttleExtendGoogleLogin()} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
                             <h3 className="text-lg font-semibold">Yêu cầu tư vấn</h3>
                             <p className="mt-1 text-sm text-slate-500">Thông tin sẽ được gửi đến ban quản lý qua
                                 email.</p>
-                            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                            <div ref={googleButtonRef} className={contactSenderEmail ? "hidden" : "flex mt-4 justify-center"}/>
+                            {contactSenderEmail && <div className="flex justify-between">
+                                <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium border-2 border-gradient-success text-emerald-800">Đăng nhập thành công! Phiên kết thúc sau 5 phút.</p>
+                                <button onClick={logoutGoogle} className="mt-4 rounded-xl border-gradient-error bg-red-500 px-4 py-3 text-sm font-medium text-white">Đăng xuất</button>
+                            </div>}
+                            {contactSenderEmail && <p className="mt-2 text-xs font-bold italic text-yellow-500">Email này chỉ được dùng để gửi yêu cầu và trả lời thư.</p>}
+                            {!googleIdentityReady && <p className="mt-2 text-xs text-slate-400">Đăng nhập Google chưa khả dụng. Kiểm tra VITE_GOOGLE_CLIENT_ID và kết nối mạng.</p>}
+                            <fieldset disabled={!contactSenderEmail || contactSending} className="mt-5 grid gap-4 disabled:opacity-50 sm:grid-cols-2">
                                 <label className="block"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Họ tên</span><input
                                     required value={contactName}
                                     onChange={(event) => setContactName(event.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                    className="w-full rounded-xl border px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                                     placeholder="Tên của bạn"/></label>
                                 <label className="block"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Số điện thoại</span><input
                                     required type="tel" value={contactPhoneNumber}
                                     onChange={(event) => setContactPhoneNumber(event.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                                    className="w-full rounded-xl border px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                                     placeholder="09xx xxx xxx"/></label>
                                 <label className="block sm:col-span-2"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Mặt bằng quan tâm</span><select
@@ -466,16 +626,16 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                     onChange={(event) => setContactMessage(event.target.value)}
                                     className="w-full resize-y rounded-xl border px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                                     placeholder="Thời gian muốn tham quan, mô hình kinh doanh..."/></label>
-                            </div>
+                            </fieldset>
                             {contactError && <p role="alert"
-                                                className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">{contactError}</p>}
+                                                className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 border-2 border-gradient-error text-amber-800">{contactError}</p>}
                             {contactSuccess && <p role="status"
-                                                className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-800">{contactSuccess}</p>}
-                            <button type="submit" disabled={contactSending}
+                                                  className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-xs leading-5 border-2 border-gradient-success text-emerald-800">{contactSuccess}</p>}
+                            <button type="submit" disabled={!contactSenderEmail || contactSending}
                                     className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                                 {contactSending ? "Đang gửi yêu cầu..." : "Gửi yêu cầu tư vấn"}
                             </button>
-                        </form>
+                        </ProcessingForm>
                     </div>
                 </section>
             </main>
@@ -521,7 +681,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         className="h-48 w-full cursor-zoom-in object-contain"
                                     />
                                 ) : (
-                                    <div className="flex h-48 items-center justify-center text-sm text-slate-400">Chưa có hình ảnh</div>
+                                    <div className="flex h-48 items-center justify-center text-sm text-slate-400">Chưa
+                                        có hình ảnh</div>
                                 )}
                                 {selectedPremiseMedia.length > 1 && (
                                     <>
@@ -541,7 +702,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         >
                                             ›
                                         </button>
-                                        <span className="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-2.5 py-1 text-xs font-semibold text-white">
+                                        <span
+                                            className="absolute bottom-3 right-3 rounded-full bg-slate-950/70 px-2.5 py-1 text-xs font-semibold text-white">
                                             {activeMediaIndex + 1} / {selectedPremiseMedia.length}
                                         </span>
                                     </>
@@ -561,7 +723,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 </div>
                             )}
                             <div className="mt-4">
-                                <h3 className="text-lg font-semibold text-slate-900">Mặt bằng {selectedPremise.name}</h3>
+                                <h3 className="text-lg font-semibold text-slate-900">Mặt
+                                    bằng {selectedPremise.name}</h3>
                                 <p className="mt-1 text-sm text-slate-500">{selectedPremise.location}</p>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-3 border-y border-slate-200 py-4 text-sm">
@@ -581,11 +744,21 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <p className="mt-3 text-sm leading-6 text-slate-600">{selectedPremise.description}</p>
                             {(selectedPremise.openingHours || selectedPremise.floorArea || selectedPremise.leasableArea || selectedPremise.storeCount || selectedPremise.parkingCapacity) && (
                                 <div className="mt-5 space-y-3 border-t border-slate-200 pt-4 text-sm">
-                                    {selectedPremise.openingHours && <div><p className="text-xs text-slate-400">Giờ hoạt động</p><p className="mt-1 text-slate-700">{selectedPremise.openingHours}</p></div>}
-                                    {selectedPremise.floorArea && <div><p className="text-xs text-slate-400">Diện tích mặt sàn</p><p className="mt-1 text-slate-700">{selectedPremise.floorArea}</p></div>}
-                                    {selectedPremise.leasableArea && <div><p className="text-xs text-slate-400">Diện tích cho thuê</p><p className="mt-1 text-slate-700">{selectedPremise.leasableArea}</p></div>}
-                                    {selectedPremise.storeCount && <div><p className="text-xs text-slate-400">Cửa hàng</p><p className="mt-1 text-slate-700">{selectedPremise.storeCount}</p></div>}
-                                    {selectedPremise.parkingCapacity && <div><p className="text-xs text-slate-400">Bãi đỗ xe</p><p className="mt-1 text-slate-700">{selectedPremise.parkingCapacity}</p></div>}
+                                    {selectedPremise.openingHours &&
+                                        <div><p className="text-xs text-slate-400">Giờ hoạt động</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.openingHours}</p></div>}
+                                    {selectedPremise.floorArea &&
+                                        <div><p className="text-xs text-slate-400">Diện tích mặt sàn</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.floorArea}</p></div>}
+                                    {selectedPremise.leasableArea &&
+                                        <div><p className="text-xs text-slate-400">Diện tích cho thuê</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.leasableArea}</p></div>}
+                                    {selectedPremise.storeCount &&
+                                        <div><p className="text-xs text-slate-400">Cửa hàng</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.storeCount}</p></div>}
+                                    {selectedPremise.parkingCapacity &&
+                                        <div><p className="text-xs text-slate-400">Bãi đỗ xe</p><p
+                                            className="mt-1 text-slate-700">{selectedPremise.parkingCapacity}</p></div>}
                                 </div>
                             )}
                             {(contactPhone || contactEmail) && (
@@ -603,25 +776,30 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 </div>
                             )}
                         </div>
-                        {selectedPremise.status === "available" ? <div className="rounded-xl border border-emerald-200 bg-emerald-100/70 p-4 lg:col-span-2">
-                            <p className="text-sm leading-6 text-slate-700">Mặt bằng đang còn trống và có thể tiếp nhận yêu cầu tư vấn.</p>
-                            <button type="button" onClick={requestPremiseConsultation}
-                                    className="mt-4 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
-                                Yêu cầu tư vấn
-                            </button>
-                        </div> : <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6 lg:col-span-2">
-                            <h3 className="text-lg font-semibold text-slate-900">Mặt bằng hiện không nhận tư vấn</h3>
-                            <p className="mt-2 text-sm leading-6 text-slate-600">
-                                Mặt bằng này hiện đang ở trạng thái <strong>{selectedPremise.status === "rented" ? "Đang thuê" : selectedPremise.status === "reserved" ? "Đã đặt cọc" : "Bảo trì"}</strong>.
-                                Bạn có thể xem thông tin chi tiết, nhưng chưa thể gửi yêu cầu liên hệ cho mặt bằng này.
-                            </p>
-                            <div className="flex justify-end">
-                                <button type="button" onClick={() => setSelectedPremise(null)}
-                                        className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
-                                    Đóng
+                        {selectedPremise.status === "available" ?
+                            <div className="rounded-xl border border-emerald-200 bg-emerald-100/70 p-4 lg:col-span-2">
+                                <p className="text-sm leading-6 text-slate-700">Mặt bằng đang còn trống và có thể tiếp
+                                    nhận yêu cầu tư vấn.</p>
+                                <button type="button" onClick={requestPremiseConsultation}
+                                        className="mt-4 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700">
+                                    Yêu cầu tư vấn
                                 </button>
-                            </div>
-                        </div>}
+                            </div> : <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6 lg:col-span-2">
+                                <h3 className="text-lg font-semibold text-slate-900">Mặt bằng hiện không nhận tư
+                                    vấn</h3>
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                    Mặt bằng này hiện đang ở trạng
+                                    thái <strong>{selectedPremise.status === "rented" ? "Đang thuê" : selectedPremise.status === "reserved" ? "Đã đặt cọc" : "Bảo trì"}</strong>.
+                                    Bạn có thể xem thông tin chi tiết, nhưng chưa thể gửi yêu cầu liên hệ cho mặt bằng
+                                    này.
+                                </p>
+                                <div className="flex justify-end">
+                                    <button type="button" onClick={() => setSelectedPremise(null)}
+                                            className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
+                                        Đóng
+                                    </button>
+                                </div>
+                            </div>}
                     </div>
                 </Modal>
             )}
@@ -671,7 +849,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             >
                                 ›
                             </button>
-                            <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-sm text-white">
+                            <span
+                                className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-sm text-white">
                                 {activeMediaIndex + 1} / {selectedPremiseMedia.length}
                             </span>
                         </>

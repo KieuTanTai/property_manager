@@ -60,7 +60,9 @@ namespace Identity.Application
                 throw new ArgumentException("Require at least one id.", nameof(ids));
             }
             if (ids.Any(gid => gid == Guid.Empty))
+            {
                 throw new ArgumentException("Ids cannot contain an empty id.", nameof(ids));
+            }
 
             var existingAssociativeModels =
                 await getExistingAssociativeModelsFunc(id, cancellationToken);
@@ -81,22 +83,34 @@ namespace Identity.Application
         {
             ArgumentNullException.ThrowIfNull(role);
             if (requireId && role.RoleId == Guid.Empty)
+            {
                 throw new ArgumentException("Role id is required.", nameof(role));
+            }
             if (string.IsNullOrWhiteSpace(role.RoleName) || role.RoleName.Length > 150)
+            {
                 throw new ArgumentException("Role name is required and must not exceed 150 characters.", nameof(role));
+            }
             if (role.RoleDescription?.Length > 300)
+            {
                 throw new ArgumentException("Role description must not exceed 300 characters.", nameof(role));
+            }
         }
 
         private static void ThrowIfInvalidPermissionModel(PermissionModel permission, bool requireId = false)
         {
             ArgumentNullException.ThrowIfNull(permission);
             if (requireId && permission.PermissionId == Guid.Empty)
+            {
                 throw new ArgumentException("Permission id is required.", nameof(permission));
+            }
             if (string.IsNullOrWhiteSpace(permission.PermissionName) || permission.PermissionName.Length > 150)
+            {
                 throw new ArgumentException("Permission name is required and must not exceed 150 characters.", nameof(permission));
+            }
             if (permission.PermissionDescription?.Length > 300)
+            {
                 throw new ArgumentException("Permission description must not exceed 300 characters.", nameof(permission));
+            }
         }
 
         #endregion
@@ -180,7 +194,9 @@ namespace Identity.Application
                 throw new ArgumentException("Permission ids are required.", nameof(permissionIds));
             }
             if (permissionIds.Any(id => id == Guid.Empty))
+            {
                 throw new ArgumentException("Permission ids cannot contain an empty id.", nameof(permissionIds));
+            }
 
             try
             {
@@ -244,7 +260,7 @@ namespace Identity.Application
         public async Task<int> UpdateRoleAsync(RoleModel roleModel, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Role update operation started.");
-            ThrowIfInvalidRoleModel(roleModel, requireId: true);
+            ThrowIfInvalidRoleModel(roleModel, true);
 
             try
             {
@@ -265,7 +281,7 @@ namespace Identity.Application
         public async Task<int> UpdateRoleAsync(RoleModel roleModel, IReadOnlyList<Guid> permissionIds, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Role permission update operation started.");
-            ThrowIfInvalidRoleModel(roleModel, requireId: true);
+            ThrowIfInvalidRoleModel(roleModel, true);
             if (permissionIds == null || !permissionIds.Any())
             {
                 throw new ArgumentException("Permission ids are required.", nameof(permissionIds));
@@ -454,7 +470,7 @@ namespace Identity.Application
         public async Task<int> UpdatePermissionAsync(PermissionModel permissionModel, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Permission update operation started.");
-            ThrowIfInvalidPermissionModel(permissionModel, requireId: true);
+            ThrowIfInvalidPermissionModel(permissionModel, true);
 
             try
             {

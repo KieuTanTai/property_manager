@@ -14,9 +14,105 @@ namespace Contract.Presentation.Controller
         ILogger<RegulationController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
     {
-        private readonly IRegulationApplication _regulationApplication = regulationApplication;
-        private readonly ILogger<RegulationController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<RegulationController> _logger = logger;
+
+        private readonly IRegulationApplication _regulationApplication = regulationApplication;
+
+        #region POST
+
+        [RequireHttps]
+        [HttpPost]
+        public async Task<IActionResult> AddRegulationAsync(
+            [FromBody] RecordRegulationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var regulation = new RegulationModel(request.RegulationName);
+                regulation.SetRegulationDescription(request.RegulationDescription);
+                regulation.SetRegulationFineAmount(request.RegulationFineAmount);
+                regulation.SetRegulationIsActive(request.RegulationIsActive);
+                var created = await _regulationApplication.AddRegulationAsync(regulation, cancellationToken);
+                return Ok(created);
+            }
+            catch (OperationCanceledException ex)
+            {
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Regulation creation request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region PUT
+
+        [RequireHttps]
+        [HttpPut("{regulationId:guid}")]
+        public async Task<IActionResult> UpdateRegulationAsync(
+            [FromRoute] Guid regulationId,
+            [FromBody] RecordRegulationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            if (regulationId == Guid.Empty)
+            {
+                return BadRequest("Regulation id is required.");
+            }
+
+            try
+            {
+                var regulation = new RegulationModel(regulationId, request.RegulationName,
+                    request.RegulationDescription, request.RegulationFineAmount, request.RegulationIsActive);
+                var affectedRows = await _regulationApplication.UpdateRegulationAsync(regulation, cancellationToken);
+                return affectedRows == 0 ? BadRequest("Could not update regulation.") : Ok(regulation);
+            }
+            catch (OperationCanceledException ex)
+            {
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Regulation update request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region DELETE
+
+        [RequireHttps]
+        [HttpDelete("{regulationId:guid}")]
+        public async Task<IActionResult> SoftDeleteRegulationAsync(
+            [FromRoute] Guid regulationId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var affectedRows = await _regulationApplication.SoftDeleteRegulationAsync(regulationId, cancellationToken);
+                return affectedRows == 0 ? BadRequest("Could not delete regulation.") : NoContent();
+            }
+            catch (OperationCanceledException ex)
+            {
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Regulation deletion request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
+            }
+        }
+
+        #endregion
 
         #region GET
 
@@ -131,100 +227,5 @@ namespace Contract.Presentation.Controller
         }
 
         #endregion
-
-        #region POST
-
-        [RequireHttps]
-        [HttpPost]
-        public async Task<IActionResult> AddRegulationAsync(
-            [FromBody] RecordRegulationRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var regulation = new RegulationModel(request.RegulationName);
-                regulation.SetRegulationDescription(request.RegulationDescription);
-                regulation.SetRegulationFineAmount(request.RegulationFineAmount);
-                regulation.SetRegulationIsActive(request.RegulationIsActive);
-                var created = await _regulationApplication.AddRegulationAsync(regulation, cancellationToken);
-                return Ok(created);
-            }
-            catch (OperationCanceledException ex)
-            {
-                return BadRequest($"Request canceled. {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, ex, "Regulation creation request failed.");
-                return BadRequest($"An error occurred. {ex.Message}");
-            }
-        }
-
-        #endregion
-
-        #region PUT
-
-        [RequireHttps]
-        [HttpPut("{regulationId:guid}")]
-        public async Task<IActionResult> UpdateRegulationAsync(
-            [FromRoute] Guid regulationId,
-            [FromBody] RecordRegulationRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            if (regulationId == Guid.Empty)
-            {
-                return BadRequest("Regulation id is required.");
-            }
-
-            try
-            {
-                var regulation = new RegulationModel(regulationId, request.RegulationName,
-                    request.RegulationDescription, request.RegulationFineAmount, request.RegulationIsActive);
-                var affectedRows = await _regulationApplication.UpdateRegulationAsync(regulation, cancellationToken);
-                return affectedRows == 0 ? BadRequest("Could not update regulation.") : Ok(regulation);
-            }
-            catch (OperationCanceledException ex)
-            {
-                return BadRequest($"Request canceled. {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, ex, "Regulation update request failed.");
-                return BadRequest($"An error occurred. {ex.Message}");
-            }
-        }
-
-        #endregion
-
-        #region DELETE
-
-        [RequireHttps]
-        [HttpDelete("{regulationId:guid}")]
-        public async Task<IActionResult> SoftDeleteRegulationAsync(
-            [FromRoute] Guid regulationId,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var affectedRows = await _regulationApplication.SoftDeleteRegulationAsync(regulationId, cancellationToken);
-                return affectedRows == 0 ? BadRequest("Could not delete regulation.") : NoContent();
-            }
-            catch (OperationCanceledException ex)
-            {
-                return BadRequest($"Request canceled. {ex.Message}");
-            }
-            catch (ArgumentException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, ex, "Regulation deletion request failed.");
-                return BadRequest($"An error occurred. {ex.Message}");
-            }
-        }
-
-        #endregion
-
     }
 }
