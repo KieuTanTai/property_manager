@@ -22,6 +22,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const headers = new Headers(init?.headers)
     if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
     response = await fetch(`${apiBase}${path}`, { ...init, headers })
+    console.log("response: ");
   } catch {
     throw new Error(`Không thể kết nối Premise API tại ${apiBase}. Kiểm tra backend và HTTPS.`)
   }
@@ -46,10 +47,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const premiseApi = {
   getPremise() {
-    return request<PremiseModel[]>("/premise")
+    return request<PremiseModel[]>("/Premise")
   },
   getLocations() {
-    return request<LocationModel[]>("/location")
+    return request<LocationModel[]>("/Location")
   },
   getImages(premiseId: string) {
     return request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premiseId)}/images`)

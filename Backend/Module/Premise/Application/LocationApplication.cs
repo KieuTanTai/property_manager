@@ -125,11 +125,6 @@ namespace Premise.Application
             var existingLocation = await _locationRepository.GetTrackedByIdAsync(locationId, cancellationToken)
                 ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
 
-            if (!existingLocation.LocationIsActive)
-            {
-                throw new InvalidOperationException($"Location is already inactive: {locationId}.");
-            }
-
             await _locationRepository.SoftDeleteAsync(locationId, cancellationToken);
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectedRows == 0)

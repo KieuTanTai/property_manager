@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
 using Shared.Services;
 
-namespace Premise.Presentation.Controllers
+namespace Premise.Presentations.Controllers
 {
     [ApiController]
     [Route("api/premise-medias")]

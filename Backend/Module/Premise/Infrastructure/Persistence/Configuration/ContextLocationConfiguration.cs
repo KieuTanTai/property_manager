@@ -32,11 +32,6 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasColumnType("timestamp")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .ValueGeneratedOnAddOrUpdate();
-
-            entity.Property(location => location.LocationIsActive)
-                .HasColumnName("location_is_active")
-                .HasDefaultValue(true)
-                .IsRequired();
         }
     }
 }

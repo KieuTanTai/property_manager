@@ -599,7 +599,6 @@ namespace Premise.Presentations.Controller
             return new RecordLocationResponse(
                 location.LocationId,
                 location.LocationAddress,
-                location.LocationIsActive,
                 location.LocationCreatedAt,
                 location.LocationUpdatedAt);
         }

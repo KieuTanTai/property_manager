@@ -168,16 +168,6 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                     "Location soft deletion rejected because it was not found.");
                 throw exception;
             }
-
-            if (!location.LocationIsActive)
-            {
-                var exception = new InvalidOperationException($"Location is already soft deleted: {id}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Location soft deletion rejected because it was already deleted.");
-                throw exception;
-            }
-
-            location.SetLocationIsActive(false);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Location soft deletion staged.");
         }
 

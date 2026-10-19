@@ -15,6 +15,7 @@ namespace Premise.Presentations.Controller
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<RecordLocationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IReadOnlyList<RecordLocationResponse>>> GetAllAsync(
             CancellationToken cancellationToken)
@@ -159,7 +160,6 @@ namespace Premise.Presentations.Controller
             return new RecordLocationResponse(
                 location.LocationId,
                 location.LocationAddress,
-                location.LocationIsActive,
                 location.LocationCreatedAt,
                 location.LocationUpdatedAt);
         }
