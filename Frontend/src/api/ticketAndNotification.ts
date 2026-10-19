@@ -52,19 +52,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const ticketApi = {
-    uploadImage: async (file: File): Promise<string> => {
-        const formData = new FormData()
-        formData.append("file", file)
-        let response: Response
-        try {
-            response = await fetch(`${base}/ticket-medias/upload`, {method: "POST", body: formData})
-        } catch {
-            throw new Error(`Không thể kết nối Ticket & Notification API tại ${base}; kiểm tra Backend, HTTPS và CORS.`)
-        }
-        if (!response.ok) throw new Error((await response.text()) || `Không tải được ảnh (HTTP ${response.status}).`)
-        const result = await response.json() as { imageUrl: string }
-        return result.imageUrl
-    },
     tickets: () => request<TicketModel[]>("/tickets"),
     addTicketMedias: (ticketId: string, imageUrls: string[]) =>
         request<number>("/ticket-medias/batch", {

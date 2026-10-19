@@ -4,6 +4,7 @@ using Identity.Interfaces.IApplication;
 using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
 using Identity.Presentation.Record.Profile;
+using Identity.Utils.Enum;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Interfaces;
 using Shared.Logging;
@@ -21,6 +22,8 @@ namespace Identity.Presentation.Controller
         ILogger<AccountController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
+        private static readonly string SessionInstanceId = Guid.NewGuid().ToString("N");
+
         private readonly IAccountApplication _accountApplication = accountApplication;
 
         private readonly IApiHelper _apiHelper = apiHelper;
@@ -81,6 +84,36 @@ namespace Identity.Presentation.Controller
             {
                 _logger.LogLayerError(_logPool, Module, Layer, ex, "Account analytics request failed.");
                 return BadRequest($"An error occurred \n {ex.Message}");
+            }
+        }
+
+        [RequireHttps]
+        [HttpGet("role")]
+        public async Task<IActionResult> GetAllAccountsByRoleCodeAsync(
+            [FromQuery] ESystemRoleCode roleCode,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code request received.");
+            try
+            {
+                var result = await _accountApplication.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
+                if (result.Count == 0) return NotFound("No accounts found.");
+
+                var accounts = result.Select(account => new RecordAccountProfileOption(
+                    account.AccountId,
+                    account.AccountEmail,
+                    account.UserProfile is null ? null : _apiHelper.MappingProfileResult(account.UserProfile)));
+                return Ok(accounts);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code request was canceled.");
+                return BadRequest($"Request canceled. {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Get all accounts by role code request failed.");
+                return BadRequest($"An error occurred. {ex.Message}");
             }
         }
 
@@ -211,6 +244,13 @@ namespace Identity.Presentation.Controller
                 _logger.LogLayerError(_logPool, Module, Layer, ex, "Account login request failed.");
                 return BadRequest($"An error occurred \n {ex.Message}");
             }
+        }
+
+        [HttpGet("session-instance")]
+        public IActionResult GetSessionInstance()
+        {
+            Response.Headers.CacheControl = "no-store";
+            return Ok(new { sessionInstanceId = SessionInstanceId });
         }
 
         /// ! NOTE: DON'T USE THIS ENDPOINT FOR LOGOUT, IT WILL CALL A NOT IMPLEMENTED METHOD ON APPLICATION LAYER

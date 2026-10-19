@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react"
 import {FormField, inputCls, Modal, PremiseStatusBadge, premiseStatusSurface, selectCls} from "./shared"
-import {BUSINESS_TYPES, LOCATIONS, PREMISE_MEDIA, PREMISES, WHITELIST_PRODUCTS} from "@/mocks/shared.ts"
+import {BUSINESS_TYPES, LOCATIONS, WHITELIST_PRODUCTS} from "@/mocks/shared.ts"
+import {getMockPremiseData, saveMockPremise} from "@/mocks/premises.ts"
 import type {BusinessType, Location, WhitelistProduct} from "@/types/modules.ts"
 import type {Premise, PremiseMedia, PremisesSubTab, PremiseStatus,} from "../premises/types"
 
@@ -12,13 +13,13 @@ import {LocationsTab} from "../premises/LocationsTab"
 import {PremisesSubTabs} from "../premises/PremisesSubTabs"
 import {PremisesTab} from "../premises/PremisesTab"
 import {ImageAttachments} from "./ImageAttachments"
-import {premiseMediaApi} from "@/api/premiseMedia"
+import {mediaApi} from "@/api/media"
 
 // ─── Premises Module ────────────────────────────────────────────────────────
 
 export function PremisesModule() {
-    const [premises, setPremises] = useState<Premise[]>(PREMISES)
-    const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>(PREMISE_MEDIA)
+    const [premises, setPremises] = useState<Premise[]>(() => getMockPremiseData().premises)
+    const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>(() => getMockPremiseData().media)
     const [premiseImages, setPremiseImages] = useState<File[]>([])
     const [isUploadingPremiseImages, setIsUploadingPremiseImages] = useState(false)
     const [locations, setLocations] = useState<Location[]>(LOCATIONS)
@@ -128,7 +129,7 @@ export function PremisesModule() {
         setIsUploadingPremiseImages(true)
         let imageUrls: string[]
         try {
-            imageUrls = await Promise.all(premiseImages.map((file) => premiseMediaApi.uploadImage(file)))
+            imageUrls = await Promise.all(premiseImages.map((file) => mediaApi.uploadImage(file, "premise")))
         } catch (error) {
             alert(error instanceof Error ? error.message : "Không tải được ảnh mặt bằng lên Google Drive.")
             setIsUploadingPremiseImages(false)
@@ -144,19 +145,23 @@ export function PremisesModule() {
             locationId: location.locationId,
             location: location.address,
             description: form.description,
+            isMockData: true,
         }
-        setPremises([...premises, newP])
+        let newMedia: PremiseMedia[] = []
         if (imageUrls.length) {
             const now = new Date().toISOString()
             const firstId = Math.max(0, ...premiseMedia.map((media) => media.premiseMediaId)) + 1
-            setPremiseMedia([...premiseMedia, ...imageUrls.map((imageUrl, index) => ({
+            newMedia = imageUrls.map((imageUrl, index) => ({
                 premiseMediaId: firstId + index,
                 premiseMediaPremiseId: newP.id,
                 premiseMediaImageUrl: imageUrl,
                 premiseMediaCreatedAt: now,
                 premiseMediaUpdatedAt: now,
-            }))])
+            }))
         }
+        saveMockPremise(newP, newMedia)
+        setPremises((current) => [...current, newP])
+        if (newMedia.length) setPremiseMedia((current) => [...current, ...newMedia])
         setPremiseImages([])
         setIsUploadingPremiseImages(false)
         setModal(null)
@@ -761,6 +766,7 @@ export function PremisesModule() {
                     onClose={() => setModal(null)}
                     panelClassName={premiseStatusSurface[form.status]}
                 >
+                    <fieldset disabled={isUploadingPremiseImages} className="m-0 min-w-0 border-0 p-0">
                     <div className="grid grid-cols-2 gap-x-4">
                         <FormField label="Tên mặt bằng">
                             <input
@@ -856,6 +862,7 @@ export function PremisesModule() {
                             {isUploadingPremiseImages ? "Đang tải ảnh..." : modal === "add" ? "Thêm mới" : "Lưu thay đổi"}
                         </button>
                     </div>
+                    </fieldset>
                 </Modal>
             )}
 

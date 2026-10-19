@@ -6,7 +6,7 @@ namespace Contract.Utils.Enum
 
         PendingSignature,
 
-        Cancelled,
+        Canceled,
 
         Expired,
 

@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react"
-import type {ContactInfoModel, ContactInfoRequest} from "@/api/contracts.ts"
+import type {ContactInfoModel, ContactInfoRequest} from "@/types/contracts"
 import {contractApi} from "@/api/contracts.ts"
-import {FormField, inputCls, Modal} from "./shared"
+import {BaseTable, FormField, inputCls, Modal, ProcessingForm} from "./shared"
 
 const emptyForm: ContactInfoRequest = {
     contactInfoEmail: "",
@@ -114,53 +114,32 @@ export function ContactsModule() {
 
             {error && <p role="alert"
                          className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-            <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white">
-                <table className="w-full min-w-[760px] text-sm">
-                    <thead>
-                    <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
-                        <th className="px-4 py-3 font-medium">Email</th>
-                        <th className="px-4 py-3 font-medium">Điện thoại</th>
-                        <th className="px-4 py-3 font-medium">Địa chỉ</th>
-                        <th className="px-4 py-3 font-medium">Mạng xã hội</th>
-                        <th className="px-4 py-3 font-medium">Thao tác</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                    {loading ? <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-gray-400">Đang tải liên hệ...</td>
-                    </tr> : contacts.length === 0 ? <tr>
-                        <td colSpan={5} className="px-4 py-10 text-center text-gray-400">Chưa có thông tin liên hệ.</td>
-                    </tr> : contacts.map((contact) => (
-                        <tr key={contact.contactInfoId} className="hover:bg-blue-50/40">
-                            <td className="px-4 py-3 font-medium text-gray-800">{contact.contactInfoEmail}</td>
-                            <td className="px-4 py-3 text-gray-600">{contact.contactInfoPhone}</td>
-                            <td className="max-w-sm px-4 py-3 text-gray-600">{contact.contactInfoAddress}</td>
-                            <td className="px-4 py-3">{contact.contactSocialLink ?
-                                <span className="group relative inline-flex"><a href={contact.contactSocialLink}
-                                                                                target="_blank" rel="noreferrer"
-                                                                                title={contact.contactSocialLink}
-                                                                                className="inline-flex items-center gap-1 text-blue-600 hover:underline">Mở liên kết <span
-                                    className="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span></a><span
-                                    role="tooltip"
-                                    className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden max-w-80 break-all rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-lg group-hover:block group-focus-within:block">{contact.contactSocialLink}</span></span> :
-                                <span className="text-gray-400">—</span>}</td>
-                            <td className="whitespace-nowrap px-4 py-3">
-                                <button onClick={() => openContact(contact)}
-                                        className="mr-3 font-medium text-blue-600 hover:text-blue-800">Xem
-                                </button>
-                                <button onClick={() => void remove(contact)}
-                                        className="font-medium text-red-500 hover:text-red-700">Xóa
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
+            <BaseTable
+                rows={contacts}
+                getRowKey={(contact) => contact.contactInfoId}
+                loading={loading}
+                emptyMessage="Chưa có thông tin liên hệ."
+                tableClassName="w-full min-w-[760px] text-sm"
+                rowClassName={() => "hover:bg-blue-50/40"}
+                columns={[
+                    {key: "email", header: "Email", cellClassName: "px-4 py-3 font-medium text-gray-800", render: (contact) => contact.contactInfoEmail},
+                    {key: "phone", header: "Điện thoại", cellClassName: "px-4 py-3 text-gray-600", render: (contact) => contact.contactInfoPhone},
+                    {key: "address", header: "Địa chỉ", cellClassName: "max-w-sm px-4 py-3 text-gray-600", render: (contact) => contact.contactInfoAddress},
+                    {key: "social", header: "Mạng xã hội", render: (contact) => contact.contactSocialLink ?
+                        <span className="group relative inline-flex"><a href={contact.contactSocialLink} target="_blank" rel="noreferrer" title={contact.contactSocialLink}
+                            className="inline-flex items-center gap-1 text-blue-600 hover:underline">Mở liên kết <span className="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span></a><span role="tooltip"
+                            className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden max-w-80 break-all rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-lg group-hover:block group-focus-within:block">{contact.contactSocialLink}</span></span> :
+                        <span className="text-gray-400">—</span>},
+                    {key: "actions", header: "Thao tác", cellClassName: "whitespace-nowrap px-4 py-3", render: (contact) => <>
+                        <button onClick={() => openContact(contact)} className="mr-3 font-medium text-blue-600 hover:text-blue-800">Xem</button>
+                        <button onClick={() => void remove(contact)} className="font-medium text-red-500 hover:text-red-700">Xóa</button>
+                    </>},
+                ]}
+            />
 
             {(selected || isAdding) &&
                 <Modal title={isAdding ? "Thêm thông tin liên hệ" : "Thông tin liên hệ"} onClose={closeModal}>
-                    <form onSubmit={(event) => void save(event)}>
+                    <ProcessingForm processing={saving} onSubmit={save}>
                         <div className="grid gap-4">
                             <FormField label="Email"><input required type="email" maxLength={255}
                                                             disabled={formDisabled} value={form.contactInfoEmail}
@@ -192,7 +171,7 @@ export function ContactsModule() {
                                           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Chỉnh
                                 sửa</button>}
                         </div>
-                    </form>
+                    </ProcessingForm>
                 </Modal>}
         </div>
     )

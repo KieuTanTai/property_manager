@@ -1,9 +1,10 @@
 import React, {useEffect, useMemo, useRef, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
-import {LOCATIONS, PREMISE_MEDIA, PREMISES} from "@/mocks/shared.ts"
+import {LOCATIONS, PREMISES} from "@/mocks/shared.ts"
+import {getMockPremiseData, subscribeToMockPremiseChanges} from "@/mocks/premises.ts"
 import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
 import {contractApi} from "@/api/contracts"
-import {Modal, PremiseStatusBadge, premiseStatusSurface} from "../modules/shared"
+import {Modal, PremiseStatusBadge, ProcessingForm, premiseStatusSurface} from "../modules/shared"
 import type {Premise} from "../premises/types"
 import {PublicHomeProps} from "@/components/public/types.ts";
 import {throttle} from "lodash";
@@ -48,6 +49,7 @@ const formatArea = (value: string) => value.replace(/m²?$/i, " m²")
 
 export function PublicHome({onManager}: PublicHomeProps) {
     const [query, setQuery] = useState("")
+    const [mockPremiseData, setMockPremiseData] = useState(getMockPremiseData)
     const [statusTab, setStatusTab] = useState<PremiseStatusTab>("all")
     const [page, setPage] = useState(1)
     const [contactName, setContactName] = useState("")
@@ -81,6 +83,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [selectedPremise, setSelectedPremise] = useState<Premise | null>(null)
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isImageFullscreen, setIsImageFullscreen] = useState(false)
+
+    useEffect(() => subscribeToMockPremiseChanges(() => setMockPremiseData(getMockPremiseData())), [])
     const googleLoginMaxExpiresAt =
         googleLoginExpiresAt ? googleLoginExpiresAt + GOOGLE_LOGIN_SESSION_MS : GOOGLE_LOGIN_SESSION_MS
 
@@ -186,15 +190,15 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const contactEmail = ownerContact?.contactInfoEmail?.trim() || fallbackEmail
     const contactPhone = ownerContact?.contactInfoPhone?.trim() || fallbackPhone
 
-    const allPremises = useMemo(() => PREMISES, [])
+    const allPremises = mockPremiseData.premises
     const availablePremises = useMemo(
         () => allPremises.filter((premise) => premise.status === "available"),
         [allPremises],
     )
-    const heroPremise = PREMISES.find((premise) => premise.id === "0195c8f6-cd51-7222-8222-200000000002") ?? PREMISES[0]
-    const heroMedia = PREMISE_MEDIA.filter((item) => item.premiseMediaPremiseId === heroPremise?.id)
+    const heroPremise = allPremises.find((premise) => premise.id === "0195c8f6-cd51-7222-8222-200000000002") ?? PREMISES[0]
+    const heroMedia = mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === heroPremise?.id)
     const selectedPremiseMedia = selectedPremise
-        ? PREMISE_MEDIA.filter((item) => item.premiseMediaPremiseId === selectedPremise.id)
+        ? mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === selectedPremise.id)
         : []
     const searchedPremises = allPremises.filter((premise) => {
         const searchText = `${premise.name} ${premise.location} ${premise.description}`.toLowerCase()
@@ -452,7 +456,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                     {visiblePremises.length ? (
                         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                             {pagedPremises.map((premise) => {
-                                const media = PREMISE_MEDIA.filter((item) => item.premiseMediaPremiseId === premise.id)
+                                const media = mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === premise.id)
                                 const location = LOCATIONS.find((item) => item.locationId === premise.locationId)
                                 const canRequestConsultation = premise.status === "available"
                                 return (
@@ -583,7 +587,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                         xã hội</a>}
                             </div>
                         </div>
-                        <form onSubmit={sendInquiry} onChange={() => throttleExtendGoogleLogin()} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
+                        <ProcessingForm processing={contactSending} onSubmit={sendInquiry} onChange={() => throttleExtendGoogleLogin()} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
                             <h3 className="text-lg font-semibold">Yêu cầu tư vấn</h3>
                             <p className="mt-1 text-sm text-slate-500">Thông tin sẽ được gửi đến ban quản lý qua
                                 email.</p>
@@ -631,7 +635,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                     className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
                                 {contactSending ? "Đang gửi yêu cầu..." : "Gửi yêu cầu tư vấn"}
                             </button>
-                        </form>
+                        </ProcessingForm>
                     </div>
                 </section>
             </main>

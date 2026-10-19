@@ -478,7 +478,7 @@ export const CONTRACTS: Contract[] = [
         deposit: 15000000,
         rentalPrice: 7500000,
         returnDate: "2025-12-31",
-        status: "signed",
+        status: "Signed",
         createdAt: "2024-01-15",
     },
     {
@@ -489,7 +489,7 @@ export const CONTRACTS: Contract[] = [
         deposit: 24000000,
         rentalPrice: 12000000,
         returnDate: "2025-06-30",
-        status: "signed",
+        status: "Signed",
         createdAt: "2024-03-01",
     },
     {
@@ -500,7 +500,7 @@ export const CONTRACTS: Contract[] = [
         deposit: 18000000,
         rentalPrice: 9000000,
         returnDate: "2024-12-31",
-        status: "pending_approval",
+        status: "PendingApproval",
         createdAt: "2024-09-10",
     },
     {
@@ -511,7 +511,7 @@ export const CONTRACTS: Contract[] = [
         deposit: 11400000,
         rentalPrice: 5700000,
         returnDate: "2025-09-30",
-        status: "pending_signature",
+        status: "PendingSignature",
         createdAt: "2024-09-20",
     },
     {
@@ -522,7 +522,7 @@ export const CONTRACTS: Contract[] = [
         deposit: 16500000,
         rentalPrice: 8250000,
         returnDate: "2024-03-31",
-        status: "expired",
+        status: "Expired",
         createdAt: "2023-04-01",
     },
 ]

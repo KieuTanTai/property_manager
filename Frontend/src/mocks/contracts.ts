@@ -1,4 +1,4 @@
-import type {ContractModel, ContractViolationModel, RegulationModel} from "../api/contracts"
+import type {ContractModel, ContractViolationModel, RegulationModel} from "../types/contracts"
 
 export const MOCK_REGULATIONS: RegulationModel[] = [
     {

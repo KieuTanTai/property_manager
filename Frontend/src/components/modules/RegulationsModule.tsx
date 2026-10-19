@@ -1,5 +1,5 @@
 import {useState} from "react"
-import {FormField, inputCls, Modal} from "./shared"
+import {BaseTable, FormField, inputCls, Modal} from "./shared"
 import {MOCK_REGULATIONS} from "../../mocks/regulations"
 import {fmt, formatDateTime} from "../../scripts/format"
 import type {Regulation, RegulationForm} from "../../types/regulations"
@@ -126,107 +126,25 @@ export function RegulationsModule() {
                 </button>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
-                <table className="w-full min-w-5xl text-sm">
-                    <thead>
-                    <tr className="border-b border-gray-100">
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                            Regulation ID
-                        </th>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                            Tên quy định
-                        </th>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                            Mô tả
-                        </th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                            Mức phạt
-                        </th>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                            Trạng thái
-                        </th>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                            Ngày tạo
-                        </th>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                            Ngày cập nhật
-                        </th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                    {regulations.map((regulation) => (
-                        <tr
-                            key={regulation.regulationId}
-                            onClick={() => openView(regulation)}
-                            onKeyDown={(event) => {
-                                if (event.key === "Enter" || event.key === " ")
-                                    openView(regulation)
-                            }}
-                            tabIndex={0}
-                            className="hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none transition-colors cursor-pointer"
-                            title="Bấm để xem chi tiết"
-                        >
-                            <td
-                                className="px-4 py-3 text-xs font-mono text-gray-500 max-w-44 truncate"
-                                title={regulation.regulationId}
-                            >
-                                {regulation.regulationId}
-                            </td>
-                            <td className="px-4 py-3 font-semibold text-gray-900 max-w-48">
-                                {regulation.regulationName}
-                            </td>
-                            <td
-                                className="px-4 py-3 text-xs text-gray-500 max-w-64 truncate"
-                                title={regulation.regulationDescription ?? undefined}
-                            >
-                                {regulation.regulationDescription || "—"}
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-xs font-semibold text-gray-700 whitespace-nowrap">
-                                {regulation.regulationFineAmount === null
-                                    ? "—"
-                                    : fmt(regulation.regulationFineAmount)}
-                            </td>
-                            <td className="px-4 py-3">
-                  <span
-                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-semibold ${
-                          regulation.regulationIsActive
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-gray-100 text-gray-500"
-                      }`}
-                  >
-                    <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                            regulation.regulationIsActive
-                                ? "bg-emerald-500"
-                                : "bg-gray-400"
-                        }`}
-                    />
-                      {regulation.regulationIsActive
-                          ? "Đang áp dụng"
-                          : "Ngừng áp dụng"}
-                  </span>
-                            </td>
-                            <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                                {formatDateTime(regulation.regulationCreatedAt)}
-                            </td>
-                            <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                                {formatDateTime(regulation.regulationUpdatedAt)}
-                            </td>
-                        </tr>
-                    ))}
-                    {!regulations.length && (
-                        <tr>
-                            <td
-                                colSpan={7}
-                                className="px-4 py-12 text-center text-sm text-gray-400"
-                            >
-                                Chưa có quy định nào.
-                            </td>
-                        </tr>
-                    )}
-                    </tbody>
-                </table>
-            </div>
+            <BaseTable
+                rows={regulations}
+                getRowKey={(item) => item.regulationId}
+                emptyMessage="Chưa có quy định nào."
+                tableClassName="w-full min-w-5xl text-sm"
+                rowClassName={() => "hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none transition-colors"}
+                rowTitle="Bấm để xem chi tiết"
+                onRowClick={openView}
+                columns={[
+                    {key: "id", header: "Regulation ID", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (item) => <span title={item.regulationId}>{item.regulationId}</span>},
+                    {key: "name", header: "Tên quy định", cellClassName: "max-w-48 px-4 py-3 font-semibold text-gray-900", render: (item) => item.regulationName},
+                    {key: "description", header: "Mô tả", cellClassName: "max-w-64 px-4 py-3 text-xs text-gray-500", render: (item) => <span title={item.regulationDescription ?? undefined}>{item.regulationDescription || "—"}</span>},
+                    {key: "fine", header: "Mức phạt", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-700", render: (item) => item.regulationFineAmount === null ? "—" : fmt(item.regulationFineAmount)},
+                    {key: "active", header: "Trạng thái", render: (item) => <span className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold ${item.regulationIsActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${item.regulationIsActive ? "bg-emerald-500" : "bg-gray-400"}`} />{item.regulationIsActive ? "Đang áp dụng" : "Ngừng áp dụng"}</span>},
+                    {key: "created", header: "Ngày tạo", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (item) => formatDateTime(item.regulationCreatedAt)},
+                    {key: "updated", header: "Ngày cập nhật", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (item) => formatDateTime(item.regulationUpdatedAt)},
+                ]}
+            />
 
             {modal && (
                 <Modal

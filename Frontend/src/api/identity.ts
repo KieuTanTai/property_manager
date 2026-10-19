@@ -1,5 +1,6 @@
 import type {
     AccountModel,
+    AccountProfileOption,
     CursorPage,
     PermissionModel,
     RecordAuthResponse,
@@ -68,7 +69,10 @@ function accountPagePath(cursor: string | null, pageSize: number, status: "all" 
 }
 
 export const identityApi = {
-    async accounts(cursor: string | null, pageSize: number, status: "all" | "active" | "inactive") {
+    getSessionInstanceId() {
+        return request<{ sessionInstanceId: string }>("/account/session-instance")
+    },
+    async getAccountsPageByStatus(cursor: string | null, pageSize: number, status: "all" | "active" | "inactive") {
         try {
             const page = await request<CursorPage<ApiAccount>>(accountPagePath(cursor, pageSize, status))
             return {
@@ -87,35 +91,86 @@ export const identityApi = {
             throw error
         }
     },
-    roles() {
+    getAllRolesWithPermissions() {
         return request<RoleModel[]>("/authorization/roles")
     },
-    roleWithPermissions(roleCode: string) {
+    getRoleWithPermissionsByCode(roleCode: string) {
         return request<RoleModel>(`/authorization/roles/${encodeURIComponent(roleCode)}`)
     },
-    permissions() {
+    getAllPermissions() {
         return request<PermissionModel[]>("/authorization/permissions")
     },
-    async profileByAccountId(accountId: string) {
+    async getProfileByAccountId(accountId: string) {
         const query = new URLSearchParams({accountId})
         const profile = await request<ApiProfile>(`/profile/profile?${query}`)
         return toProfileModel(profile)
     },
-    async login(email: string, password: string): Promise<RecordLoginResponse> {
+    async createProfile(accountId: string, identityCode: string) {
+        const profile = await request<ApiProfile>("/profile/profile/create", {
+            method: "POST",
+            body: JSON.stringify({accountId, identityCode}),
+        })
+        return toProfileModel(profile)
+    },
+    async updateProfile(profile: UserProfileModel) {
+        const updated = await request<ApiProfile>("/profile/profile/update", {
+            method: "PUT",
+            body: JSON.stringify({
+                identityCode: profile.userProfileId,
+                accountId: profile.userProfileAccountId,
+                firstName: profile.userProfileFirstName,
+                lastName: profile.userProfileLastName,
+                dateOfBirth: profile.userProfileDateOfBirth,
+                userGender: profile.userProfileGender ?? "Unspecified",
+                phoneNumber: profile.userProfilePhoneNumber,
+                address: profile.userProfileAddress ?? "",
+                avatarUrl: profile.userProfileAvatarUrl,
+            }),
+        })
+        return toProfileModel(updated)
+    },
+    async loginAccount(email: string, password: string): Promise<RecordLoginResponse> {
         const result = await request<RecordLoginResponse & { profile: ApiProfile | null }>("/account/login", {
             method: "POST", body: JSON.stringify({email, password}),
         })
         return {...result, profile: result.profile ? toProfileModel(result.profile) : null}
     },
-    register(email: string, password: string): Promise<RecordAuthResponse> {
+    registerAccount(email: string, password: string): Promise<RecordAuthResponse> {
         return request("/account/register", {method: "POST", body: JSON.stringify({email, password})})
     },
-    updateAccountRoles(accountId: string, roleIds: string[]) {
+    async getAccountsByRoleCode(roleCode: "Customer" | "Employee" | "Inspector" | "Manager" | "Admin"): Promise<AccountProfileOption[]> {
+        try {
+            const accounts = await request<Array<{
+                accountId: string
+                accountEmail: string
+                userProfile: ApiProfile | null
+            }>>(`/account/role?roleCode=${encodeURIComponent(roleCode)}`)
+            return accounts.map((account) => ({
+                accountId: account.accountId,
+                accountEmail: account.accountEmail,
+                userProfile: account.userProfile ? toProfileModel(account.userProfile) : null,
+            }))
+        } catch (error) {
+            if (error instanceof Error && /no accounts found/i.test(error.message)) return []
+            throw error
+        }
+    },
+    assignRolesToAccount(accountId: string, roleIds: string[]) {
         return request<number>(`/authorization/accounts/${encodeURIComponent(accountId)}/roles`, {
             method: "PUT", body: JSON.stringify({ids: roleIds}),
         })
     },
-    updateRole(role: RoleModel, permissionIds: string[]) {
+    addRolesToAccount(accountId: string, roleIds: string[]) {
+        return request<number>(`/authorization/accounts/${encodeURIComponent(accountId)}/roles`, {
+            method: "POST", body: JSON.stringify({ids: roleIds}),
+        })
+    },
+    addPermissionsToAccount(accountId: string, permissionIds: string[]) {
+        return request<number>(`/authorization/accounts/${encodeURIComponent(accountId)}/permissions`, {
+            method: "POST", body: JSON.stringify({ids: permissionIds}),
+        })
+    },
+    updateRolePermissions(role: RoleModel, permissionIds: string[]) {
         return request<number>(`/authorization/roles/${encodeURIComponent(role.roleId)}`, {
             method: "PUT",
             body: JSON.stringify({
@@ -126,10 +181,10 @@ export const identityApi = {
             }),
         })
     },
-    activateAccount(email: string) {
+    activateAccountByEmail(email: string) {
         return request<number>("/account/active", {method: "PUT", body: JSON.stringify(email)})
     },
-    deactivateAccount(accountId: string) {
+    deactivateAccountById(accountId: string) {
         return request<number>(`/account/delete/${encodeURIComponent(accountId)}`, {method: "DELETE"})
     },
 }

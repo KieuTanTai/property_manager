@@ -2,7 +2,9 @@ export type {
     PremiseStatus, Premise, PremiseMedia, Location, BusinessType, WhitelistProduct
 } from "../components/premises/types"
 
-export type ContractStatus = "pending_approval" | "pending_signature" | "canceled" | "expired" | "signed" | "terminated"
+import type {ContractStatus} from "./contracts"
+
+export type {ContractStatus} from "./contracts"
 export type InvoiceStatus = "unpaid" | "paid" | "overdue"
 export type TicketType = "review" | "complaint" | "violation" | "feedback"
 

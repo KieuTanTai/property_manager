@@ -4,5 +4,11 @@ export interface PublicHomeProps {
 
 export interface LoginModalProps {
     onClose: () => void
-    onLogin: (account: { accountId: string; email: string; roleCodes: string[] }) => void
+    onLogin: (account: {
+        accountId: string
+        email: string
+        roleCodes: string[]
+        sessionInstanceId: string
+        lastActivityAt: number
+    }) => void
 }

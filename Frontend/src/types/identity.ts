@@ -44,6 +44,8 @@ export type AccountModel = {
     permissionCodes: string[]
 }
 
+export type AccountProfileOption = Pick<AccountModel, "accountId" | "accountEmail" | "userProfile">
+
 export type CursorPage<T> = { items: T[]; nextCursor: string | null; isHasMore: boolean }
 export type RecordAuthResponse = {
     accountId: string

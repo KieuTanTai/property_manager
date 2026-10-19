@@ -1,4 +1,4 @@
-import type {ContactInfoModel} from "../api/contracts"
+import type {ContactInfoModel} from "../types/contracts"
 
 export const MOCK_CONTACTS: ContactInfoModel[] = [
     {

@@ -56,7 +56,7 @@ export default defineConfig(({mode, command}) => {
                 "/api/ticket-medias": {target: "https://localhost:7092", changeOrigin: true, secure: false},
                 "/api/notifications": {target: "https://localhost:7092", changeOrigin: true, secure: false},
                 "/api/notification-recipients": {target: "https://localhost:7092", changeOrigin: true, secure: false},
-                "/api/premise-medias": {target: "https://localhost:7081", changeOrigin: true, secure: false},
+                "/api/media": {target: "https://localhost:7002", changeOrigin: true, secure: false},
             },
         },
         preview: {

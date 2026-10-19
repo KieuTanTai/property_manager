@@ -1,16 +1,15 @@
 import {useState} from "react"
-import {FormField, inputCls, InvoiceStatusBadge, Modal, selectCls,} from "./shared"
-import type {InvoiceStatus} from "../../types/modules"
-import type {InvoiceDetail, InvoiceTab, MonthlyInvoice, Receipt, ReceiptPaymentMethod} from "../../types/invoices"
-import {MOCK_CONTRACT_BILLING, MOCK_INVOICE_DETAILS, MOCK_MONTHLY_INVOICES, MOCK_RECEIPTS} from "../../mocks/invoices"
-import {createUuidV7} from "../../scripts/ids"
-import {fmt, today} from "../../scripts/format"
+import {BaseTable, FormField, inputCls, InvoiceStatusBadge, Modal, selectCls,} from "./shared"
+import type {InvoiceStatus} from "@/types/modules.ts"
+import type {InvoiceDetail, InvoiceTab, MonthlyInvoice, Receipt, ReceiptPaymentMethod} from "@/types/invoices"
+import {MOCK_CONTRACT_BILLING, MOCK_INVOICE_DETAILS, MOCK_MONTHLY_INVOICES, MOCK_RECEIPTS} from "@/mocks/invoices.ts"
+import {createUuidV7} from "@/scripts/ids.ts"
+import {fmt, today} from "@/scripts/format.ts"
 
 const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     cash: "Tiền mặt",
-    bank_transfer: "Chuyển khoản",
-    card: "Thẻ",
-    e_wallet: "Ví điện tử",
+    vnpay: "VNPAY",
+    bank: "Chuyển khoản",
 }
 
 export function InvoicesModule() {
@@ -520,138 +519,41 @@ export function InvoicesModule() {
                             )
                         })}
                     </div>
-                    <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
-                        <table className="w-full min-w-5xl text-sm">
-                            <thead>
-                            <tr className="border-b border-gray-100">
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                    Invoice ID
-                                </th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                    Contract ID
-                                </th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                    Ngày lập
-                                </th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                    Ngày đến hạn
-                                </th>
-                                <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                    Tổng tiền
-                                </th>
-                                <th className="text-center px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                    Chi tiết
-                                </th>
-                                <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                    Trạng thái
-                                </th>
-                            </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                            {filtered.map((invoice) => (
-                                <tr
-                                    key={invoice.invoiceId}
-                                    onClick={() => openInvoice(invoice)}
-                                    onKeyDown={(event) => {
-                                        if (event.key === "Enter" || event.key === " ")
-                                            openInvoice(invoice)
-                                    }}
-                                    tabIndex={0}
-                                    className="hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none transition-colors cursor-pointer"
-                                    title="Bấm để xem các chi tiết hóa đơn"
-                                >
-                                    <td className="px-4 py-3 text-xs font-mono text-gray-500 max-w-44 truncate">
-                                        {invoice.invoiceId}
-                                    </td>
-                                    <td className="px-4 py-3 text-xs font-mono text-gray-500 max-w-44 truncate">
-                                        {invoice.invoiceContractId}
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                                        {invoice.invoicePaymentDate}
-                                    </td>
-                                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                                        {invoice.invoiceDueDate}
-                                    </td>
-                                    <td className="px-4 py-3 text-right text-xs font-mono font-semibold text-gray-800 whitespace-nowrap">
-                                        {invoice.invoiceTotalAmount === null
-                                            ? "—"
-                                            : fmt(invoice.invoiceTotalAmount)}
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                      <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                        {
-                            details.filter(
-                                (detail) =>
-                                    detail.invoiceDetailInvoiceId ===
-                                    invoice.invoiceId,
-                            ).length
-                        }
-                      </span>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <InvoiceStatusBadge status={invoice.invoiceStatus}/>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <BaseTable
+                        rows={filtered}
+                        getRowKey={(invoice) => invoice.invoiceId}
+                        tableClassName="w-full min-w-5xl text-sm"
+                        paginationResetKey={filter}
+                        rowClassName={() => "hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none transition-colors"}
+                        rowTitle="Bấm để xem các chi tiết hóa đơn"
+                        onRowClick={openInvoice}
+                        columns={[
+                            {key: "invoiceId", header: "Invoice ID", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (invoice) => invoice.invoiceId},
+                            {key: "contractId", header: "Contract ID", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (invoice) => invoice.invoiceContractId},
+                            {key: "paymentDate", header: "Ngày lập", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (invoice) => invoice.invoicePaymentDate},
+                            {key: "dueDate", header: "Ngày đến hạn", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (invoice) => invoice.invoiceDueDate},
+                            {key: "amount", header: "Tổng tiền", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-800", render: (invoice) => invoice.invoiceTotalAmount === null ? "—" : fmt(invoice.invoiceTotalAmount)},
+                            {key: "details", header: "Chi tiết", headerClassName: "px-4 py-3 text-center font-medium", cellClassName: "px-4 py-3 text-center", render: (invoice) => <span className="rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600">{details.filter((detail) => detail.invoiceDetailInvoiceId === invoice.invoiceId).length}</span>},
+                            {key: "status", header: "Trạng thái", render: (invoice) => <InvoiceStatusBadge status={invoice.invoiceStatus}/>},
+                        ]}
+                    />
                 </>
             ) : (
-                <div className="bg-white rounded-xl border border-gray-100 overflow-x-auto">
-                    <table className="w-full min-w-5xl text-sm">
-                        <thead>
-                        <tr className="border-b border-gray-100">
-                            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                Receipt ID
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                Invoice ID
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                Phương thức
-                            </th>
-                            <th className="text-right px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                Số tiền
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                Ngày thanh toán
-                            </th>
-                            <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                                Ngân hàng
-                            </th>
-                        </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                        {receipts.map((receipt) => (
-                            <tr
-                                key={receipt.receiptId}
-                                onClick={() => openReceipt(receipt)}
-                                className="hover:bg-blue-50/50 transition-colors cursor-pointer"
-                            >
-                                <td className="px-4 py-3 text-xs font-mono text-gray-500 max-w-48 truncate">
-                                    {receipt.receiptId}
-                                </td>
-                                <td className="px-4 py-3 text-xs font-mono text-gray-500 max-w-48 truncate">
-                                    {receipt.receiptInvoiceId}
-                                </td>
-                                <td className="px-4 py-3 text-xs text-gray-600">
-                                    {paymentMethodLabels[receipt.receiptPaymentMethod]}
-                                </td>
-                                <td className="px-4 py-3 text-right text-xs font-mono font-semibold text-emerald-600">
-                                    {fmt(receipt.receiptAmount)}
-                                </td>
-                                <td className="px-4 py-3 text-xs text-gray-500">
-                                    {receipt.receiptPaymentDate}
-                                </td>
-                                <td className="px-4 py-3 text-xs text-gray-500">
-                                    {receipt.receiptBankName || "—"}
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
-                </div>
+                <BaseTable
+                    rows={receipts}
+                    getRowKey={(receipt) => receipt.receiptId}
+                    tableClassName="w-full min-w-5xl text-sm"
+                    rowClassName={() => "hover:bg-blue-50/50 transition-colors"}
+                    onRowClick={openReceipt}
+                    columns={[
+                        {key: "receiptId", header: "Receipt ID", cellClassName: "max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (receipt) => receipt.receiptId},
+                        {key: "invoiceId", header: "Invoice ID", cellClassName: "max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (receipt) => receipt.receiptInvoiceId},
+                        {key: "method", header: "Phương thức", cellClassName: "px-4 py-3 text-xs text-gray-600", render: (receipt) => paymentMethodLabels[receipt.receiptPaymentMethod]},
+                        {key: "amount", header: "Số tiền", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "px-4 py-3 text-right font-mono text-xs font-semibold text-emerald-600", render: (receipt) => fmt(receipt.receiptAmount)},
+                        {key: "paymentDate", header: "Ngày thanh toán", cellClassName: "px-4 py-3 text-xs text-gray-500", render: (receipt) => receipt.receiptPaymentDate},
+                        {key: "bank", header: "Ngân hàng", cellClassName: "px-4 py-3 text-xs text-gray-500", render: (receipt) => receipt.receiptBankName || "—"},
+                    ]}
+                />
             )}
 
             {invoiceModal === "add" && (
@@ -826,7 +728,7 @@ export function InvoicesModule() {
                                 !invoiceForm.dueDate ||
                                 !createInvoiceDetailsValid
                             }
-                            className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400"
+                            className="px-4 py-2 text-sm text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400"
                         >
                             Tạo hóa đơn và chi tiết
                         </button>
@@ -997,78 +899,22 @@ export function InvoicesModule() {
                 {invoiceDetails.length} chi tiết
               </span>
                         </div>
-                        <div className="border border-gray-100 rounded-xl overflow-x-auto">
-                            <table className="w-full min-w-5xl text-sm">
-                                <thead>
-                                <tr className="bg-gray-50 border-b border-gray-100">
-                                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400">
-                                        ID
-                                    </th>
-                                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400">
-                                        Premise ID
-                                    </th>
-                                    <th className="text-right px-3 py-2.5 text-xs font-semibold text-gray-400">
-                                        Tiền thuê
-                                    </th>
-                                    <th className="text-right px-3 py-2.5 text-xs font-semibold text-gray-400">
-                                        Tiền điện
-                                    </th>
-                                    <th className="text-right px-3 py-2.5 text-xs font-semibold text-gray-400">
-                                        Tiền nước
-                                    </th>
-                                    <th className="text-right px-3 py-2.5 text-xs font-semibold text-gray-400">
-                                        Phí rác
-                                    </th>
-                                    <th className="text-right px-3 py-2.5 text-xs font-semibold text-gray-400">
-                                        Tổng cộng
-                                    </th>
-                                </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                {invoiceDetails.map((detail) => (
-                                    <tr
-                                        key={detail.invoiceDetailId}
-                                        className="hover:bg-blue-50/40 transition-colors"
-                                    >
-                                        <td className="px-3 py-3 text-xs font-mono text-gray-500">
-                                            #{detail.invoiceDetailId}
-                                        </td>
-                                        <td
-                                            className="px-3 py-3 text-xs font-mono text-gray-500 max-w-48 truncate"
-                                            title={detail.invoiceDetailPremiseId}
-                                        >
-                                            {detail.invoiceDetailPremiseId}
-                                        </td>
-                                        <td className="px-3 py-3 text-right text-xs font-mono text-gray-600 whitespace-nowrap">
-                                            {fmt(detail.invoiceDetailRentalPrice)}
-                                        </td>
-                                        <td className="px-3 py-3 text-right text-xs font-mono text-gray-600 whitespace-nowrap">
-                                            {fmt(detail.invoiceDetailElectricityFee)}
-                                        </td>
-                                        <td className="px-3 py-3 text-right text-xs font-mono text-gray-600 whitespace-nowrap">
-                                            {fmt(detail.invoiceDetailWaterFee)}
-                                        </td>
-                                        <td className="px-3 py-3 text-right text-xs font-mono text-gray-600 whitespace-nowrap">
-                                            {fmt(detail.invoiceDetailGarbageFee)}
-                                        </td>
-                                        <td className="px-3 py-3 text-right text-xs font-mono font-bold text-blue-700 whitespace-nowrap">
-                                            {fmt(detail.invoiceDetailTotalAmount)}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {!invoiceDetails.length && (
-                                    <tr>
-                                        <td
-                                            colSpan={7}
-                                            className="py-10 text-center text-sm text-gray-400"
-                                        >
-                                            Hóa đơn chưa có chi tiết.
-                                        </td>
-                                    </tr>
-                                )}
-                                </tbody>
-                            </table>
-                        </div>
+                        <BaseTable
+                            rows={invoiceDetails}
+                            getRowKey={(detail) => String(detail.invoiceDetailId)}
+                            emptyMessage="Hóa đơn chưa có chi tiết."
+                            tableClassName="w-full min-w-5xl text-sm"
+                            rowClassName={() => "hover:bg-blue-50/40 transition-colors"}
+                            columns={[
+                                {key: "id", header: "ID", cellClassName: "px-3 py-3 font-mono text-xs text-gray-500", render: (detail) => `#${detail.invoiceDetailId}`},
+                                {key: "premise", header: "Premise ID", cellClassName: "max-w-48 truncate px-3 py-3 font-mono text-xs text-gray-500", render: (detail) => <span title={detail.invoiceDetailPremiseId}>{detail.invoiceDetailPremiseId}</span>},
+                                {key: "rental", header: "Tiền thuê", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailRentalPrice)},
+                                {key: "electricity", header: "Tiền điện", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailElectricityFee)},
+                                {key: "water", header: "Tiền nước", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailWaterFee)},
+                                {key: "garbage", header: "Phí rác", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailGarbageFee)},
+                                {key: "total", header: "Tổng cộng", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs font-bold text-blue-700", render: (detail) => fmt(detail.invoiceDetailTotalAmount)},
+                            ]}
+                        />
                         <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
                             <div className="flex items-center justify-between mb-4">
                                 <div>

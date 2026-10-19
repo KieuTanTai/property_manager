@@ -37,7 +37,7 @@ function StatCard({
 export function Dashboard() {
     const rented = PREMISES.filter((p) => p.status === "rented").length
     const available = PREMISES.filter((p) => p.status === "available").length
-    const activeContracts = CONTRACTS.filter((c) => c.status === "signed").length
+    const activeContracts = CONTRACTS.filter((c) => c.status === "Signed").length
     const overdueInvoices = INVOICES.filter((i) => i.status === "overdue").length
     const unresolvedVio = VIOLATIONS.filter((v) => !v.resolved).length
     const openTickets = TICKETS.filter((t) => !t.resolved).length

@@ -34,13 +34,19 @@ namespace Shared.Services
 
         public async Task<string> UploadAsync(
             IFormFile file,
+            string folderId,
             CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(folderId))
+            {
+                throw new InvalidOperationException("Google Drive upload folder is not configured for this media purpose.");
+            }
+
             _logger.LogLayerInformation(_logPool, _module, LogLayer,
                 $"Google Drive upload started. FileName={Path.GetFileName(file.FileName)}, ContentType={file.ContentType}, Size={file.Length} bytes.");
             try
             {
-                var (folderId, clientId, clientSecret, refreshToken) = GetOAuthConfig();
+                var (clientId, clientSecret, refreshToken) = GetOAuthConfig();
                 var accessToken = await GetAccessTokenAsync(clientId, clientSecret, refreshToken, cancellationToken);
                 _logger.LogLayerInformation(_logPool, _module, LogLayer, "Google OAuth access token acquired.");
                 var fileId = await UploadFileAsync(file, folderId, accessToken, cancellationToken);
@@ -69,23 +75,49 @@ namespace Shared.Services
             }
         }
 
+        public async Task<(byte[] Content, string ContentType)> DownloadAsync(
+            string fileId,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(fileId))
+            {
+                throw new ArgumentException("A Google Drive file ID is required.", nameof(fileId));
+            }
+
+            var (clientId, clientSecret, refreshToken) = GetOAuthConfig();
+            var accessToken = await GetAccessTokenAsync(clientId, clientSecret, refreshToken, cancellationToken);
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                $"https://www.googleapis.com/drive/v3/files/{Uri.EscapeDataString(fileId)}?alt=media");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new InvalidOperationException(
+                    $"Google Drive could not read the image (HTTP {(int)response.StatusCode}): {responseBody}");
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            return (await response.Content.ReadAsByteArrayAsync(cancellationToken), contentType);
+        }
+
         #endregion
 
         #region PRIVATE
 
-        private Tuple<string, string, string, string> GetOAuthConfig() 
+        private Tuple<string, string, string> GetOAuthConfig()
         {
-            var folderId = _configuration["GoogleDrive:FolderId"];
             var clientId = _configuration["GoogleDrive:OAuth:ClientId"];
             var clientSecret = _configuration["GoogleDrive:OAuth:ClientSecret"];
             var refreshToken = _configuration["GoogleDrive:OAuth:RefreshToken"];
-            if (string.IsNullOrWhiteSpace(folderId) || string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret) || string.IsNullOrWhiteSpace(refreshToken))
+            if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret) || string.IsNullOrWhiteSpace(refreshToken))
             {
                 throw new InvalidOperationException(
-                    "Google Drive OAuth is not configured. Set GoogleDrive__FolderId, GoogleDrive__OAuth__ClientId, GoogleDrive__OAuth__ClientSecret, and GoogleDrive__OAuth__RefreshToken for the API using this service.");
+                    "Google Drive OAuth is not configured. Set GoogleDrive__OAuth__ClientId, GoogleDrive__OAuth__ClientSecret, and GoogleDrive__OAuth__RefreshToken for the Gateway.");
             }
 
-            return Tuple.Create(folderId, clientId, clientSecret, refreshToken);
+            return Tuple.Create(clientId, clientSecret, refreshToken);
         }
         
         private async Task<string> GetAccessTokenAsync(

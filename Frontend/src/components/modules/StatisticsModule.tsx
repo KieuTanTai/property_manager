@@ -163,27 +163,27 @@ export function StatisticsModule() {
     const contractsByStatus = [
         {
             name: "Đã ký",
-            value: CONTRACTS.filter((c) => c.status === "signed").length,
+            value: CONTRACTS.filter((c) => c.status === "Signed").length,
             color: "bg-emerald-500",
         },
         {
             name: "Chờ duyệt",
-            value: CONTRACTS.filter((c) => c.status === "pending_approval").length,
+            value: CONTRACTS.filter((c) => c.status === "PendingApproval").length,
             color: "bg-amber-500",
         },
         {
             name: "Chờ ký",
-            value: CONTRACTS.filter((c) => c.status === "pending_signature").length,
+            value: CONTRACTS.filter((c) => c.status === "PendingSignature").length,
             color: "bg-blue-500",
         },
         {
             name: "Hết hạn",
-            value: CONTRACTS.filter((c) => c.status === "expired").length,
+            value: CONTRACTS.filter((c) => c.status === "Expired").length,
             color: "bg-red-500",
         },
         {
             name: "Chấm dứt",
-            value: CONTRACTS.filter((c) => c.status === "terminated").length,
+            value: CONTRACTS.filter((c) => c.status === "Terminated").length,
             color: "bg-slate-400",
         },
     ]
@@ -622,7 +622,7 @@ export function StatisticsModule() {
                         <KPICard
                             label="Đang hiệu lực"
                             value={String(
-                                CONTRACTS.filter((c) => c.status === "signed").length,
+                                CONTRACTS.filter((c) => c.status === "Signed").length,
                             )}
                             sub="Đã ký kết"
                             trend={{val: "2 mới tháng 9", up: true}}
@@ -633,8 +633,8 @@ export function StatisticsModule() {
                             value={String(
                                 CONTRACTS.filter(
                                     (c) =>
-                                        c.status === "pending_approval" ||
-                                        c.status === "pending_signature",
+                                        c.status === "PendingApproval" ||
+                                        c.status === "PendingSignature",
                                 ).length,
                             )}
                             sub="Cần hành động"

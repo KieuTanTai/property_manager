@@ -1,7 +1,9 @@
 using Contract.Models.Contract;
 using Contract.Models.Regulation;
+using Contract.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Shared.Enum;
 
 namespace Contract.Infrastructure.Persistence.Configurations
 {
@@ -37,7 +39,9 @@ namespace Contract.Infrastructure.Persistence.Configurations
 
             entity.Property(contract => contract.ContractStatus)
                 .HasColumnName("contract_status")
-                .HasConversion<string>()
+                .HasConversion(
+                    status => SnakeCaseEnum.ToSnakeCase(status),
+                    status => SnakeCaseEnum.FromSnakeCase<EContractStatus>(status))
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'pending_approval'")
                 .IsRequired();

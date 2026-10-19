@@ -1,5 +1,6 @@
 import type {SubmitEvent} from "react"
 import {useEffect, useState} from "react"
+import {mediaApi} from "@/api/media"
 import {
     type NotificationModel,
     type NotificationType,
@@ -7,7 +8,7 @@ import {
     type TicketModel,
     type TicketType
 } from "../../api/ticketAndNotification"
-import {FormField, inputCls, Modal, selectCls} from "./shared"
+import {FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
 import {ImageAttachments} from "./ImageAttachments"
 import {MOCK_NOTIFICATIONS, MOCK_TICKETS} from "../../mocks/tickets"
 
@@ -100,7 +101,7 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
         const done = await run(async () => {
             if (selectedImages.length > 0) {
                 const imageUrls: string[] = []
-                for (const file of selectedImages) imageUrls.push(await ticketApi.uploadImage(file))
+                for (const file of selectedImages) imageUrls.push(await mediaApi.uploadImage(file, "ticket-and-notification"))
                 const created = await ticketApi.createTicket({
                     accountId: ticketForm.accountId,
                     content: ticketForm.content,
@@ -262,7 +263,7 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
                 có thông báo.</p>}</div>}
 
         {modal === "tickets" && <Modal title="Tạo ticket" onClose={() => setModal(null)}>
-            <form onSubmit={(event) => void createTicket(event)}>
+            <ProcessingForm processing={saving} onSubmit={createTicket}>
                 <FormField label="Account ID"><input className={inputCls} required placeholder="GUID tài khoản"
                                                      value={ticketForm.accountId} onChange={(event) => setTicketForm({
                     ...ticketForm,
@@ -288,11 +289,11 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
                     <button className={`${button} bg-blue-600 text-white`}
                             disabled={saving}>{saving ? "Đang tải ảnh..." : "Tạo ticket"}</button>
                 </div>
-            </form>
+            </ProcessingForm>
         </Modal>}
 
         {modal === "notifications" && <Modal title="Tạo thông báo" onClose={() => setModal(null)}>
-            <form onSubmit={(event) => void createNotification(event)}>
+            <ProcessingForm processing={saving} onSubmit={createNotification}>
                 <FormField label="Sender account ID"><input className={inputCls} required placeholder="GUID người gửi"
                                                             value={notificationForm.senderAccountId}
                                                             onChange={(event) => setNotificationForm({
@@ -324,7 +325,7 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
                     </button>
                     <button className={`${button} bg-slate-900 text-white`} disabled={saving}>Tạo thông báo</button>
                 </div>
-            </form>
+            </ProcessingForm>
         </Modal>}
         {imageToView && <div role="dialog" aria-modal="true"
                              aria-label={`Ảnh ${imageToView.index + 1} trong ${imageToView.urls.length} ảnh đính kèm`}

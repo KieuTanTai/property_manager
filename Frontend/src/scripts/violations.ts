@@ -1,4 +1,4 @@
-import type {ContractViolationModel} from "../api/contracts"
+import type {ContractViolationModel} from "../types/contracts"
 import type {Violation} from "../types/modules"
 
 export const mapContractViolationToView = (item: ContractViolationModel, tenant: string): Violation => ({

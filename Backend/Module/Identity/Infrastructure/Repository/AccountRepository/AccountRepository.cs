@@ -1,6 +1,7 @@
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
+using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Shared.Logging;
 using Shared.Persistence;
@@ -38,6 +39,15 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account by id.");
             return await _db.Accounts.AsNoTracking()
                 .FirstOrDefaultAsync(account => account.AccountId == id, cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<AccountModel>> GetAllAccountsByRoleCodeAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading accounts by role id.");
+            return await _db.Accounts.AsNoTracking()
+                .Include(account => account.UserProfile)
+                .Where(account => account.Roles.Any(role => role.RoleCode == roleCode.ToString().ToLower()))
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<IReadOnlyList<AccountModel>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)

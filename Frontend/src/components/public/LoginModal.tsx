@@ -1,5 +1,6 @@
 import React, {useState} from "react"
 import {identityApi} from "@/api/identity.ts"
+import {ProcessingForm} from "../modules/shared"
 import type {LoginModalProps as Props} from "./types"
 
 export function LoginModal({onClose, onLogin}: Props) {
@@ -14,9 +15,16 @@ export function LoginModal({onClose, onLogin}: Props) {
         setIsSubmitting(true)
 
         try {
-            const result = await identityApi.login(email.trim(), password)
+            const result = await identityApi.loginAccount(email.trim(), password)
+            const {sessionInstanceId} = await identityApi.getSessionInstanceId()
             const roleCodes = result.account.roleCodes ?? []
-            onLogin({accountId: result.account.accountId, email: result.account.email, roleCodes})
+            onLogin({
+                accountId: result.account.accountId,
+                email: result.account.email,
+                roleCodes,
+                sessionInstanceId,
+                lastActivityAt: Date.now(),
+            })
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : "Không thể đăng nhập. Vui lòng thử lại.")
         } finally {
@@ -56,7 +64,7 @@ export function LoginModal({onClose, onLogin}: Props) {
                         không gian làm việc.</p>
                 </div>
 
-                <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
+                <ProcessingForm processing={isSubmitting} onSubmit={handleSubmit} className="space-y-4">
                     <label className="block">
                         <span className="mb-1.5 block text-sm font-medium text-slate-700">Email</span>
                         <input
@@ -91,7 +99,7 @@ export function LoginModal({onClose, onLogin}: Props) {
                     >
                         {isSubmitting ? "Đang xác thực..." : "Đăng nhập"}
                     </button>
-                </form>
+                </ProcessingForm>
                 <p className="mt-5 text-center text-xs leading-5 text-slate-400">Tài khoản khách thuê được ban quản lý
                     cấp sau khi ký hợp đồng.</p>
             </section>

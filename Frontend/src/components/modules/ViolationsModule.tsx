@@ -2,11 +2,10 @@ import type {SubmitEvent} from "react"
 import {useMemo, useState} from "react"
 import {MOCK_CONTRACTS} from "../../mocks/contracts"
 import {getMockTenant, MOCK_VIOLATIONS} from "../../mocks/violations"
-import {FormField, inputCls, Modal, selectCls} from "./shared"
+import {BaseTable, FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
 import {fmt} from "../../scripts/format"
 import type {Violation} from "../../types/modules"
 import {filterViolationsForAccount} from "../../scripts/violations"
-import {APP_SETTINGS} from "@/config/appSettings"
 import {createUuid} from "../../scripts/ids"
 import type {ViolationFilter, ViolationForm, ViolationsModuleProps} from "../../types/violations"
 
@@ -30,17 +29,12 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
     const [isEditing, setIsEditing] = useState(false)
     const [form, setForm] = useState<ViolationForm>(emptyForm)
     const [filter, setFilter] = useState<ViolationFilter>("all")
-    const [page, setPage] = useState(1)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const visible = useMemo(() => violations.filter((item) =>
         filter === "all" || item.resolved === (filter === "resolved"),
     ), [filter, violations])
-    const pageSize = APP_SETTINGS.pagination.defaultPageSize
-    const pageCount = Math.max(1, Math.ceil(visible.length / pageSize))
-    const currentPage = Math.min(page, pageCount)
-    const pageItems = visible.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
     const openView = (item: Violation) => {
         setSelected(item)
@@ -76,7 +70,6 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
             } else if (modal === "add") {
                 const created: Violation = {id: newMockId(), ...form, tenant: getMockTenant(form.contractId)}
                 setViolations((current) => [created, ...current])
-                setPage(1)
                 closeModal()
             }
         } catch (cause) {
@@ -90,7 +83,6 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
         if (item.resolved || readOnly) return
         if (!window.confirm("Xóa mock vi phạm chưa xử lý này? Thao tác không thể hoàn tác.")) return
         setViolations((current) => current.filter((violation) => violation.id !== item.id))
-        setPage((current) => Math.min(current, Math.max(1, Math.ceil((visible.length - 1) / pageSize))))
         closeModal()
     }
 
@@ -125,65 +117,33 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
         <div className="mb-4 flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
             {(["all", "unresolved", "resolved"] as const).map((item) => <button key={item} onClick={() => {
                 setFilter(item);
-                setPage(1)
             }}
                                                                                 className={`rounded-md px-3 py-1.5 text-xs font-medium ${filter === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{item === "all" ? "Tất cả" : item === "unresolved" ? "Chưa xử lý" : "Đã xử lý"}</button>)}
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white">
-            <table className="w-full min-w-[1000px] text-sm">
-                <thead
-                    className="border-b border-gray-100 bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
-                <tr>
-                    <th className="px-4 py-3 font-medium">Mã vi phạm</th>
-                    <th className="px-4 py-3 font-medium">Mã hợp đồng</th>
-                    <th className="px-4 py-3 font-medium">Khách thuê</th>
-                    <th className="px-4 py-3 font-medium">Nội dung</th>
-                    <th className="px-4 py-3 font-medium">Ngày vi phạm</th>
-                    <th className="px-4 py-3 font-medium">Hạn xử lý</th>
-                    <th className="px-4 py-3 text-right font-medium">Tiền phạt</th>
-                    <th className="px-4 py-3 font-medium">Trạng thái</th>
-                </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                {pageItems.map((item) => <tr key={item.id} tabIndex={0} onClick={() => openView(item)}
-                                             onKeyDown={(event) => {
-                                                 if (event.key === "Enter") openView(item)
-                                             }}
-                                             className="cursor-pointer hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none"
-                                             title="Bấm để xem chi tiết">
-                    <td className="max-w-40 truncate px-4 py-3 font-mono text-xs text-gray-500">{item.id}</td>
-                    <td className="max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-600">{item.contractId}</td>
-                    <td className="px-4 py-3 font-medium text-gray-800">{item.tenant || "—"}</td>
-                    <td className="max-w-64 truncate px-4 py-3 text-gray-600" title={item.content}>{item.content}</td>
-                    <td className="whitespace-nowrap px-4 py-3">{item.date}</td>
-                    <td className="whitespace-nowrap px-4 py-3">{item.dueDate}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-mono">{fmt(item.penaltyAmount)}</td>
-                    <td className="px-4 py-3"><span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.resolved ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{item.resolved ? "Đã xử lý" : "Chưa xử lý"}</span>
-                    </td>
-                </tr>)}
-                {pageItems.length === 0 && <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-gray-400">Không có vi phạm.</td>
-                </tr>}
-                </tbody>
-            </table>
-            <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3 text-xs text-gray-500">
-                <span>{visible.length ? `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, visible.length)} / ${visible.length}` : "0 bản ghi"}</span>
-                <div className="flex items-center gap-2">
-                    <button disabled={currentPage <= 1} onClick={() => setPage((current) => current - 1)}
-                            className="rounded-md border border-gray-200 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Trước
-                    </button>
-                    <span>Trang {currentPage} / {pageCount}</span>
-                    <button disabled={currentPage >= pageCount} onClick={() => setPage((current) => current + 1)}
-                            className="rounded-md border border-gray-200 px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-40">Sau
-                    </button>
-                </div>
-            </div>
-        </div>
+        <BaseTable
+            rows={visible}
+            getRowKey={(item) => item.id}
+            emptyMessage="Không có vi phạm."
+            tableClassName="w-full min-w-[1000px] text-sm"
+            paginationResetKey={filter}
+            rowClassName={() => "hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none"}
+            rowTitle="Bấm để xem chi tiết"
+            onRowClick={openView}
+            columns={[
+                {key: "id", header: "Mã vi phạm", cellClassName: "max-w-40 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (item) => item.id},
+                {key: "contract", header: "Mã hợp đồng", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-600", render: (item) => item.contractId},
+                {key: "tenant", header: "Khách thuê", cellClassName: "px-4 py-3 font-medium text-gray-800", render: (item) => item.tenant || "—"},
+                {key: "content", header: "Nội dung", cellClassName: "max-w-64 truncate px-4 py-3 text-gray-600", render: (item) => <span title={item.content}>{item.content}</span>},
+                {key: "date", header: "Ngày vi phạm", cellClassName: "whitespace-nowrap px-4 py-3", render: (item) => item.date},
+                {key: "dueDate", header: "Hạn xử lý", cellClassName: "whitespace-nowrap px-4 py-3", render: (item) => item.dueDate},
+                {key: "amount", header: "Tiền phạt", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono", render: (item) => fmt(item.penaltyAmount)},
+                {key: "status", header: "Trạng thái", render: (item) => <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.resolved ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{item.resolved ? "Đã xử lý" : "Chưa xử lý"}</span>},
+            ]}
+        />
 
         {modal && <Modal title={modal === "add" ? "Ghi nhận vi phạm" : "Chi tiết vi phạm"} onClose={closeModal}>
-            <form onSubmit={save}>
+            <ProcessingForm processing={saving} onSubmit={save}>
                 {modal === "view" && selected &&
                     <FormField label="Mã vi phạm"><input className={inputCls} value={selected.id}
                                                          disabled/></FormField>}
@@ -254,7 +214,7 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
                         </button>
                     </>}
                 </div>
-            </form>
+            </ProcessingForm>
         </Modal>}
     </div>
 }

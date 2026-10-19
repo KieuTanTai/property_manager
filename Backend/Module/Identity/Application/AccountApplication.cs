@@ -1,8 +1,8 @@
-using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Identity.Models.Profile;
+using Identity.Utils.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
@@ -166,6 +166,16 @@ namespace Identity.Application
         #endregion
 
         #region ADMIN
+
+        public Task<IReadOnlyList<AccountModel>> GetAllAccountsByRoleCodeAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code operation started.");
+            var result = _accountRepository.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
+            if (result.Result.Count == 0)
+                _logger.LogLayerWarning(_logPool, Module, Layer, "No accounts found for the specified role code.");
+            _logger.LogLayerInformation(_logPool, Module, Layer, $"Get all accounts by role code operation completed. Found {result.Result.Count} accounts.");
+            return result;
+        }
 
         public async Task<int> ActiveAccountByAdminAsync(string email, CancellationToken cancellationToken = default)
         {
