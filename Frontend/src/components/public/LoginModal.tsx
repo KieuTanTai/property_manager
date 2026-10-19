@@ -65,6 +65,7 @@ export function LoginModal({onClose, onLogin}: Props) {
                 </div>
 
                 <ProcessingForm processing={isSubmitting} onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-4">
                     <label className="block">
                         <span className="mb-1.5 block text-sm font-medium text-slate-700">Email</span>
                         <input
@@ -99,6 +100,7 @@ export function LoginModal({onClose, onLogin}: Props) {
                     >
                         {isSubmitting ? "Đang xác thực..." : "Đăng nhập"}
                     </button>
+                    </div>
                 </ProcessingForm>
                 <p className="mt-5 text-center text-xs leading-5 text-slate-400">Tài khoản khách thuê được ban quản lý
                     cấp sau khi ký hợp đồng.</p>

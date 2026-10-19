@@ -91,7 +91,7 @@ export function PremisesTab({
                     }},
                     {key: "name", header: "ID / Tên", render: (premise) => <><div className="font-semibold text-gray-900">{premise.name}</div><div className="font-mono text-xs text-gray-400">{premise.id}</div></>},
                     {key: "position", header: "Vị trí", cellClassName: "px-4 py-3 text-gray-600", render: (premise) => `Tầng ${premise.floor} - Vị trí ${premise.position}`},
-                    {key: "area", header: "Diện tích", cellClassName: "px-4 py-3 font-mono text-xs text-gray-700", render: (premise) => premise.area},
+                    {key: "area", header: "Diện tích", cellClassName: "px-4 py-3 font-mono text-xs text-gray-700", render: (premise) => `${premise.area} m²`},
                     {key: "location", header: "Địa chỉ", cellClassName: "max-w-48 truncate px-4 py-3 text-xs text-gray-500", render: (premise) => premise.location},
                     {key: "status", header: "Trạng thái", render: (premise) => <StatusBadge status={premise.status}/>},
                 ]}
