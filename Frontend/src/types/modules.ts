@@ -1,5 +1,5 @@
 export type {
-    PremiseStatus, Premise, PremiseMedia, Location, BusinessType, WhitelistProduct
+ PremiseMedia, Location, BusinessType, WhitelistProduct
 } from "../components/premises/types"
 
 import type {ContractStatus} from "./contracts"
