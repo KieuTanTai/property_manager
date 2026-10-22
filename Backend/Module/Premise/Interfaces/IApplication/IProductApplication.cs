@@ -14,6 +14,12 @@ public interface IProductApplication
         string? productDescription,
         CancellationToken cancellationToken = default);
 
+    Task<WhitelistProductModel> AddForBusinessTypeAsync(
+        string productName,
+        string? productDescription,
+        Guid businessTypeId,
+        CancellationToken cancellationToken = default);
+
     Task<WhitelistProductModel> UpdateAsync(
         Guid productId,
         string productName,

@@ -14,6 +14,7 @@ namespace Premise.Presentations.Controller
     {
         private readonly IProductApplication _productApplication = productApplication;
 
+
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<RecordProductResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -81,6 +82,46 @@ namespace Premise.Presentations.Controller
                     nameof(GetByIdAsync),
                     new { id = product.WhitelistProductId },
                     ToResponse(product));
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = exception.Message });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Conflict(new ProblemDetails { Title = exception.Message });
+            }
+            catch (OperationCanceledException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = $"Request canceled. {exception.Message}" });
+            }
+        }
+
+        [HttpPost("with-business-type")]
+        [ProducesResponseType(typeof(RecordProductResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<RecordProductResponse>> CreateForBusinessTypeAsync(
+            [FromBody] RecordAddProductForBusinessTypeRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var product = await _productApplication.AddForBusinessTypeAsync(
+                    request.ProductName,
+                    request.ProductDescription,
+                    request.BusinessTypeId,
+                    cancellationToken);
+
+                return CreatedAtAction(
+                    nameof(GetByIdAsync),
+                    new { id = product.WhitelistProductId },
+                    ToResponse(product));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new ProblemDetails { Title = exception.Message });
             }
             catch (ArgumentException exception)
             {

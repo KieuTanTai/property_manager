@@ -19,6 +19,7 @@ namespace Premise.Presentations.Controller
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<RecordPremiseResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IReadOnlyList<RecordPremiseResponse>>> GetAllAsync(
             CancellationToken cancellationToken)
@@ -429,6 +430,38 @@ namespace Premise.Presentations.Controller
             catch (ArgumentException exception)
             {
                 return BadRequest(new ProblemDetails { Title = exception.Message });
+            }
+            catch (OperationCanceledException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = $"Request canceled. {exception.Message}" });
+            }
+        }
+
+        [HttpDelete("{id:guid}/images/{imageId:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteImageAsync(
+            [FromRoute] Guid id,
+            [FromRoute] int imageId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _premiseApplication.DeleteImageAsync(id, imageId, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new ProblemDetails { Title = exception.Message });
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = exception.Message });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Conflict(new ProblemDetails { Title = exception.Message });
             }
             catch (OperationCanceledException exception)
             {

@@ -70,11 +70,6 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasForeignKey<PremiseModel>(premise => premise.PremiseLocationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasMany(premise => premise.PremiseMedia)
-                .WithOne()
-                .HasForeignKey(premiseMedia => premiseMedia.PremiseMediaPremiseId)
-                .OnDelete(DeleteBehavior.Cascade);
-
             entity.HasMany(premise => premise.PremiseBusinessTypes)
                 .WithMany()
                 .UsingEntity<PremiseBusinessTypeModel>(

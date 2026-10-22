@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   FormField,
   Modal,
@@ -7,13 +7,15 @@ import {
   premiseStatusSurface,
   selectCls
 } from "./shared"
-import { BUSINESS_TYPES, WHITELIST_PRODUCTS } from "@/mocks/shared.ts"
 import type { BusinessType, Location, WhitelistProduct } from "@/types/modules.ts"
 import type {
+  BusinessTypeModel,
   Premise,
   PremiseMedia,
   PremisesSubTab,
   PremiseStatus,
+  WhitelistProductBusinessType,
+  WhitelistProductModel,
 } from "../premises/types"
 
 import { createUuidV7 } from "@/scripts/ids.ts"
@@ -25,8 +27,9 @@ import { PremisesSubTabs } from "../premises/PremisesSubTabs"
 import { PremisesTab } from "../premises/PremisesTab"
 import { ImageAttachments } from "./ImageAttachments"
 import { mediaApi } from "@/api/media"
-import { premiseApi, type PremiseRequest } from "@/api/premise"
+import { premiseApi, type PremiseRequest, type ProductRequest } from "@/api/premise"
 import type { LocationModel, PremiseMediaModel, PremiseModel } from "../premises/types"
+import { getImageDisplayUrl } from "@/utils/imageUrls"
 
 function toPremiseStatus(status: string): PremiseStatus {
   switch (status.toLowerCase()) {
@@ -75,11 +78,11 @@ function toPremise(model: PremiseModel, locations: Location[]): Premise {
 
 function toPremiseMedia(model: PremiseMediaModel): PremiseMedia {
   return {
-    premiseMediaId: model.premiseMediaId,
-    premiseMediaPremiseId: model.premiseMediaPremiseId,
-    premiseMediaImageUrl: model.premiseMediaImageUrl,
-    premiseMediaCreatedAt: model.premiseMediaCreatedAt,
-    premiseMediaUpdatedAt: model.premiseMediaUpdatedAt,
+    premiseMediaId: model.imageId,
+    premiseMediaPremiseId: model.premiseId,
+    premiseMediaImageUrl: getImageDisplayUrl(model.imageUrl),
+    premiseMediaCreatedAt: model.createdAt,
+    premiseMediaUpdatedAt: model.updatedAt,
   }
 }
 
@@ -89,6 +92,29 @@ function toLocation(model: LocationModel): Location {
     address: model.locationAddress,
     createdAt: model.locationCreatedAt,
     updatedAt: model.locationUpdatedAt,
+  }
+}
+
+function toBusinessType(businessTypeModel: BusinessTypeModel): BusinessType {
+  return {
+    businessTypeId : businessTypeModel.businessTypeId,
+    name: businessTypeModel.businessTypeName,
+    description: businessTypeModel.businessTypeDescription,
+    active: businessTypeModel.businessTypeIsActive,
+    createdAt: businessTypeModel.businessTypeCreatedAt,
+    updatedAt: businessTypeModel.businessTypeUpdatedAt
+  }
+}
+
+function toWhitelistProduct(
+  whitelistProductModel: WhitelistProductModel,
+  businessTypeId: string,
+): WhitelistProduct {
+  return {
+    productId: whitelistProductModel.whitelistProductId,
+    businessTypeId,
+    name: whitelistProductModel.whitelistProductName,
+    description: whitelistProductModel.whitelistProductDescription
   }
 }
 
@@ -126,15 +152,21 @@ export function PremisesModule() {
   const [premises, setPremises] = useState<Premise[]>([])
   const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>([])
   const [premiseImages, setPremiseImages] = useState<File[]>([])
+  const [pendingImageDeletionIds, setPendingImageDeletionIds] = useState<number[]>([])
   const [isUploadingPremiseImages, setIsUploadingPremiseImages] = useState(false)
   const [isSavingPremise, setIsSavingPremise] = useState(false)
   const [isLoadingPremises, setIsLoadingPremises] = useState(true)
   const [premiseError, setPremiseError] = useState<string | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
-  const [businessTypes, setBusinessTypes] =
-    useState<BusinessType[]>(BUSINESS_TYPES)
-  const [whitelistProducts, setWhitelistProducts] =
-    useState<WhitelistProduct[]>(WHITELIST_PRODUCTS)
+  const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([])
+  const [isLoadingBusinessTypes, setIsLoadingBusinessTypes] = useState(true)
+  const [businessTypeError, setBusinessTypeError] = useState<string | null>(null)
+  const [whitelistProducts, setWhitelistProducts] = useState<WhitelistProduct[]>([])
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const [isSavingProduct, setIsSavingProduct] = useState(false)
+  const [productError, setProductError] = useState<string | null>(null)
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const productLoadSequence = useRef(0)
   const [activeSubTab, setActiveSubTab] = useState<PremisesSubTab>("locations")
   const [filter, setFilter] = useState<PremiseStatus | "all">("all")
   const [modal, setModal] = useState<"add" | "view" | null>(null)
@@ -177,6 +209,9 @@ export function PremisesModule() {
   const selectedPremiseMedia = selectedPremise
     ? premiseMedia.filter((media) => media.premiseMediaPremiseId === selectedPremise.id)
     : []
+  const retainedPremiseMedia = selectedPremiseMedia.filter(
+    (media) => !pendingImageDeletionIds.includes(media.premiseMediaId),
+  )
 
   useEffect(() => {
     if (!isImageFullscreen) return
@@ -205,14 +240,33 @@ export function PremisesModule() {
         if (!isActive) return
         const activeLocations = locationModels
           .map(toLocation)
-        console.log("location model: "+ locationModels);
-        setLocations(activeLocations);
-        console.log("active location: "+ activeLocations);
+        setLocations(activeLocations)
         setPremises(premiseModels.map((premise) => toPremise(premise, activeLocations)))
-        const imageGroups = await Promise.all(
-          premiseModels.map((premise) => premiseApi.getImages(premise.premiseId)),
-        )
-        if (isActive) setPremiseMedia(imageGroups.flat().map(toPremiseMedia))
+        setPremiseMedia([])
+        const imageModels: PremiseMediaModel[] = []
+        let failedImageRequests = 0
+        for (let offset = 0; offset < premiseModels.length; offset += 5) {
+          const imageBatch = await Promise.allSettled(
+            premiseModels
+              .slice(offset, offset + 5)
+              .map((premise) => premiseApi.getImages(premise.premiseId)),
+          )
+          for (const result of imageBatch) {
+            if (result.status === "fulfilled") {
+              imageModels.push(...result.value)
+            } else {
+              failedImageRequests += 1
+            }
+          }
+        }
+        if (isActive) {
+          setPremiseMedia(imageModels.map(toPremiseMedia))
+          if (failedImageRequests > 0) {
+            setPremiseError(
+              `Không tải được ảnh cho ${failedImageRequests} mặt bằng. Các ảnh tải thành công vẫn được hiển thị.`,
+            )
+          }
+        }
       } 
       catch (error) {
         if (isActive) {
@@ -224,6 +278,36 @@ export function PremisesModule() {
       }
     }
     void load()
+    return () => {
+      isActive = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadBusinessTypes = async () => {
+      setIsLoadingBusinessTypes(true)
+      setBusinessTypeError(null)
+      try {
+        const businessTypeModels = await premiseApi.getBusinessTypes()
+        if (isActive) {
+          setBusinessTypes(businessTypeModels.map(toBusinessType))
+        }
+      } catch (error) {
+        if (isActive) {
+          setBusinessTypeError(
+            error instanceof Error
+              ? error.message
+              : "Không tải được danh sách loại hình kinh doanh.",
+          )
+        }
+      } finally {
+        if (isActive) setIsLoadingBusinessTypes(false)
+      }
+    }
+
+    void loadBusinessTypes()
     return () => {
       isActive = false
     }
@@ -245,12 +329,15 @@ export function PremisesModule() {
       description: "",
     })
     setPremiseImages([])
+    setPendingImageDeletionIds([])
     setModal("add")
   }
 
   const openView = (p: Premise) => {
     setSelectedPremise(p)
     setActiveMediaIndex(0)
+    setPremiseImages([])
+    setPendingImageDeletionIds([])
     setPremiseIsEditing(false)
     setModal("view")
   }
@@ -266,6 +353,9 @@ export function PremisesModule() {
       locationId: selectedPremise.locationId,
       description: selectedPremise.description,
     })
+    setPremiseImages([])
+    setPendingImageDeletionIds([])
+    setPremiseError(null)
     setPremiseIsEditing(true)
   }
 
@@ -315,10 +405,25 @@ export function PremisesModule() {
       const updated = toPremise(updatedModel, locations)
       setPremises((current) => current.map((premise) => premise.id === selectedPremise.id ? updated : premise))
       setSelectedPremise(updated)
+      for (const imageId of pendingImageDeletionIds) {
+        await premiseApi.deleteImage(selectedPremise.id, imageId)
+        setPremiseMedia((current) =>
+          current.filter((media) => media.premiseMediaId !== imageId),
+        )
+        setPendingImageDeletionIds((current) => current.filter((id) => id !== imageId))
+      }
+      setIsUploadingPremiseImages(premiseImages.length > 0)
+      for (const file of premiseImages) {
+        const imageUrl = await mediaApi.uploadImage(file, "premise")
+        const image = await premiseApi.addImage(selectedPremise.id, imageUrl)
+        setPremiseMedia((current) => [...current, toPremiseMedia(image)])
+        setPremiseImages((current) => current.filter((item) => item !== file))
+      }
       setPremiseIsEditing(false)
     } catch (error) {
       setPremiseError(error instanceof Error ? error.message : "Không cập nhật được mặt bằng.")
     } finally {
+      setIsUploadingPremiseImages(false)
       setIsSavingPremise(false)
     }
   }
@@ -433,26 +538,76 @@ export function PremisesModule() {
     }
   }
 
-  const handleAddWhitelistProduct = () => {
+  const handleAddWhitelistProduct = async () => {
     const name = productName.trim()
     if (!name || !selectedBusinessType) return
-    setWhitelistProducts([
-      ...whitelistProducts,
-      {
-        productId: createUuidV7(),
-        businessTypeId: selectedBusinessType.businessTypeId,
-        name,
-        description: productDescription.trim(),
-      },
-    ])
-    setProductName("")
-    setProductDescription("")
+    if (name.length > 100 || productDescription.trim().length > 255) {
+      setProductError("Tên sản phẩm tối đa 100 ký tự; mô tả tối đa 255 ký tự.")
+      return
+    }
+
+    const body: ProductRequest = {
+      productName: name,
+      productDescription: productDescription.trim() || null,
+    }
+    setIsSavingProduct(true)
+    setProductError(null)
+    try {
+      if (editingProductId) {
+        const updated = await premiseApi.updateProduct(editingProductId, body)
+        setWhitelistProducts((current) =>
+          current.map((product) =>
+            product.productId === editingProductId
+              ? toWhitelistProduct(updated, selectedBusinessType.businessTypeId)
+              : product,
+          ),
+        )
+      } else {
+        const created = await premiseApi.createProductForBusinessType({
+          ...body,
+          businessTypeId: selectedBusinessType.businessTypeId,
+        })
+        setWhitelistProducts((current) => [
+          ...current,
+          toWhitelistProduct(created, selectedBusinessType.businessTypeId),
+        ])
+      }
+      setProductName("")
+      setProductDescription("")
+      setEditingProductId(null)
+    } catch (error) {
+      setProductError(error instanceof Error ? error.message : "Không lưu được sản phẩm.")
+    } finally {
+      setIsSavingProduct(false)
+    }
   }
 
-  const handleDeleteWhitelistProduct = (productId: string) => {
-    setWhitelistProducts(
-      whitelistProducts.filter((product) => product.productId !== productId),
-    )
+  const handleEditWhitelistProduct = (product: WhitelistProduct) => {
+    setEditingProductId(product.productId)
+    setProductName(product.name)
+    setProductDescription(product.description ?? "")
+    setProductError(null)
+  }
+
+  const handleDeleteWhitelistProduct = async (productId: string) => {
+    if (!selectedBusinessType) return
+    setProductError(null)
+    try {
+      await premiseApi.removeProductBusinessType(
+        productId,
+        selectedBusinessType.businessTypeId,
+      )
+      setWhitelistProducts((current) =>
+        current.filter((product) => product.productId !== productId),
+      )
+      if (editingProductId === productId) {
+        setEditingProductId(null)
+        setProductName("")
+        setProductDescription("")
+      }
+    } catch (error) {
+      setProductError(error instanceof Error ? error.message : "Không xóa được liên kết sản phẩm.")
+    }
   }
 
 
@@ -510,6 +665,18 @@ export function PremisesModule() {
           </button>
         </div>
       )}
+      {businessTypeError && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          Không thể tải loại hình kinh doanh từ database: {businessTypeError}
+          <button
+            type="button"
+            onClick={() => setBusinessTypeError(null)}
+            className="ml-3 font-semibold underline"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
 
       <PremisesSubTabs
         activeTab={activeSubTab}
@@ -530,16 +697,51 @@ export function PremisesModule() {
           onDelete={handleDeleteLocation}
         />
       ) : activeSubTab === "business-types" ? (
-        <BusinessTypesTab
-          businessTypes={businessTypes}
-          onView={(businessType) => {
+        isLoadingBusinessTypes ? (
+          <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-500">
+            Đang tải loại hình kinh doanh...
+          </div>
+        ) : businessTypes.length === 0 && !businessTypeError ? (
+          <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-500">
+            Chưa có loại hình kinh doanh trong database.
+          </div>
+        ) : (
+          <BusinessTypesTab
+            businessTypes={businessTypes}
+            onView={(businessType) => {
+            const loadSequence = ++productLoadSequence.current
             setSelectedBusinessType(businessType)
             setProductName("")
             setProductDescription("")
+            setEditingProductId(null)
+            setProductError(null)
+            setIsLoadingProducts(true)
+            setWhitelistProducts([])
             setBusinessIsEditing(false)
             setBusinessModal("view")
-          }}
-        />
+            void premiseApi.getProductsByBusinessType(businessType.businessTypeId)
+              .then((products) => {
+                if (loadSequence === productLoadSequence.current) {
+                  setWhitelistProducts(products.map((product) =>
+                    toWhitelistProduct(product, businessType.businessTypeId),
+                  ))
+                }
+              })
+              .catch((error: unknown) => {
+                if (loadSequence === productLoadSequence.current) {
+                  setProductError(
+                    error instanceof Error ? error.message : "Không tải được sản phẩm.",
+                  )
+                }
+              })
+              .finally(() => {
+                if (loadSequence === productLoadSequence.current) {
+                  setIsLoadingProducts(false)
+                }
+              })
+            }}
+          />
+        )
       ) : (
         isLoadingPremises ? (
           <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-500">
@@ -857,6 +1059,7 @@ export function PremisesModule() {
                       value={productName}
                       onChange={(event) => setProductName(event.target.value)}
                       placeholder="VD: Giày, dép, quần áo..."
+                      maxLength={100}
                     />
                   </FormField>
                   <FormField label="Mô tả sản phẩm">
@@ -877,15 +1080,41 @@ export function PremisesModule() {
                   </span>
                   <button
                     onClick={handleAddWhitelistProduct}
-                    disabled={!productName.trim()}
+                    disabled={!productName.trim() || isSavingProduct}
                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40"
                   >
-                    Thêm sản phẩm
+                    {isSavingProduct
+                      ? "Đang lưu..."
+                      : editingProductId
+                        ? "Lưu sản phẩm"
+                        : "Thêm sản phẩm"}
                   </button>
                 </div>
+                {editingProductId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingProductId(null)
+                      setProductName("")
+                      setProductDescription("")
+                    }}
+                    className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Hủy chỉnh sửa
+                  </button>
+                )}
               </div>
+              {productError && (
+                <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {productError}
+                </p>
+              )}
               <div className="border border-gray-100 rounded-xl">
-                {whitelistProducts
+                {isLoadingProducts ? (
+                  <div className="px-4 py-10 text-center text-sm text-gray-400">
+                    Đang tải sản phẩm...
+                  </div>
+                ) : whitelistProducts
                   .filter(
                     (product) =>
                       product.businessTypeId ===
@@ -912,8 +1141,16 @@ export function PremisesModule() {
                         </span>
                       </span>
                       <button
+                        type="button"
+                        onClick={() => handleEditWhitelistProduct(product)}
+                        className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
                         onClick={() =>
-                          handleDeleteWhitelistProduct(product.productId)
+                          void handleDeleteWhitelistProduct(product.productId)
                         }
                         className="text-xs text-gray-300 hover:text-red-500 transition-colors"
                       >
@@ -921,7 +1158,7 @@ export function PremisesModule() {
                       </button>
                     </div>
                   ))}
-                {!whitelistProducts.some(
+                {!isLoadingProducts && !whitelistProducts.some(
                   (product) =>
                     product.businessTypeId ===
                     selectedBusinessType.businessTypeId,
@@ -1023,13 +1260,75 @@ export function PremisesModule() {
               <ImageAttachments files={premiseImages} onChange={setPremiseImages} />
             </FormField>
           )}
+          {modal === "view" && selectedPremise && (
+            <FormField label="Ảnh mặt bằng">
+              {selectedPremiseMedia.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-3">
+                  {selectedPremiseMedia.map((media) => {
+                    const isMarkedForDeletion = pendingImageDeletionIds.includes(
+                      media.premiseMediaId,
+                    )
+                    return (
+                      <div
+                        key={media.premiseMediaId}
+                        className={`relative h-20 w-24 overflow-hidden rounded-lg border ${
+                          isMarkedForDeletion
+                            ? "border-red-300 opacity-40"
+                            : "border-slate-200"
+                        }`}
+                      >
+                        <img
+                          src={media.premiseMediaImageUrl}
+                          alt="Ảnh mặt bằng"
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPendingImageDeletionIds((current) =>
+                              isMarkedForDeletion
+                                ? current.filter((id) => id !== media.premiseMediaId)
+                                : [...current, media.premiseMediaId],
+                            )
+                            setPremiseError(null)
+                          }}
+                          className="absolute right-1 top-1 rounded bg-black/70 px-2 py-1 text-xs text-white"
+                        >
+                          {isMarkedForDeletion ? "Hoàn tác" : "Xóa"}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              <ImageAttachments
+                files={premiseImages}
+                onChange={setPremiseImages}
+                maxCount={Math.max(0, 5 - retainedPremiseMedia.length)}
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Thay đổi ảnh sẽ được lưu cùng lúc khi bạn chọn “Lưu thay đổi”.
+              </p>
+            </FormField>
+          )}
+          {premiseError && (
+            <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {premiseError}
+            </p>
+          )}
           <div className="flex justify-end gap-2 mt-2">
             <button
-              onClick={
-                modal === "add"
-                  ? () => setModal(null)
-                  : () => setPremiseIsEditing(false)
-              }
+              onClick={() => {
+                if (modal === "add") {
+                  setModal(null)
+                  setPremiseImages([])
+                } else {
+                  setPremiseIsEditing(false)
+                  setPremiseImages([])
+                  setPendingImageDeletionIds([])
+                  setPremiseError(null)
+                }
+              }}
               className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Hủy

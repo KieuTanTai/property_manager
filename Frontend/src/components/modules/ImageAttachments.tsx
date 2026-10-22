@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-const maxImageCount = 5
+const defaultMaxImageCount = 5
 const maxImageSize = 10 * 1024 * 1024
 
 function PreviewImage({ file, onClick }: { file: File; onClick: () => void }) {
@@ -27,7 +27,15 @@ function FullscreenImage({ file }: { file: File }) {
   return <img src={url} alt={file.name} onClick={(event) => event.stopPropagation()} className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] object-contain" />
 }
 
-export function ImageAttachments({ files, onChange }: { files: File[]; onChange: (files: File[]) => void }) {
+export function ImageAttachments({
+  files,
+  onChange,
+  maxCount = defaultMaxImageCount,
+}: {
+  files: File[]
+  onChange: (files: File[]) => void
+  maxCount?: number
+}) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,8 +58,8 @@ export function ImageAttachments({ files, onChange }: { files: File[]; onChange:
       setError(invalidFile.size > maxImageSize ? "Dung lượng mỗi ảnh tối đa 10 MB." : "Chỉ hỗ trợ tệp hình ảnh.")
       return
     }
-    if (files.length + nextFiles.length > maxImageCount) {
-      setError(`Có thể chọn tối đa ${maxImageCount} ảnh.`)
+    if (files.length + nextFiles.length > maxCount) {
+      setError(`Có thể chọn thêm tối đa ${maxCount} ảnh.`)
       return
     }
     setError(null)
@@ -64,7 +72,7 @@ export function ImageAttachments({ files, onChange }: { files: File[]; onChange:
       Thêm ảnh
       <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="sr-only" onChange={(event) => { addFiles(event.currentTarget.files); event.currentTarget.value = "" }} />
     </label>
-    <p className="text-xs text-slate-500">Tối đa {maxImageCount} ảnh, 10 MB mỗi ảnh.</p>
+    <p className="text-xs text-slate-500">Có thể thêm tối đa {maxCount} ảnh, 10 MB mỗi ảnh.</p>
     {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
     {files.length > 0 && <div className="flex flex-wrap gap-2">
       {files.map((file, index) => <div key={`${file.name}-${file.lastModified}-${index}`} className="relative">

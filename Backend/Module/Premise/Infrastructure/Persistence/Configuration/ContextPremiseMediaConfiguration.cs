@@ -36,9 +36,9 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             entity.HasOne<PremiseModel>()
-                .WithMany()
+                .WithMany(premise => premise.PremiseMedia)
                 .HasForeignKey(premiseMedia => premiseMedia.PremiseMediaPremiseId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

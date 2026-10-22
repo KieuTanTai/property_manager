@@ -1,7 +1,9 @@
-import type {
-  LocationModel,
-  PremiseMediaModel,
-  PremiseModel,
+import {
+  WhitelistProductModel,
+  type BusinessTypeModel,
+  type LocationModel,
+  type PremiseMediaModel,
+  type PremiseModel,
 } from "@/components/premises/types"
 
 const apiBase = (import.meta.env.VITE_IDENTITY_API_BASE_URL || "/api").replace(/\/$/, "")
@@ -14,6 +16,11 @@ export type PremiseRequest = {
   premiseFloor: number
   premiseArea: string
   premiseDescription: string | null
+}
+
+export type ProductRequest = {
+  productName: string
+  productDescription: string | null
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -36,7 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       // ASP.NET có thể trả lỗi dạng plain text.
     }
-    if (response.status === 404 && /no (premises|locations) found/i.test(detail)) {
+    if (response.status === 404 && /no (premises|locations|products) found/i.test(detail)) {
       return [] as T
     }
     throw new Error(detail || `Premise API trả về HTTP ${response.status}.`)
@@ -51,6 +58,41 @@ export const premiseApi = {
   },
   getLocations() {
     return request<LocationModel[]>("/Location")
+  },
+  getBusinessTypes() {
+    return request<BusinessTypeModel[]>("/BusinessType")
+  },
+  getProducts() {
+    return request<WhitelistProductModel[]>("/Product")
+  },
+  getProductsByBusinessType(businessTypeId: string) {
+    return request<WhitelistProductModel[]>(
+      `/Product/by-business-type/${encodeURIComponent(businessTypeId)}`,
+    )
+  },
+  createProduct(body: ProductRequest) {
+    return request<WhitelistProductModel>("/Product", {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
+  },
+  createProductForBusinessType(body: ProductRequest & { businessTypeId: string }) {
+    return request<WhitelistProductModel>("/Product/with-business-type", {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
+  },
+  updateProduct(productId: string, body: ProductRequest) {
+    return request<WhitelistProductModel>(`/Product/${encodeURIComponent(productId)}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    })
+  },
+  removeProductBusinessType(productId: string, businessTypeId: string) {
+    return request<void>(
+      `/Product/${encodeURIComponent(productId)}/business-types/${encodeURIComponent(businessTypeId)}`,
+      { method: "DELETE" },
+    )
   },
   getImages(premiseId: string) {
     return request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premiseId)}/images`)
@@ -72,6 +114,12 @@ export const premiseApi = {
       method: "POST",
       body: JSON.stringify({ imageUrl }),
     })
+  },
+  deleteImage(premiseId: string, imageId: number) {
+    return request<void>(
+      `/Premise/${encodeURIComponent(premiseId)}/images/${imageId}`,
+      { method: "DELETE" },
+    )
   },
   createLocation(locationAddress: string) {
     return request<LocationModel>("/Location", {

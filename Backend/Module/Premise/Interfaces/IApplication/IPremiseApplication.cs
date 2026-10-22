@@ -59,6 +59,11 @@ public interface IPremiseApplication
         string imageUrl,
         CancellationToken cancellationToken = default);
 
+    Task DeleteImageAsync(
+        Guid premiseId,
+        int imageId,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<PremiseMediaModel>> GetImagesAsync(
         Guid premiseId,
         CancellationToken cancellationToken = default);

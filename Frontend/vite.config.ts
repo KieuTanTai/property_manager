@@ -14,6 +14,7 @@ const keyPath = process.env.HTTPS_KEY_FILE
     : path.join(frontendDirectory, ".cert", "localhost-key.pem")
 
 const apiProxyTarget = process.env.IDENTITY_API_PROXY_TARGET || "https://localhost:7048"
+const gatewayApiProxyTarget = process.env.GATEWAY_API_PROXY_TARGET || "https://localhost:7002"
 
 export default defineConfig(({mode, command}) => {
     const emitSourcemaps = mode === "development"
@@ -45,9 +46,12 @@ export default defineConfig(({mode, command}) => {
         "/api/account": { target: apiProxyTarget, changeOrigin: true, secure: false },
         "/api/authorization": { target: apiProxyTarget, changeOrigin: true, secure: false },
         "/api/profile": { target: apiProxyTarget, changeOrigin: true, secure: false },
+        "/api/media": { target: gatewayApiProxyTarget, changeOrigin: true, secure: false },
         // Local ASP.NET development endpoints use a self-signed certificate.
         "/api/Premise": { target: "https://localhost:7081", changeOrigin: true, secure: false },
         "/api/Location": { target: "https://localhost:7081", changeOrigin: true, secure: false },
+        "/api/BusinessType": { target: "https://localhost:7081", changeOrigin: true, secure: false },
+        "/api/Product": { target: "https://localhost:7081", changeOrigin: true, secure: false },
         "/api/Contract": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Regulation": { target: "https://localhost:7255", changeOrigin: true, secure: false },
         "/api/Invoice": { target: "https://localhost:7255", changeOrigin: true, secure: false },

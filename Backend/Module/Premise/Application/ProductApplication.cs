@@ -90,6 +90,67 @@ namespace Premise.Application
             return product;
         }
 
+        public async Task<WhitelistProductModel> AddForBusinessTypeAsync(
+            string productName,
+            string? productDescription,
+            Guid businessTypeId,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(productName))
+            {
+                var exception = new ArgumentException(
+                    "Product name is required.", nameof(productName));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Product creation rejected because its name is missing.");
+                throw exception;
+            }
+
+            if (businessTypeId == Guid.Empty)
+            {
+                var exception = new ArgumentException(
+                    "Business type id is required.", nameof(businessTypeId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Product creation rejected because its business type id is missing.");
+                throw exception;
+            }
+
+            if (!await _businessTypeRepository.ExistsAsync(businessTypeId, cancellationToken))
+            {
+                var exception = new KeyNotFoundException(
+                    $"Business type not found: {businessTypeId}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Product creation failed because the business type was not found.");
+                throw exception;
+            }
+
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Creating product and assigning it to a business type.");
+            var product = new WhitelistProductModel(productName);
+            if (!string.IsNullOrWhiteSpace(productDescription))
+            {
+                product.SetWhitelistProductDescription(productDescription);
+            }
+
+            await _productRepository.AddAsync(product, cancellationToken);
+            await _productBusinessTypeRepository.AddAsync(
+                new ProductBusinessTypeModel(product.WhitelistProductId, businessTypeId),
+                cancellationToken);
+
+            var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (affectedRows == 0)
+            {
+                var exception = new InvalidOperationException(
+                    "Failed to create and assign product.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Product creation and business type assignment failed.");
+                throw exception;
+            }
+
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Product created and assigned to business type.");
+            return product;
+        }
+
         public async Task<WhitelistProductModel> UpdateAsync(
             Guid productId,
             string productName,
@@ -132,7 +193,6 @@ namespace Premise.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Product updated.");
             return product;
         }
-
         public async Task<IReadOnlyList<BusinessTypeModel>> GetBusinessTypesAsync(
             Guid productId,
             CancellationToken cancellationToken = default)

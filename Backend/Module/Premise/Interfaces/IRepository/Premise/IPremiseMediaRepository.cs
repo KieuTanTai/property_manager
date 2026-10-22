@@ -14,5 +14,9 @@ namespace Premise.Interfaces.IRepository.Premise
         Task<IReadOnlyList<PremiseMediaModel>> GetByPremiseIdsAsync(
             IEnumerable<Guid> premiseIds,
             CancellationToken cancellationToken = default);
+
+        Task DeleteAsync(
+            PremiseMediaModel entity,
+            CancellationToken cancellationToken = default);
     }
 }

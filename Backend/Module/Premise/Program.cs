@@ -33,6 +33,7 @@ builder.Services.AddScoped<ILocationApplication, LocationApplication>();
 builder.Services.AddScoped<IPremiseRepository, PremiseRepository>();
 builder.Services.AddScoped<IPremiseMediaRepository, PremiseMediaRepository>();
 builder.Services.AddScoped<IBusinessTypeRepository, BusinessTypeRepository>();
+builder.Services.AddScoped<IBusinessTypeApplication, BusinessTypeApplication>();
 builder.Services.AddScoped<IPremiseBusinessTypeRepository, PremiseBusinessTypeRepository>();
 builder.Services.AddScoped<IPremiseApplication, PremiseApplication>();
 builder.Services.AddScoped<IWhitelistProductRepository, WhitelistProductRepository>();

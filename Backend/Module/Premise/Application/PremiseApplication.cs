@@ -548,6 +548,59 @@ namespace Premise.Application
             return image;
         }
 
+        public async Task DeleteImageAsync(
+            Guid premiseId,
+            int imageId,
+            CancellationToken cancellationToken = default)
+        {
+            if (premiseId == Guid.Empty)
+            {
+                var exception = new ArgumentException("Premise id is required.", nameof(premiseId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise image deletion rejected because the premise id is missing.");
+                throw exception;
+            }
+
+            if (imageId <= 0)
+            {
+                var exception = new ArgumentException("Image id must be greater than zero.", nameof(imageId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise image deletion rejected because the image id is invalid.");
+                throw exception;
+            }
+
+            if (!await _premiseRepository.ExistsAsync(premiseId, cancellationToken))
+            {
+                var exception = new KeyNotFoundException($"Premise not found: {premiseId}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise image deletion failed because the premise was not found.");
+                throw exception;
+            }
+
+            var image = await _premiseMediaRepository.GetTrackedByIdAsync(imageId, cancellationToken);
+            if (image is null || image.PremiseMediaPremiseId != premiseId)
+            {
+                var exception = new KeyNotFoundException(
+                    $"Premise image {imageId} was not found for premise {premiseId}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise image deletion failed because the image was not found for the premise.");
+                throw exception;
+            }
+
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Deleting premise image.");
+            await _premiseMediaRepository.DeleteAsync(image, cancellationToken);
+            var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (affectedRows == 0)
+            {
+                var exception = new InvalidOperationException("Failed to delete premise image.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise image deletion failed.");
+                throw exception;
+            }
+
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Premise image deleted.");
+        }
+
         public async Task<IReadOnlyList<PremiseMediaModel>> GetImagesAsync(
             Guid premiseId,
             CancellationToken cancellationToken = default)

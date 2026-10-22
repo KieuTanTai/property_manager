@@ -23,11 +23,11 @@ export interface PremiseModel {
 }
 
 export interface PremiseMediaModel {
-    premiseMediaId: number
-    premiseMediaPremiseId: string
-    premiseMediaImageUrl: string
-    premiseMediaCreatedAt: string
-    premiseMediaUpdatedAt: string
+    imageId: number
+    premiseId: string
+    imageUrl: string
+    createdAt: string
+    updatedAt: string
 }
 
 export interface LocationModel {
@@ -52,6 +52,7 @@ export interface WhitelistProductModel {
     whitelistProductId: string
     whitelistProductName: string
     whitelistProductDescription: string | null
+    whitelistProductStatus: boolean
     whitelistProductCreatedAt: string
     whitelistProductUpdatedAt: string
 }
@@ -113,7 +114,7 @@ export interface Location {
 export interface BusinessType {
     businessTypeId: string
     name: string
-    description: string
+    description: string | null
     active: boolean
     createdAt: string
     updatedAt: string
@@ -123,7 +124,20 @@ export interface WhitelistProduct {
     productId: string
     businessTypeId: string
     name: string
-    description: string
+    description: string | null
+}
+
+export interface WhitelistProductBusinessType {
+    whitelistProductId: string
+    whitelistProductName: string
+    whitelistProductDescription: string | null
+    whitelistProductStatus: boolean
+    whitelistProductUpdatedAt: string
+    businessTypeId: string
+    businessName: string
+    businessDescription: string
+    businessStatus: boolean
+    pbusinessUpdatedAt: string
 }
 
 export interface LocationsTabProps {

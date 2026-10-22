@@ -84,6 +84,28 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 .ToListAsync(cancellationToken);
         }
 
+        public Task DeleteAsync(
+            PremiseMediaModel entity,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (entity.PremiseMediaId <= 0)
+            {
+                var exception = new ArgumentException(
+                    "Premise media id must be greater than zero.", nameof(entity));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise media deletion rejected because its id is invalid.");
+                throw exception;
+            }
+
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise media deletion.");
+            _db.PremiseMedias.Remove(entity);
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Premise media staged for deletion.");
+            return Task.CompletedTask;
+        }
+
         #endregion
 
         #region POST
