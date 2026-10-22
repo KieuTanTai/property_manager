@@ -10,5 +10,9 @@ namespace Premise.Interfaces.IRepository.Product
         Task<WhitelistProductModel?> GetByNameAsync(
             string name,
             CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<WhitelistProductModel>> GetByBusinessTypeIdAsync(
+            Guid businessTypeId,
+            CancellationToken cancellationToken = default);
     }
 }

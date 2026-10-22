@@ -14,8 +14,7 @@ import type {
   PremiseMedia,
   PremisesSubTab,
   PremiseStatus,
-  WhitelistProductBusinessType,
-  WhitelistProductModel,
+  ProductResponse,
 } from "../premises/types"
 
 import { createUuidV7 } from "@/scripts/ids.ts"
@@ -107,15 +106,24 @@ function toBusinessType(businessTypeModel: BusinessTypeModel): BusinessType {
 }
 
 function toWhitelistProduct(
-  whitelistProductModel: WhitelistProductModel,
+  productResponse: ProductResponse,
   businessTypeId: string,
 ): WhitelistProduct {
   return {
-    productId: whitelistProductModel.whitelistProductId,
+    productId: productResponse.productId,
     businessTypeId,
-    name: whitelistProductModel.whitelistProductName,
-    description: whitelistProductModel.whitelistProductDescription
+    name: productResponse.productName,
+    description: productResponse.productDescription
   }
+}
+
+function normalizeProductSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLocaleLowerCase("vi")
 }
 
 function toPremiseRequest(form: {
@@ -165,7 +173,13 @@ export function PremisesModule() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [isSavingProduct, setIsSavingProduct] = useState(false)
   const [productError, setProductError] = useState<string | null>(null)
+  const [productCatalog, setProductCatalog] = useState<ProductResponse[]>([])
+  const [isLoadingProductCatalog, setIsLoadingProductCatalog] = useState(true)
+  const [productCatalogError, setProductCatalogError] = useState<string | null>(null)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const [selectedCatalogProductId, setSelectedCatalogProductId] = useState<string | null>(null)
+  const [isProductSuggestionsOpen, setIsProductSuggestionsOpen] = useState(false)
+  const [activeProductSuggestionIndex, setActiveProductSuggestionIndex] = useState(-1)
   const productLoadSequence = useRef(0)
   const [activeSubTab, setActiveSubTab] = useState<PremisesSubTab>("locations")
   const [filter, setFilter] = useState<PremiseStatus | "all">("all")
@@ -203,6 +217,24 @@ export function PremisesModule() {
     locationId: "",
     description: "",
   })
+
+  const normalizedProductQuery = normalizeProductSearch(productName.trim())
+  const linkedProductIds = new Set(whitelistProducts.map((product) => product.productId))
+  const productSuggestions = normalizedProductQuery && !editingProductId
+    ? productCatalog
+      .filter((product) =>
+        !linkedProductIds.has(product.productId) &&
+        normalizeProductSearch(product.productName).includes(normalizedProductQuery),
+      )
+      .slice(0, 8)
+    : []
+
+  const selectProductSuggestion = (product: ProductResponse) => {
+    setSelectedCatalogProductId(product.productId)
+    setProductName(product.productName)
+    setProductDescription(product.productDescription ?? "")
+    setIsProductSuggestionsOpen(false)
+  }
 
   const filtered =
     filter === "all" ? premises : premises.filter((p) => p.status === filter)
@@ -308,6 +340,32 @@ export function PremisesModule() {
     }
 
     void loadBusinessTypes()
+    return () => {
+      isActive = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isActive = true
+
+    const loadProductCatalog = async () => {
+      setIsLoadingProductCatalog(true)
+      setProductCatalogError(null)
+      try {
+        const products = await premiseApi.getProducts()
+        if (isActive) setProductCatalog(products)
+      } catch (error) {
+        if (isActive) {
+          setProductCatalogError(
+            error instanceof Error ? error.message : "Không tải được danh sách sản phẩm.",
+          )
+        }
+      } finally {
+        if (isActive) setIsLoadingProductCatalog(false)
+      }
+    }
+
+    void loadProductCatalog()
     return () => {
       isActive = false
     }
@@ -498,7 +556,7 @@ export function PremisesModule() {
     if (!selectedBusinessType) return
     setBusinessForm({
       name: selectedBusinessType.name,
-      description: selectedBusinessType.description,
+      description: selectedBusinessType.description ?? "",
       active: selectedBusinessType.active,
     })
     setBusinessIsEditing(true)
@@ -555,6 +613,11 @@ export function PremisesModule() {
     try {
       if (editingProductId) {
         const updated = await premiseApi.updateProduct(editingProductId, body)
+        setProductCatalog((current) =>
+          current.map((product) =>
+            product.productId === editingProductId ? updated : product,
+          ),
+        )
         setWhitelistProducts((current) =>
           current.map((product) =>
             product.productId === editingProductId
@@ -562,11 +625,27 @@ export function PremisesModule() {
               : product,
           ),
         )
+      } else if (selectedCatalogProductId) {
+        const selectedProduct = productCatalog.find(
+          (product) => product.productId === selectedCatalogProductId,
+        )
+        if (!selectedProduct) {
+          throw new Error("Sản phẩm đã chọn không còn trong danh sách. Vui lòng chọn lại.")
+        }
+        await premiseApi.addProductBusinessType(
+          selectedProduct.productId,
+          selectedBusinessType.businessTypeId,
+        )
+        setWhitelistProducts((current) => [
+          ...current,
+          toWhitelistProduct(selectedProduct, selectedBusinessType.businessTypeId),
+        ])
       } else {
         const created = await premiseApi.createProductForBusinessType({
           ...body,
           businessTypeId: selectedBusinessType.businessTypeId,
         })
+        setProductCatalog((current) => [...current, created])
         setWhitelistProducts((current) => [
           ...current,
           toWhitelistProduct(created, selectedBusinessType.businessTypeId),
@@ -575,6 +654,9 @@ export function PremisesModule() {
       setProductName("")
       setProductDescription("")
       setEditingProductId(null)
+      setSelectedCatalogProductId(null)
+      setIsProductSuggestionsOpen(false)
+      setActiveProductSuggestionIndex(-1)
     } catch (error) {
       setProductError(error instanceof Error ? error.message : "Không lưu được sản phẩm.")
     } finally {
@@ -584,6 +666,8 @@ export function PremisesModule() {
 
   const handleEditWhitelistProduct = (product: WhitelistProduct) => {
     setEditingProductId(product.productId)
+    setSelectedCatalogProductId(null)
+    setIsProductSuggestionsOpen(false)
     setProductName(product.name)
     setProductDescription(product.description ?? "")
     setProductError(null)
@@ -602,6 +686,7 @@ export function PremisesModule() {
       )
       if (editingProductId === productId) {
         setEditingProductId(null)
+        setSelectedCatalogProductId(null)
         setProductName("")
         setProductDescription("")
       }
@@ -714,6 +799,9 @@ export function PremisesModule() {
             setProductName("")
             setProductDescription("")
             setEditingProductId(null)
+            setSelectedCatalogProductId(null)
+            setIsProductSuggestionsOpen(false)
+            setActiveProductSuggestionIndex(-1)
             setProductError(null)
             setIsLoadingProducts(true)
             setWhitelistProducts([])
@@ -1054,19 +1142,120 @@ export function PremisesModule() {
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 mb-4">
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Tên sản phẩm">
-                    <input
-                      className={inputCls}
-                      value={productName}
-                      onChange={(event) => setProductName(event.target.value)}
-                      placeholder="VD: Giày, dép, quần áo..."
-                      maxLength={100}
-                    />
+                    <div className="relative">
+                      <input
+                        className={inputCls}
+                        value={productName}
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded={isProductSuggestionsOpen && Boolean(normalizedProductQuery)}
+                        aria-controls="product-suggestions"
+                        aria-activedescendant={
+                          isProductSuggestionsOpen && productSuggestions[activeProductSuggestionIndex]
+                            ? `product-suggestion-${activeProductSuggestionIndex}`
+                            : undefined
+                        }
+                        onFocus={() => setIsProductSuggestionsOpen(true)}
+                        onBlur={() => setIsProductSuggestionsOpen(false)}
+                        onChange={(event) => {
+                          if (selectedCatalogProductId) setProductDescription("")
+                          setProductName(event.target.value)
+                          setSelectedCatalogProductId(null)
+                          setIsProductSuggestionsOpen(true)
+                          setActiveProductSuggestionIndex(-1)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape") {
+                            setIsProductSuggestionsOpen(false)
+                          } else if (event.key === "ArrowDown" && productSuggestions.length > 0) {
+                            event.preventDefault()
+                            setIsProductSuggestionsOpen(true)
+                            setActiveProductSuggestionIndex((index) =>
+                              index < 0 ? 0 : (index + 1) % productSuggestions.length,
+                            )
+                          } else if (event.key === "ArrowUp" && productSuggestions.length > 0) {
+                            event.preventDefault()
+                            setIsProductSuggestionsOpen(true)
+                            setActiveProductSuggestionIndex((index) =>
+                              index <= 0
+                                ? productSuggestions.length - 1
+                                : index - 1,
+                            )
+                          } else if (
+                            event.key === "Enter" &&
+                            isProductSuggestionsOpen &&
+                            productSuggestions[activeProductSuggestionIndex]
+                          ) {
+                            event.preventDefault()
+                            selectProductSuggestion(productSuggestions[activeProductSuggestionIndex])
+                          }
+                        }}
+                        placeholder="VD: Cà phê, cà pháo..."
+                        maxLength={100}
+                      />
+                      {isProductSuggestionsOpen && normalizedProductQuery && (
+                        <div
+                          id="product-suggestions"
+                          role="listbox"
+                          className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+                        >
+                          {isLoadingProductCatalog ? (
+                            <p className="px-3 py-2 text-xs text-gray-500">
+                              Đang tải danh sách sản phẩm...
+                            </p>
+                          ) : productSuggestions.length > 0 ? (
+                            productSuggestions.map((product, index) => (
+                              <button
+                                key={product.productId}
+                                id={`product-suggestion-${index}`}
+                                type="button"
+                                role="option"
+                                aria-selected={index === activeProductSuggestionIndex}
+                                className={`block w-full px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none ${
+                                  index === activeProductSuggestionIndex
+                                    ? "bg-blue-50"
+                                    : ""
+                                }`}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => selectProductSuggestion(product)}
+                              >
+                                <span className="block text-sm font-medium text-gray-800">
+                                  {product.productName}
+                                </span>
+                                {product.productDescription && (
+                                  <span className="block truncate text-xs text-gray-500">
+                                    {product.productDescription}
+                                  </span>
+                                )}
+                              </button>
+                            ))
+                          ) : (
+                            <p className="px-3 py-2 text-xs text-gray-500">
+                              Không tìm thấy sản phẩm phù hợp.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {productCatalogError && (
+                      <p role="alert" className="mt-1 text-xs text-red-600">
+                        {productCatalogError}
+                      </p>
+                    )}
                   </FormField>
                   <FormField label="Mô tả sản phẩm">
                     <input
-                      className={inputCls}
+                      className={`${inputCls} ${
+                        selectedCatalogProductId ? "bg-gray-100" : ""
+                      }`}
                       maxLength={255}
                       value={productDescription}
+                      readOnly={Boolean(selectedCatalogProductId)}
+                      title={
+                        selectedCatalogProductId
+                          ? "Mô tả của sản phẩm có sẵn. Đổi tên để tạo sản phẩm mới."
+                          : undefined
+                      }
                       onChange={(event) =>
                         setProductDescription(event.target.value)
                       }
@@ -1095,8 +1284,10 @@ export function PremisesModule() {
                     type="button"
                     onClick={() => {
                       setEditingProductId(null)
+                      setSelectedCatalogProductId(null)
                       setProductName("")
                       setProductDescription("")
+                      setIsProductSuggestionsOpen(false)
                     }}
                     className="mt-2 text-xs text-gray-500 hover:text-gray-700"
                   >

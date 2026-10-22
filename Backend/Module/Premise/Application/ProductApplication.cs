@@ -235,16 +235,8 @@ namespace Premise.Application
             }
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading products by business type.");
-            var associations = await _productBusinessTypeRepository.GetByBusinessTypeIdAsync(
+            return await _productRepository.GetByBusinessTypeIdAsync(
                 businessTypeId, cancellationToken);
-            if (associations.Count == 0)
-            {
-                return [];
-            }
-
-            return await _productRepository.GetByIdsAsync(
-                associations.Select(association => association.ProductId),
-                cancellationToken);
         }
 
         public async Task<ProductBusinessTypeModel> AddBusinessTypeAsync(

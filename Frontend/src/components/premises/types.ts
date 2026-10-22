@@ -57,6 +57,14 @@ export interface WhitelistProductModel {
     whitelistProductUpdatedAt: string
 }
 
+export interface ProductResponse {
+    productId: string
+    productName: string
+    productDescription: string | null
+    productCreatedAt: string
+    productUpdatedAt: string
+}
+
 export interface PremiseBusinessTypeModel {
     premiseId: string
     businessTypeId: string

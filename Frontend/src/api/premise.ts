@@ -1,9 +1,9 @@
 import {
-  WhitelistProductModel,
   type BusinessTypeModel,
   type LocationModel,
   type PremiseMediaModel,
   type PremiseModel,
+  type ProductResponse,
 } from "@/components/premises/types"
 
 const apiBase = (import.meta.env.VITE_IDENTITY_API_BASE_URL || "/api").replace(/\/$/, "")
@@ -63,29 +63,35 @@ export const premiseApi = {
     return request<BusinessTypeModel[]>("/BusinessType")
   },
   getProducts() {
-    return request<WhitelistProductModel[]>("/Product")
+    return request<ProductResponse[]>("/Product")
   },
   getProductsByBusinessType(businessTypeId: string) {
-    return request<WhitelistProductModel[]>(
+    return request<ProductResponse[]>(
       `/Product/by-business-type/${encodeURIComponent(businessTypeId)}`,
     )
   },
   createProduct(body: ProductRequest) {
-    return request<WhitelistProductModel>("/Product", {
+    return request<ProductResponse>("/Product", {
       method: "POST",
       body: JSON.stringify(body),
     })
   },
   createProductForBusinessType(body: ProductRequest & { businessTypeId: string }) {
-    return request<WhitelistProductModel>("/Product/with-business-type", {
+    return request<ProductResponse>("/Product/with-business-type", {
       method: "POST",
       body: JSON.stringify(body),
     })
   },
   updateProduct(productId: string, body: ProductRequest) {
-    return request<WhitelistProductModel>(`/Product/${encodeURIComponent(productId)}`, {
+    return request<ProductResponse>(`/Product/${encodeURIComponent(productId)}`, {
       method: "PUT",
       body: JSON.stringify(body),
+    })
+  },
+  addProductBusinessType(productId: string, businessTypeId: string) {
+    return request<void>(`/Product/${encodeURIComponent(productId)}/business-types`, {
+      method: "POST",
+      body: JSON.stringify({ businessTypeId }),
     })
   },
   removeProductBusinessType(productId: string, businessTypeId: string) {

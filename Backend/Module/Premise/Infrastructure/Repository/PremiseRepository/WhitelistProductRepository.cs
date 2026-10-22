@@ -42,8 +42,29 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading whitelist products by ids.");
             var productIds = ids.Distinct().ToArray();
+            if (productIds.Length == 0)
+            {
+                return [];
+            }
+
             return await _db.WhitelistProducts.AsNoTracking()
                 .Where(product => productIds.Contains(product.WhitelistProductId))
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<WhitelistProductModel>> GetByBusinessTypeIdAsync(
+            Guid businessTypeId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(
+                _logPool, Module, Layer, "Loading whitelist products by business type id.");
+
+            return await (
+                from product in _db.WhitelistProducts.AsNoTracking()
+                join association in _db.ProductBusinessTypes.AsNoTracking()
+                    on product.WhitelistProductId equals association.ProductId
+                where association.BusinessTypeId == businessTypeId
+                select product)
                 .ToListAsync(cancellationToken);
         }
 
