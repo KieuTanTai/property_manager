@@ -2,7 +2,7 @@ import {useEffect, useState} from "react"
 import {contractApi} from "@/api/contracts.ts"
 import type {RegulationModel} from "@/types/contracts"
 import {BaseTable, FormField, inputCls, Modal, ProcessingForm} from "./shared"
-import {fmt, formatDateTime} from "../../scripts/format"
+import {fmt, formatDateTime, isIntegerAmountInput} from "../../scripts/format"
 import type {RegulationForm} from "../../types/regulations"
 
 const EMPTY_FORM: RegulationForm = {
@@ -318,11 +318,12 @@ export function RegulationsModule() {
                                         className={`${inputCls} pr-14`}
                                         type="number"
                                         min="0"
-                                        step="1000"
+                                        step="1"
                                         value={form.fineAmount}
-                                        onChange={(event) =>
-                                            setForm({...form, fineAmount: event.target.value})
-                                        }
+                                        onChange={(event) => {
+                                            if (isIntegerAmountInput(event.target.value))
+                                                setForm({...form, fineAmount: event.target.value})
+                                        }}
                                         placeholder="Để trống nếu không áp dụng mức phạt"
                                     />
                                     <span

@@ -244,6 +244,41 @@ namespace Contract.Infrastructure.Repository.ReceiptRepository
                 "Receipt staged for update.");
         }
 
+        public async Task<ReceiptModel> UpdatePaymentDetailsAsync(Guid receiptId, Guid invoiceId,
+            DateTime paymentDate, decimal amount, string? transactionInfo,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                $"Preparing payment detail update for receipt {receiptId}.");
+
+            var receipt = await _db.Receipts.FirstOrDefaultAsync(
+                item => item.ReceiptId == receiptId, cancellationToken);
+            if (receipt is null)
+            {
+                var exception = new InvalidOperationException(
+                    $"ReceiptModel not found! \n {receiptId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Receipt update rejected because the receipt was not found.");
+                throw exception;
+            }
+
+            if (receipt.ReceiptInvoiceId != invoiceId)
+            {
+                var exception = new InvalidOperationException(
+                    $"Receipt {receiptId} does not belong to invoice {invoiceId}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Receipt update rejected because it does not belong to the specified invoice.");
+                throw exception;
+            }
+
+            receipt.SetPaymentDate(paymentDate);
+            receipt.SetAmount(amount);
+            receipt.SetTransactionInfo(transactionInfo);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Receipt payment details staged for update: {receiptId}.");
+            return receipt;
+        }
+
         public void UpdateRange(IEnumerable<ReceiptModel> entities,
             CancellationToken cancellationToken = default)
         {

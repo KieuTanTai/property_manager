@@ -24,6 +24,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
 
         private readonly ILogger<ContractRepository> _logger = logger;
 
+
         #region DELETE
 
         public async Task SoftDeleteAsync(Guid contractId, DateTime deletionDate,
@@ -81,6 +82,60 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             return query;
         }
 
+        private void ValidateStatusUpdate(ContractModel existedContract, ContractModel contractModel)
+        {
+            var currentStatus = existedContract.ContractStatus;
+            var requestedStatus = contractModel.ContractStatus;
+
+            string? rejectionReason = null;
+
+            if (existedContract.ContractTerminationDate.HasValue ||
+                currentStatus is EContractStatus.Canceled
+                    or EContractStatus.Expired
+                    or EContractStatus.Terminated)
+            {
+                rejectionReason =
+                    "Contract is already terminated, expired, or canceled and cannot be modified.";
+            }
+            else
+            {
+                var isAllowedTransition = currentStatus switch
+                {
+                    EContractStatus.Signed => requestedStatus == EContractStatus.Signed,
+                    EContractStatus.PendingApproval => requestedStatus is
+                        EContractStatus.PendingApproval or
+                        EContractStatus.PendingSignature or
+                        EContractStatus.Canceled,
+                    EContractStatus.PendingSignature => requestedStatus is
+                        EContractStatus.PendingSignature or
+                        EContractStatus.Signed or
+                        EContractStatus.Canceled,
+                    _ => true
+                };
+
+                if (!isAllowedTransition)
+                {
+                    rejectionReason =
+                        $"Contract cannot transition from '{currentStatus}' to '{requestedStatus}'.";
+                }
+            }
+
+            if (rejectionReason is null) return;
+
+            var exception = new InvalidOperationException(
+                $"{rejectionReason}\nContractId: {contractModel.ContractId}");
+
+            _logger.LogLayerError(
+                _logPool,
+                Module,
+                Layer,
+                exception,
+                "Contract update rejected by contract status validation.");
+
+            throw exception;
+        }
+
+        
         #endregion
 
         #region GET
@@ -272,6 +327,8 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                     "Contract update rejected because the contract was not found.");
                 throw exception;
             }
+
+            ValidateStatusUpdate(existedContract, contractModel);
 
             _db.Contracts.Update(contractModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Contract staged for update.");

@@ -115,6 +115,22 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Preparing invoice detail range creation.");
             var detailModels = entities.ToList();
+            var invoiceIds = detailModels
+                .Select(detail => detail.InvoiceDetailInvoiceId)
+                .Where(invoiceId => invoiceId != Guid.Empty)
+                .Distinct()
+                .ToArray();
+
+            if (invoiceIds.Length > 0 && await _db.InvoiceDetails.AnyAsync(
+                    detail => invoiceIds.AsEnumerable().Contains(detail.InvoiceDetailInvoiceId), cancellationToken))
+            {
+                var exception = new InvalidOperationException(
+                    "Invoice details already exist for one or more invoices in this batch.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Invoice detail creation rejected because details already exist for an invoice.");
+                throw exception;
+            }
+
             await _db.InvoiceDetails.AddRangeAsync(detailModels, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Invoice detail range staged for creation.");

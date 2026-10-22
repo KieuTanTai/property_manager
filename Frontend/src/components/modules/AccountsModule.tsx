@@ -1,5 +1,6 @@
 import type {SubmitEvent} from "react"
-import {useCallback, useEffect, useState} from "react"
+import {useCallback, useEffect, useMemo, useState} from "react"
+import debounce from "lodash.debounce"
 import {identityApi} from "@/api/identity.ts"
 import {mediaApi} from "@/api/media.ts"
 import type {AccountModel, PermissionModel, RoleModel, UserProfileModel} from "@/types/identity"
@@ -75,6 +76,9 @@ export function AccountsModule() {
     const [permissions, setPermissions] = useState<PermissionModel[]>([])
     const [status, setStatus] = useState<"all" | "active" | "inactive">("active")
     const [search, setSearch] = useState("")
+    const [debouncedSearch, setDebouncedSearch] = useState("")
+    const updateDebouncedSearch = useMemo(() => debounce(setDebouncedSearch, APP_SETTINGS.debounceDelayMs), [])
+    useEffect(() => () => updateDebouncedSearch.cancel(), [updateDebouncedSearch])
     const [roleFilter, setRoleFilter] = useState("all")
     const [selectedAccount, setSelectedAccount] = useState<AccountModel | null>(null)
     const [profileDraft, setProfileDraft] = useState<ProfileDraft>(emptyProfileDraft)
@@ -169,7 +173,7 @@ export function AccountsModule() {
     }, [selectedRoleId])
 
     const visibleAccounts = accounts.filter((account) => {
-        const matchesSearch = !search || `${accountName(account)} ${account.accountEmail}`.toLocaleLowerCase("vi").includes(search.toLocaleLowerCase("vi"))
+        const matchesSearch = !debouncedSearch || `${accountName(account)} ${account.accountEmail}`.toLocaleLowerCase("vi").includes(debouncedSearch.toLocaleLowerCase("vi"))
         const matchesRole = roleFilter === "all" || account.roles.some((role) => role.roleId === roleFilter)
         return matchesSearch && matchesRole
     })
@@ -343,13 +347,6 @@ export function AccountsModule() {
                     <p className="mt-1 text-xs text-[#64748b]">Dữ liệu trực tiếp từ Identity API · tài khoản, vai trò và
                         quyền</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <input className={`${inputCls} w-64`} placeholder="Tìm tên hoặc email" value={search}
-                           onChange={(event) => setSearch(event.target.value)}/>
-                    <button className={`${buttonCls} bg-[#0f52ff] text-white hover:bg-[#0a42dd]`}
-                            onClick={() => setShowCreate(true)}>Tạo tài khoản
-                    </button>
-                </div>
             </header>
 
             <main className="flex flex-1 flex-col gap-5 p-8">
@@ -361,8 +358,8 @@ export function AccountsModule() {
                 {notice && <div role="status"
                                 className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
 
-                <section className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                <section className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
                         <label className="text-sm text-slate-600" htmlFor="account-status">Trạng thái</label>
                         <select id="account-status" className={selectCls} value={status}
                                 onChange={(event) => setStatus(event.target.value as typeof status)}>
@@ -370,6 +367,8 @@ export function AccountsModule() {
                             <option value="inactive">Đã vô hiệu hóa</option>
                             <option value="all">Tất cả</option>
                         </select>
+                    </div>
+                    <div className="flex items-center gap-2 whitespace-nowrap">
                         <label className="text-sm text-slate-600" htmlFor="account-role">Vai trò</label>
                         <select id="account-role" className={selectCls} value={roleFilter}
                                 onChange={(event) => setRoleFilter(event.target.value)}>
@@ -378,9 +377,20 @@ export function AccountsModule() {
                                                          value={role.roleId}>{role.roleName}</option>)}
                         </select>
                     </div>
-                    <button className={`${buttonCls} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}
-                            onClick={() => void loadPage()} disabled={loading}>Làm mới
-                    </button>
+                    <input className={`${inputCls} w-64`} placeholder="Tìm tên hoặc email" value={search}
+                           onChange={(event) => {
+                               const value = event.target.value
+                               setSearch(value)
+                               updateDebouncedSearch(value)
+                           }}/>
+                    <div className="ml-auto flex items-center gap-2 whitespace-nowrap">
+                        <button className={`${buttonCls} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}
+                                onClick={() => void loadPage()} disabled={loading}>Làm mới
+                        </button>
+                        <button className={`${buttonCls} bg-[#0f52ff] text-white hover:bg-[#0a42dd]`}
+                                onClick={() => setShowCreate(true)}>Tạo tài khoản
+                        </button>
+                    </div>
                 </section>
 
                 <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -418,9 +428,16 @@ export function AccountsModule() {
                             </select>
                         </FormField>
                         {selectedRole ? <>
-                            <div className="mb-3 flex items-center justify-between"><p
+                            <div className="mb-3 flex items-center justify-between gap-2"><p
                                 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Permission</p>
-                                <span className="text-xs text-slate-500">{permissionIds.length} đã chọn</span></div>
+                                <div className="flex items-center gap-3"><span className="text-xs text-slate-500">{permissionIds.length} đã chọn</span>
+                                    <button type="button" className="text-xs font-medium text-blue-700 hover:text-blue-800"
+                                            disabled={saving || permissions.length === 0}
+                                            onClick={() => setPermissionIds(permissionIds.length === permissions.length ? [] : permissions.map((permission) => permission.permissionId))}>
+                                        {permissionIds.length === permissions.length && permissions.length > 0 ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                                    </button>
+                                </div>
+                            </div>
                             <div
                                 className="max-h-97.5 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
                                 {permissions.map((permission) => <label key={permission.permissionId}
@@ -450,7 +467,16 @@ export function AccountsModule() {
                                 <div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò tài khoản</p>
                                     {!isEditingAccountRoles && <button type="button" className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`} onClick={() => { setAssignedRoleIds(selectedAccount.roles.map((role) => role.roleId)); setIsEditingAccountRoles(true) }}>Chỉnh sửa</button>}
                                 </div>
-                                <p className="mb-2 text-xs text-slate-500">Chọn thêm vai trò cho tài khoản.</p>
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                    <p className="text-xs text-slate-500">Chọn thêm vai trò cho tài khoản.</p>
+                                    {isEditingAccountRoles && <button type="button" className="shrink-0 text-xs font-medium text-blue-700 hover:text-blue-800"
+                                        disabled={saving || roles.length === 0}
+                                        onClick={() => setAssignedRoleIds(roles.every((role) => assignedRoleIds.includes(role.roleId))
+                                            ? selectedAccount.roles.map((role) => role.roleId)
+                                            : roles.map((role) => role.roleId))}>
+                                        {roles.length > 0 && roles.every((role) => assignedRoleIds.includes(role.roleId)) ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                                    </button>}
+                                </div>
                                 <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
                                     {roles.map((role) => <label key={role.roleId}
                                         className={`flex items-center gap-2 rounded-md p-2 ${isEditingAccountRoles && !selectedAccount.roles.some((item) => item.roleId === role.roleId) ? "cursor-pointer hover:bg-slate-50" : "cursor-default opacity-70"}`}><input
@@ -466,7 +492,16 @@ export function AccountsModule() {
                                 <div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quyền bổ sung</p>
                                     {!isEditingAccountPermissions && <button type="button" className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`} onClick={() => { setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId)); setIsEditingAccountPermissions(true) }}>Chỉnh sửa</button>}
                                 </div>
-                                <p className="mb-2 text-xs text-slate-500">Gán permission trực tiếp cho tài khoản, ngoài quyền từ vai trò.</p>
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                    <p className="text-xs text-slate-500">Gán permission trực tiếp cho tài khoản, ngoài quyền từ vai trò.</p>
+                                    {isEditingAccountPermissions && <button type="button" className="shrink-0 text-xs font-medium text-blue-700 hover:text-blue-800"
+                                        disabled={saving || permissions.length === 0}
+                                        onClick={() => setAssignedPermissionIds(permissions.every((permission) => assignedPermissionIds.includes(permission.permissionId))
+                                            ? selectedAccount.additionalPermissions.map((permission) => permission.permissionId)
+                                            : permissions.map((permission) => permission.permissionId))}>
+                                        {permissions.length > 0 && permissions.every((permission) => assignedPermissionIds.includes(permission.permissionId)) ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                                    </button>}
+                                </div>
                                 <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
                                     {permissions.map((permission) => <label key={permission.permissionId}
                                         className={`flex items-start gap-2 rounded-md p-2 ${isEditingAccountPermissions && !selectedAccount.additionalPermissions.some((item) => item.permissionId === permission.permissionId) ? "cursor-pointer hover:bg-slate-50" : "cursor-default opacity-70"}`}><input

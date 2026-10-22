@@ -7,6 +7,10 @@ namespace Contract.Interfaces.IRepository
 {
     public interface IReceiptRepository : IBaseReadRepository<ReceiptModel, Guid>, IBaseUpsertRepository<ReceiptModel>
     {
+        Task<ReceiptModel> UpdatePaymentDetailsAsync(Guid receiptId, Guid invoiceId,
+            DateTime paymentDate, decimal amount, string? transactionInfo,
+            CancellationToken cancellationToken = default);
+
         Task<ReceiptModel?> GetByInvoiceIdAsync(Guid invoiceId,
             CancellationToken cancellationToken = default);
 

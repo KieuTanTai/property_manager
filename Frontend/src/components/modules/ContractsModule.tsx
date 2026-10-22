@@ -1,5 +1,6 @@
 import type {SubmitEvent} from "react"
-import {useEffect, useState} from "react"
+import {useEffect, useMemo, useState} from "react"
+import debounce from "lodash.debounce"
 import {contractApi} from "@/api/contracts.ts"
 import {identityApi} from "@/api/identity.ts"
 import type {AccountProfileOption} from "@/types/identity.ts"
@@ -12,7 +13,8 @@ import type {
 import {statuses, recordStatuses} from "@/types/contracts.ts";
 import {BaseTable, ContractStatusBadge, FormField, formatProfileFullName, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
 import {toDateInput} from "@/scripts/contracts.ts"
-import {fmt} from "@/scripts/format.ts"
+import {fmt, isIntegerAmountInput} from "@/scripts/format.ts"
+import {APP_SETTINGS} from "@/config/appSettings.ts"
 import type {ContractForm, ContractsModuleProps} from "@/types/contracts.ts"
 
 const emptyForm: ContractForm = {
@@ -25,6 +27,16 @@ const emptyForm: ContractForm = {
     regulationIds: []
 }
 const button = "rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+const editableContractStatuses: ContractStatus[] = ["PendingApproval", "PendingSignature", "Signed"]
+
+function allowedContractStatuses(current: ContractStatus): ContractStatus[] {
+    switch (current) {
+        case "PendingApproval": return ["PendingApproval", "PendingSignature", "Canceled"]
+        case "PendingSignature": return ["PendingSignature", "Signed", "Canceled"]
+        case "Signed": return ["Signed"]
+        default: return []
+    }
+}
 
 export function ContractsModule({accountId, readOnly = false}: ContractsModuleProps) {
     const [contracts, setContracts] = useState<ContractModel[]>([])
@@ -35,6 +47,14 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
     const [modal, setModal] = useState<"add" | "detail" | null>(null)
     const [editing, setEditing] = useState(false)
     const [form, setForm] = useState<ContractForm>(emptyForm)
+    const [customerIdentityInput, setCustomerIdentityInput] = useState("")
+    const [debouncedCustomerIdentityInput, setDebouncedCustomerIdentityInput] = useState("")
+    const updateDebouncedCustomerIdentityInput = useMemo(
+        () => debounce(setDebouncedCustomerIdentityInput, APP_SETTINGS.debounceDelayMs),
+        [],
+    )
+    useEffect(() => () => updateDebouncedCustomerIdentityInput.cancel(), [updateDebouncedCustomerIdentityInput])
+    const [customerPickerOpen, setCustomerPickerOpen] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -105,8 +125,19 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
     const selectedAccountName = selectedAccount
         ? formatProfileFullName(selectedAccount.userProfile) || selectedAccount.accountEmail
         : ""
+    const activeRegulations = regulations.filter((item) => item.regulationIsActive)
+    const allActiveRegulationsSelected = activeRegulations.length > 0 && activeRegulations.every((item) => form.regulationIds.includes(item.regulationId))
+    const customerSuggestions = customerAccounts.filter((account) => {
+        if (!account.userProfile?.userProfileId.trim()) return false
+        const query = debouncedCustomerIdentityInput.trim().toLocaleLowerCase()
+        if (!query) return true
+        return [account.userProfile?.userProfileId, formatProfileFullName(account.userProfile), account.accountEmail]
+            .some((value) => value?.toLocaleLowerCase().includes(query))
+    })
     const openCreate = () => {
         setForm({...emptyForm, regulationIds: regulations.filter((item) => item.regulationIsActive).map((item) => item.regulationId)});
+        setCustomerIdentityInput("")
+        setCustomerPickerOpen(false)
         setEditing(false);
         setModal("add")
     }
@@ -116,7 +147,9 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
         setModal("detail")
     }
     const startEdit = () => {
-        if (!selected) return
+        if (!selected || !editableContractStatuses.includes(selected.contractStatus)) return
+        const customerAccount = customerAccounts.find((item) => item.accountId.toLowerCase() === selected.contractAccountId.toLowerCase())
+        setCustomerIdentityInput(customerAccount?.userProfile?.userProfileId ?? "")
         setForm({
             accountId: selected.contractAccountId,
             deposit: String(selected.contractDeposit),
@@ -132,6 +165,18 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
         ...current,
         regulationIds: current.regulationIds.includes(id) ? current.regulationIds.filter((item) => item !== id) : [...current.regulationIds, id]
     }))
+    const selectCustomerByIdentityCode = (identityCode: string) => {
+        setCustomerIdentityInput(identityCode)
+        const matchedAccount = customerAccounts.find(
+            (item) => item.userProfile?.userProfileId.trim().toLocaleLowerCase() === identityCode.trim().toLocaleLowerCase(),
+        )
+        setForm((current) => ({...current, accountId: matchedAccount?.accountId ?? ""}))
+    }
+    const chooseCustomer = (customer: AccountProfileOption) => {
+        setCustomerIdentityInput(customer.userProfile?.userProfileId || customer.accountEmail)
+        setForm((current) => ({...current, accountId: customer.accountId}))
+        setCustomerPickerOpen(false)
+    }
     const save = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
         setSaving(true);
@@ -171,57 +216,102 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
             <h3 className="mb-3 text-sm font-semibold text-slate-800">Thông tin khách hàng</h3>
             {selectedAccount ? <div className="space-y-3 text-sm">
                 <div><p className="text-xs text-slate-500">Họ và tên</p><p className="font-medium text-slate-900">{selectedAccountName}</p></div>
+                <div><p className="text-xs text-slate-500">Số CCCD</p><p className="break-all font-mono text-slate-800">{selectedAccount.userProfile?.userProfileId || "Chưa cập nhật"}</p></div>
+                <div><p className="text-xs text-slate-500">Mã Account ID</p><p className="break-all font-mono text-xs text-slate-800">{selectedAccount.accountId}</p></div>
                 <div><p className="text-xs text-slate-500">Email</p><p className="break-all text-slate-800">{selectedAccount.accountEmail}</p></div>
                 <div><p className="text-xs text-slate-500">Số điện thoại</p><p className="text-slate-800">{selectedAccount.userProfile?.userProfilePhoneNumber || "Chưa cập nhật"}</p></div>
                 <div><p className="text-xs text-slate-500">Ngày sinh</p><p className="text-slate-800">{selectedAccount.userProfile?.userProfileDateOfBirth ? new Date(selectedAccount.userProfile.userProfileDateOfBirth).toLocaleDateString("vi-VN") : "Chưa cập nhật"}</p></div>
                 <div><p className="text-xs text-slate-500">Giới tính</p><p className="text-slate-800">{selectedAccount.userProfile?.userProfileGender || "Chưa cập nhật"}</p></div>
                 <div><p className="text-xs text-slate-500">Địa chỉ</p><p className="text-slate-800">{selectedAccount.userProfile?.userProfileAddress || "Chưa cập nhật"}</p></div>
-            </div> : <p className="text-sm text-slate-500">Chọn account để xem hồ sơ khách hàng.</p>}
+            </div> : <p className="text-sm text-slate-500">Nhập hoặc chọn CCCD để xem hồ sơ khách hàng.</p>}
         </aside>}
         <div>
         <div className="grid gap-x-4 sm:grid-cols-2">
-            <FormField label="Account ID">{edit ? <input className={inputCls} required value={form.accountId}
+            <FormField label={edit ? "Account ID" : "Số CCCD khách hàng"}>{edit ? <input className={inputCls} required value={form.accountId}
                                                  onChange={(event) => setForm({...form, accountId: event.target.value})}
-                                                 placeholder="GUID tài khoản"/> : <select className={selectCls} required value={form.accountId}
-                                                 onChange={(event) => setForm({...form, accountId: event.target.value})}
-                                                 title={selectedAccountName || undefined}>
-                <option value="">Chọn khách hàng</option>{customerAccounts.map((account) => {
-                    const name = formatProfileFullName(account.userProfile) || account.accountEmail
-                    return <option key={account.accountId} value={account.accountId} title={name}>{account.accountId}</option>
-                })}</select>}</FormField>
+                                                 placeholder="GUID tài khoản"/> : <>
+                <div className="relative">
+                    <div className="flex overflow-hidden rounded-lg border border-slate-300 bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
+                        <input className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm outline-none focus:ring-0"
+                               required value={customerIdentityInput}
+                               onFocus={() => setCustomerPickerOpen(true)}
+                               onChange={(event) => {
+                                   const value = event.target.value
+                                   selectCustomerByIdentityCode(value)
+                                   updateDebouncedCustomerIdentityInput(value)
+                                   setCustomerPickerOpen(true)
+                               }}
+                               placeholder="Nhập CCCD hoặc bấm ▾ để chọn" autoComplete="off" aria-expanded={customerPickerOpen}
+                               aria-controls="contract-customer-options" aria-autocomplete="list" />
+                        <button type="button" className="border-l border-slate-200 px-3 text-slate-500 hover:bg-slate-50"
+                                aria-label="Mở danh sách khách hàng" aria-expanded={customerPickerOpen}
+                                onClick={() => setCustomerPickerOpen((open) => !open)}>▾</button>
+                    </div>
+                    {customerPickerOpen && <div id="contract-customer-options" role="listbox"
+                         className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                        {customerSuggestions.length > 0 ? customerSuggestions.map((customer) => {
+                            const name = formatProfileFullName(customer.userProfile) || customer.accountEmail
+                            return <button key={customer.accountId} type="button" role="option" aria-selected={customer.accountId === form.accountId}
+                                           className="block w-full px-3 py-2 text-left hover:bg-blue-50"
+                                           onClick={() => chooseCustomer(customer)}>
+                                <span className="block text-sm font-medium text-slate-800">{customer.userProfile!.userProfileId} · {name}</span>
+                                <span className="block text-xs text-slate-500">{customer.accountEmail} · Account ID: {customer.accountId}</span>
+                            </button>
+                        }) : <p className="px-3 py-2 text-sm text-slate-500">Không tìm thấy khách hàng phù hợp.</p>}
+                    </div>}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                    {selectedAccount ? `Hợp đồng sẽ lưu Account ID: ${selectedAccount.accountId}` : "Bấm vào ô hoặc mũi tên để chọn từ danh sách khách hàng; cũng có thể nhập CCCD."}
+                </p>
+            </>}</FormField>
             <FormField label="Ngày hoàn trả mặt bằng"><input className={inputCls} required type="date"
                                                              value={form.premiseReturnDate}
                                                              onChange={(event) => setForm({
                                                                  ...form,
                                                                  premiseReturnDate: event.target.value
                                                              })}/></FormField>
-            <FormField label="Tiền đặt cọc (VND)"><input className={inputCls} required type="number" min="0.01"
-                                                         value={form.deposit} onChange={(event) => setForm({
+            <FormField label="Tiền đặt cọc (VND)"><input className={inputCls} required type="number" min="1" step="1"
+                                                         value={form.deposit} onChange={(event) => {
+                if (!isIntegerAmountInput(event.target.value)) return
+                setForm({
                 ...form,
                 deposit: event.target.value
-            })}/></FormField>
-            <FormField label="Giá thuê (VND)"><input className={inputCls} required type="number" min="0.01"
-                                                     value={form.rentalPrice} onChange={(event) => setForm({
+            })}}/></FormField>
+            <FormField label="Giá thuê (VND)"><input className={inputCls} required type="number" min="1" step="1"
+                                                     value={form.rentalPrice} onChange={(event) => {
+                if (!isIntegerAmountInput(event.target.value)) return
+                setForm({
                 ...form,
                 rentalPrice: event.target.value
-            })}/></FormField>
+            })}}/></FormField>
         </div>
         {edit &&
             <div className="grid gap-x-4 sm:grid-cols-2"><FormField label="Trạng thái"><select className={selectCls}
                                                                                                value={form.status}
+                                                                                               disabled={selected?.contractStatus === "Signed"}
                                                                                                onChange={(event) => setForm({
                                                                                                    ...form,
                                                                                                    status: event.target.value as ContractStatus
-                                                                                               })}>{statuses.map((status) =>
+                                                                                               })}>{allowedContractStatuses(selected?.contractStatus ?? form.status).map((status) =>
                 <option key={status} value={status}>{recordStatuses[status]}</option>)}</select></FormField><FormField
                 label="Ngày chấm dứt"><input className={inputCls} type="date" value={form.terminationDate}
                                              onChange={(event) => setForm({
                                                  ...form,
                                                  terminationDate: event.target.value
                                              })}/></FormField></div>}
-        <FormField label="Quy định hợp đồng (Regulations)">
+        <FormField label="Quy định hợp đồng">
+            <div className="mb-2 flex justify-end">
+                <button type="button" className="text-xs font-medium text-blue-700 hover:text-blue-800"
+                        disabled={activeRegulations.length === 0}
+                        onClick={() => setForm((current) => ({
+                            ...current,
+                            regulationIds: allActiveRegulationsSelected ? [] : activeRegulations.map((item) => item.regulationId),
+                        }))}>
+                    {allActiveRegulationsSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                </button>
+            </div>
             <div
-                className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">{regulations.filter((item) => item.regulationIsActive).map((item) =>
+                className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-200 p-2">{activeRegulations.map((item) =>
                 <label key={item.regulationId}
                        className="flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-slate-50">
                     <input
@@ -301,8 +391,11 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
                 <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Account ID</p><p
                         className="mt-1 break-all font-mono text-xs">{selected.contractAccountId}</p></div>
-                    <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Ngày hoàn trả</p>
-                        <p className="mt-1 text-sm">{new Date(selected.contractPremiseReturnDate).toLocaleDateString("vi-VN")}</p>
+                    <div className="grid grid-cols-2 divide-x divide-slate-200 rounded-lg bg-slate-50 p-3">
+                        <div className="pr-3"><p className="text-xs text-slate-500">Ngày hoàn trả</p>
+                            <p className="mt-1 text-sm">{new Date(selected.contractPremiseReturnDate).toLocaleDateString("vi-VN")}</p></div>
+                        <div className="pl-3"><p className="text-xs text-slate-500">Ngày chấm dứt</p>
+                            <p className="mt-1 text-sm">{selected.contractTerminationDate ? new Date(selected.contractTerminationDate).toLocaleDateString("vi-VN") : ""}</p></div>
                     </div>
                     <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Ngày tạo</p><p
                         className="mt-1 text-sm">{new Date(selected.contractCreatedAt).toLocaleString("vi-VN")}</p>
@@ -313,7 +406,7 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                     <section><h3 className="mb-2 text-sm font-semibold">Regulations</h3>
-                        <ul className="space-y-2 text-sm text-slate-600">{selected.contractRegulations.map((item) => <li
+                        <ul className="max-h-52 space-y-2 overflow-y-auto pr-1 text-sm text-slate-600">{selected.contractRegulations.map((item) => <li
                             key={item.regulationId} className="rounded-lg bg-slate-50 p-3"><span
                             className="font-medium text-slate-800">{item.regulationName}</span>{item.regulationDescription &&
                             <span className="mt-1 block text-xs text-slate-500">{item.regulationDescription}</span>}
@@ -338,7 +431,7 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
                 </div>
                 <div className="mt-5 flex justify-end gap-2">
                     <button className={`${button} border border-slate-200`} onClick={() => setModal(null)}>Đóng</button>
-                    {!readOnly &&
+                    {!readOnly && editableContractStatuses.includes(selected.contractStatus) &&
                         <button className={`${button} bg-blue-600 text-white`} onClick={startEdit}>Chỉnh sửa</button>}
                 </div>
             </div>}</Modal>}

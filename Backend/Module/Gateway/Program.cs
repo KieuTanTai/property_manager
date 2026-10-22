@@ -1,15 +1,20 @@
-using Gateway;
 using Shared.Logging;
 using Shared.Services;
 using System.Text.Json.Serialization;
+using Gateway.Services;
+using Gateway.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Configuration["ModuleUrls:Identity"] ??= "https://localhost:7048";
+builder.Configuration["ModuleUrls:Contract"] ??= "https://localhost:7255";
+builder.Configuration["ModuleUrls:TicketAndNotification"] ??= "https://localhost:7092";
+
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<ILogPool, LogPool>();
 builder.Services.AddHttpClient<GoogleDriveImageStorage>();
+builder.Services.AddProxyMapping(builder.Environment);
+builder.Services.AddScoped<ModuleProxyService>();
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
@@ -23,35 +28,4 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapControllers();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () => {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
-
 app.Run();
-
-namespace Gateway
-{
-    internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-    {
-        public int TemperatureF
-        {
-            get => 32 + (int)(TemperatureC / 0.5556);
-        }
-    }
-}

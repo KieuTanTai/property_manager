@@ -32,8 +32,8 @@ type ApiProfile = {
 }
 type ApiAccount = Omit<AccountModel, "userProfile"> & { userProfile: ApiProfile | null }
 
-// Vite proxies /api/* to the Identity ASP.NET service in development.
-const apiBase = (import.meta.env.VITE_IDENTITY_API_BASE_URL || "/api").replace(/\/$/, "")
+// All frontend API traffic enters through the Gateway.
+const apiBase = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let response: Response
@@ -42,7 +42,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
         response = await fetch(`${apiBase}${path}`, {...init, headers})
     } catch {
-        throw new Error(`Không thể kết nối Identity API tại ${apiBase}. Kiểm tra Backend C# có chạy không.`)
+        throw new Error(`Không thể kết nối Gateway API tại ${apiBase}. Kiểm tra Gateway có chạy không.`)
     }
 
     if (!response.ok) {

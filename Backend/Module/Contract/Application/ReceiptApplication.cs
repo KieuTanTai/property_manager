@@ -69,20 +69,6 @@ namespace Contract.Application
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating receipt.");
             ThrowIfInvalidReceiptUpdate(receiptId, invoiceId, paymentDate, amount, transactionInfo);
 
-            var existingReceipt = await _receiptRepository.GetByIdAsync(receiptId, cancellationToken);
-            if (existingReceipt is null)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    $"Receipt update rejected because receipt {receiptId} was not found.");
-                throw new ArgumentException("Receipt was not found.", nameof(receiptId));
-            }
-            if (existingReceipt.ReceiptInvoiceId != invoiceId)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer,
-                    $"Receipt update rejected because receipt {receiptId} does not belong to invoice {invoiceId}.");
-                throw new ArgumentException("Receipt does not belong to the specified invoice.", nameof(invoiceId));
-            }
-
             var invoice = await _invoiceRepository.GetTrackedByIdAsync(invoiceId, cancellationToken);
             if (invoice is null)
             {
@@ -94,17 +80,14 @@ namespace Contract.Application
                     "Cannot update receipt for an invoice that is not marked as paid.");
             }
 
-            // Only these receipt fields are mutable through this operation.
-            existingReceipt.SetPaymentDate(paymentDate);
-            existingReceipt.SetAmount(amount);
-            existingReceipt.SetTransactionInfo(transactionInfo);
+            var updatedReceipt = await _receiptRepository.UpdatePaymentDetailsAsync(
+                receiptId, invoiceId, paymentDate, amount, transactionInfo, cancellationToken);
             invoice.SetPaymentDate(paymentDate);
             await _invoiceRepository.UpdateAsync(invoice, cancellationToken);
-            await _receiptRepository.UpdateAsync(existingReceipt, cancellationToken);
             await SaveChangesOrThrowAsync("update receipt", cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,
-                $"Receipt updated: {existingReceipt.ReceiptId} for invoice {existingReceipt.ReceiptInvoiceId}.");
-            return existingReceipt;
+                $"Receipt updated: {updatedReceipt.ReceiptId} for invoice {updatedReceipt.ReceiptInvoiceId}.");
+            return updatedReceipt;
         }
 
         #endregion

@@ -34,7 +34,7 @@ export type NotificationModel = {
     notificationRecipients: NotificationRecipientModel[]
 }
 
-const base = (import.meta.env.VITE_TICKET_API_BASE_URL || "/api").replace(/\/$/, "")
+const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let response: Response
@@ -44,9 +44,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
             headers: {...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers},
         })
     } catch {
-        throw new Error(`Không thể kết nối Ticket & Notification API tại ${base}; kiểm tra Backend, HTTPS và CORS.`)
+        throw new Error(`Không thể kết nối Gateway API tại ${base}; kiểm tra Gateway và HTTPS.`)
     }
-    if (!response.ok) throw new Error((await response.text()) || `Ticket & Notification API trả về HTTP ${response.status}.`)
+    if (!response.ok) throw new Error((await response.text()) || `Gateway API trả về HTTP ${response.status}.`)
     if (response.status === 204) return undefined as T
     return response.json() as Promise<T>
 }

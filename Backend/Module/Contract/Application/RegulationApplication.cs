@@ -127,19 +127,7 @@ namespace Contract.Application
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Soft deleting regulation.");
-            var regulation = await _regulationRepository.GetTrackedByIdAsync(regulationId, cancellationToken);
-            if (regulation is null)
-            {
-                throw new ArgumentException("Regulation not found.", nameof(regulationId));
-            }
-
-            if (!regulation.RegulationIsActive)
-            {
-                throw new InvalidOperationException("Regulation is already deleted.");
-            }
-
-            regulation.SetRegulationIsActive(false);
-            await _regulationRepository.UpdateAsync(regulation, cancellationToken);
+            await _regulationRepository.SoftDeleteAsync(regulationId, cancellationToken);
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectedRows == 0)
             {
