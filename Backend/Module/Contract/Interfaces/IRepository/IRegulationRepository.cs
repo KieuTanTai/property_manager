@@ -26,5 +26,7 @@ namespace Contract.Interfaces.IRepository
 
         Task<RegulationModel> GetTrackedRegulationByNameAsync(string regulationName,
             CancellationToken cancellationToken = default);
+
+        Task SoftDeleteAsync(Guid regulationId, CancellationToken cancellationToken = default);
     }
 }

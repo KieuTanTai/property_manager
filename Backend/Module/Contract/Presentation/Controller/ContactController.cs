@@ -12,11 +12,11 @@ namespace Contract.Presentation.Controller
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ContactInfoController(
+    public class ContactController(
         IContactInfoApplication contactInfoApplication,
         IEmailSender emailSender,
         IIdentityHelper<SendConsultationRequest> identityHelper,
-        ILogger<ContactInfoController> logger,
+        ILogger<ContactController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
     {
         private readonly IContactInfoApplication _contactInfoApplication = contactInfoApplication;
@@ -27,7 +27,7 @@ namespace Contract.Presentation.Controller
 
         private readonly ILogPool _logPool = logPool;
 
-        private readonly ILogger<ContactInfoController> _logger = logger;
+        private readonly ILogger<ContactController> _logger = logger;
 
         [RequireHttps]
         [HttpGet]

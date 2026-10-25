@@ -40,6 +40,7 @@
     <Folder Name="/Frontend/src/">
         <File Path="Frontend/src/main.tsx" />
         <File Path="Frontend/src/vite-env.d.ts" />
+        <File Path="Frontend\src\utils\imageUrls.ts" />
     </Folder>
     <Folder Name="/Frontend/src/components/" />
     <Folder Name="/Frontend/src/components/modules/">
@@ -101,6 +102,7 @@
         <File Path="Frontend/src/api/identity.ts" />
         <File Path="Frontend/src/api/premise.ts" />
         <File Path="Frontend/src/api/ticketAndNotification.ts" />
+        <File Path="Frontend\src\api\media.ts" />
     </Folder>
     <Project Path="TestProject/TestProject.csproj" />
 </Solution>

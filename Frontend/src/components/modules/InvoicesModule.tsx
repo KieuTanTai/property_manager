@@ -4,7 +4,7 @@ import type {InvoiceStatus} from "@/types/modules.ts"
 import type {InvoiceDetail, InvoiceTab, MonthlyInvoice, Receipt, ReceiptPaymentMethod} from "@/types/invoices"
 import {MOCK_CONTRACT_BILLING, MOCK_INVOICE_DETAILS, MOCK_MONTHLY_INVOICES, MOCK_RECEIPTS} from "@/mocks/invoices.ts"
 import {createUuidV7} from "@/scripts/ids.ts"
-import {fmt, today} from "@/scripts/format.ts"
+import {fmt, isIntegerAmountInput, today} from "@/scripts/format.ts"
 
 const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     cash: "Tiền mặt",
@@ -651,9 +651,11 @@ export function InvoicesModule() {
                                             className={`${inputCls} text-right`}
                                             type="number"
                                             min="0"
+                                            step="1"
                                             required
                                             value={fees.electricityFee}
-                                            onChange={(event) =>
+                                            onChange={(event) => {
+                                                if (!isIntegerAmountInput(event.target.value)) return
                                                 setCreateDetailFees({
                                                     ...createDetailFees,
                                                     [premiseId]: {
@@ -661,16 +663,18 @@ export function InvoicesModule() {
                                                         electricityFee: event.target.value,
                                                     },
                                                 })
-                                            }
+                                            }}
                                             placeholder="Bắt buộc"
                                         />
                                         <input
                                             className={`${inputCls} text-right`}
                                             type="number"
                                             min="0"
+                                            step="1"
                                             required
                                             value={fees.waterFee}
-                                            onChange={(event) =>
+                                            onChange={(event) => {
+                                                if (!isIntegerAmountInput(event.target.value)) return
                                                 setCreateDetailFees({
                                                     ...createDetailFees,
                                                     [premiseId]: {
@@ -678,16 +682,18 @@ export function InvoicesModule() {
                                                         waterFee: event.target.value,
                                                     },
                                                 })
-                                            }
+                                            }}
                                             placeholder="Bắt buộc"
                                         />
                                         <input
                                             className={`${inputCls} text-right`}
                                             type="number"
                                             min="0"
+                                            step="1"
                                             required
                                             value={fees.garbageFee}
-                                            onChange={(event) =>
+                                            onChange={(event) => {
+                                                if (!isIntegerAmountInput(event.target.value)) return
                                                 setCreateDetailFees({
                                                     ...createDetailFees,
                                                     [premiseId]: {
@@ -695,7 +701,7 @@ export function InvoicesModule() {
                                                         garbageFee: event.target.value,
                                                     },
                                                 })
-                                            }
+                                            }}
                                             placeholder="Bắt buộc"
                                         />
                                     </div>
@@ -969,14 +975,16 @@ export function InvoicesModule() {
                                                 className={inputCls}
                                                 type="number"
                                                 min="0"
+                                                step="1"
                                                 required
                                                 value={detailForm.electricityFee}
-                                                onChange={(event) =>
+                                                onChange={(event) => {
+                                                    if (!isIntegerAmountInput(event.target.value)) return
                                                     setDetailForm({
                                                         ...detailForm,
                                                         electricityFee: event.target.value,
                                                     })
-                                                }
+                                                }}
                                             />
                                         </FormField>
                                         <FormField label="Tiền nước">
@@ -984,14 +992,16 @@ export function InvoicesModule() {
                                                 className={inputCls}
                                                 type="number"
                                                 min="0"
+                                                step="1"
                                                 required
                                                 value={detailForm.waterFee}
-                                                onChange={(event) =>
+                                                onChange={(event) => {
+                                                    if (!isIntegerAmountInput(event.target.value)) return
                                                     setDetailForm({
                                                         ...detailForm,
                                                         waterFee: event.target.value,
                                                     })
-                                                }
+                                                }}
                                             />
                                         </FormField>
                                         <FormField label="Phí rác">
@@ -999,14 +1009,16 @@ export function InvoicesModule() {
                                                 className={inputCls}
                                                 type="number"
                                                 min="0"
+                                                step="1"
                                                 required
                                                 value={detailForm.garbageFee}
-                                                onChange={(event) =>
+                                                onChange={(event) => {
+                                                    if (!isIntegerAmountInput(event.target.value)) return
                                                     setDetailForm({
                                                         ...detailForm,
                                                         garbageFee: event.target.value,
                                                     })
-                                                }
+                                                }}
                                             />
                                         </FormField>
                                     </div>
@@ -1112,10 +1124,12 @@ export function InvoicesModule() {
                                 className={inputCls}
                                 type="number"
                                 min="0"
+                                step="1"
                                 value={receiptForm.amount}
-                                onChange={(event) =>
-                                    setReceiptForm({...receiptForm, amount: event.target.value})
-                                }
+                                onChange={(event) => {
+                                    if (isIntegerAmountInput(event.target.value))
+                                        setReceiptForm({...receiptForm, amount: event.target.value})
+                                }}
                             />
                         </FormField>
                         <FormField label="Ngày thanh toán">
@@ -1239,12 +1253,13 @@ export function InvoicesModule() {
                                     className={`${inputCls} pr-14 disabled:bg-gray-50 disabled:text-gray-500`}
                                     type="number"
                                     min="1"
+                                    step="1"
                                     value={receiptEditForm.amount}
                                     disabled={!receiptIsEditing}
-                                    onChange={(event) => setReceiptEditForm({
-                                        ...receiptEditForm,
-                                        amount: event.target.value
-                                    })}
+                                    onChange={(event) => {
+                                        if (isIntegerAmountInput(event.target.value))
+                                            setReceiptEditForm({...receiptEditForm, amount: event.target.value})
+                                    }}
                                 />
                                 <span
                                     className="absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-gray-400 pointer-events-none">VND</span>

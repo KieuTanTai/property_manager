@@ -264,6 +264,10 @@ namespace Identity.Application
 
             try
             {
+                if (roleModel.RoleCode == nameof(ESystemRoleCode.Admin))
+                {
+                    throw new ArgumentException("Cannot update admin roles.", nameof(roleModel));
+                }
                 await _roleRepository.UpdateAsync(roleModel, cancellationToken);
                 return await _unitOfWork.SaveChangesAsync(cancellationToken);
             }

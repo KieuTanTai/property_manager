@@ -70,17 +70,8 @@ namespace Contract.Application
             CancellationToken cancellationToken = default)
         {
             ThrowIfInvalidContractModel(contract);
-            if (contract.ContractId == Guid.Empty)
-            {
-                throw new ArgumentException("Contract id is required.", nameof(contract));
-            }
-
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating contract.");
-            var existing = await _contractRepository.GetTrackedByIdAsync(contract.ContractId, cancellationToken);
-            if (existing is null)
-            {
-                throw new ArgumentException("Contract not found.", nameof(contract));
-            }
+            await _contractRepository.UpdateAsync(contract, cancellationToken);
 
             // Null means leave associations unchanged; an empty collection removes all regulations.
             IReadOnlyList<RegulationModel>? regulations = null;
@@ -98,7 +89,6 @@ namespace Contract.Application
                 }
             }
 
-            await _contractRepository.UpdateAsync(contract, cancellationToken);
             await SaveChangesOrThrowAsync("update", cancellationToken);
 
             if (regulations is not null)

@@ -1,6 +1,8 @@
 export const fmt = (value: number) =>
     new Intl.NumberFormat("vi-VN").format(value) + " ₫"
 
+export const isIntegerAmountInput = (value: string) => /^\d*$/.test(value)
+
 export const today = () => new Date().toISOString().slice(0, 10)
 
 export const formatDateTime = (value: string) =>

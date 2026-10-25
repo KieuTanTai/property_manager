@@ -3,7 +3,7 @@ import type {ContactInfoModel, ContactInfoRequest, ConsultationRequest, Contract
     ContractViolationModel, CreateContractRequest, RegulationModel, UpdateContractRequest} from "@/types/contracts"
 import {APP_SETTINGS} from "@/config/appSettings"
 
-const base = (import.meta.env.VITE_CONTRACT_API_BASE_URL || "/api").replace(/\/$/, "")
+const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
 const baseReqPageItemsLoaded = String(APP_SETTINGS.pagination.defaultPageLoaded * APP_SETTINGS.pagination.defaultPageSize)
 const maxPageLoaded = String(APP_SETTINGS.pagination.maxPageLoaded * APP_SETTINGS.pagination.defaultPageSize);
 
@@ -15,7 +15,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
             headers: {...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers},
         })
     } catch {
-        throw new Error(`Không thể kết nối Contract API tại ${base}; kiểm tra Backend, HTTPS và CORS.`)
+        throw new Error(`Không thể kết nối Gateway API tại ${base}; kiểm tra Gateway và HTTPS.`)
     }
     if (!response.ok) {
         const detail = await response.text()
@@ -25,7 +25,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
             }
             return [] as T
         }
-        throw new Error(detail || `Contract API trả về HTTP ${response.status}.`)
+        throw new Error(detail || `Gateway API trả về HTTP ${response.status}.`)
     }
     if (response.status === 204) return undefined as T
     const contentType = response.headers.get("content-type") ?? ""
@@ -50,6 +50,15 @@ export const contractApi = {
         const query = new URLSearchParams({pageSize: maxPageLoaded})
         if (cursor) query.set("cursor", cursor)
         return request<CursorPage<RegulationModel>>(`/Regulation?${query}`)
+    },
+    createRegulation(body: Omit<RegulationModel, "regulationId" | "regulationCreatedAt" | "regulationUpdatedAt">) {
+        return request<RegulationModel>("/Regulation", {method: "POST", body: JSON.stringify(body)})
+    },
+    updateRegulation(id: string, body: Omit<RegulationModel, "regulationId" | "regulationCreatedAt" | "regulationUpdatedAt">) {
+        return request<RegulationModel>(`/Regulation/${encodeURIComponent(id)}`, {method: "PUT", body: JSON.stringify(body)})
+    },
+    deleteRegulation(id: string) {
+        return request<void>(`/Regulation/${encodeURIComponent(id)}`, {method: "DELETE"})
     },
     violations(cursor: string | null = null, pageSize = APP_SETTINGS.pagination.defaultPageSize) {
         const query = new URLSearchParams({pageSize: String(pageSize)})
@@ -79,22 +88,22 @@ export const contractApi = {
         return request<void>(`/Violation/${id}`, {method: "DELETE"})
     },
     contactInfos() {
-        return request<ContactInfoModel[]>("/ContactInfo")
+        return request<ContactInfoModel[]>("/contact")
     },
     sendConsultationRequest(body: ConsultationRequest) {
-        return request<{ recipientEmail: string }>("/ContactInfo/consultation", {
+        return request<{ recipientEmail: string }>("/contact/consultation", {
             method: "POST",
             body: JSON.stringify(body),
         })
     },
     createContactInfo(body: ContactInfoRequest) {
-        return request<ContactInfoModel>("/ContactInfo", {method: "POST", body: JSON.stringify(body)})
+        return request<ContactInfoModel>("/contact", {method: "POST", body: JSON.stringify(body)})
     },
     updateContactInfo(id: string, body: ContactInfoRequest) {
-        return request<ContactInfoModel>(`/ContactInfo/${id}`, {method: "PUT", body: JSON.stringify(body)})
+        return request<ContactInfoModel>(`/contact/${id}`, {method: "PUT", body: JSON.stringify(body)})
     },
     deleteContactInfo(id: string) {
-        return request<void>(`/ContactInfo/${id}`, {method: "DELETE"})
+        return request<void>(`/contact/${id}`, {method: "DELETE"})
     },
     createContract(body: CreateContractRequest) {
         return request<ContractModel>("/Contract", {method: "POST", body: JSON.stringify(body)})

@@ -98,6 +98,8 @@ Frontend/.cache/
 /.output.txt
 /docs/
 /docs/sql/
+/docs/api/
 ./claude/
 .postman/
 /postman/
+/.claude/settings.local.json

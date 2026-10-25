@@ -48,12 +48,6 @@ namespace Contract.Application
             foreach (var detail in details)
                 ThrowIfInvalidInvoiceDetailModel(detail, invoice.InvoiceId);
 
-            var existingDetailsInvoice = await _invoiceDetailRepository.GetByInvoiceIdAsync(invoice.InvoiceId, cancellationToken);
-            if (existingDetailsInvoice.Any())
-            {
-                throw new ArgumentException("Invoice details already exist for this invoice.", nameof(details));
-            }
-
             await _invoiceRepository.AddAsync(invoice, cancellationToken);
             await _invoiceDetailRepository.AddRangeAsync(details, cancellationToken);
             await SaveChangesOrThrowAsync("create invoice", cancellationToken);

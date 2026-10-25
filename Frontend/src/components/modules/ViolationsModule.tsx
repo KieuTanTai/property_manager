@@ -3,7 +3,7 @@ import {useMemo, useState} from "react"
 import {MOCK_CONTRACTS} from "../../mocks/contracts"
 import {getMockTenant, MOCK_VIOLATIONS} from "../../mocks/violations"
 import {BaseTable, FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
-import {fmt} from "../../scripts/format"
+import {fmt, isIntegerAmountInput} from "../../scripts/format"
 import type {Violation} from "../../types/modules"
 import {filterViolationsForAccount} from "../../scripts/violations"
 import {createUuid} from "../../scripts/ids"
@@ -170,12 +170,14 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
                                                                   ...form,
                                                                   content: event.target.value
                                                               })}/></FormField>
-                <FormField label="Tiền phạt (₫)"><input type="number" min="0" className={inputCls}
+                <FormField label="Tiền phạt (₫)"><input type="number" min="0" step="1" className={inputCls}
                                                         value={form.penaltyAmount} disabled={disabled}
-                                                        onChange={(event) => setForm({
+                                                        onChange={(event) => {
+                                                            if (!isIntegerAmountInput(event.target.value)) return
+                                                            setForm({
                                                             ...form,
-                                                            penaltyAmount: Number(event.target.value)
-                                                        })}/></FormField>
+                                                            penaltyAmount: event.target.value === "" ? 0 : Number(event.target.value)
+                                                        })}}/></FormField>
                 {modal === "view" && <FormField label="Trạng thái"><select className={selectCls}
                                                                            value={form.resolved ? "resolved" : "open"}
                                                                            disabled={disabled}

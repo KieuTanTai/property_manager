@@ -3,9 +3,11 @@ import {APP_SETTINGS} from "@/config/appSettings"
 import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
 import {contractApi} from "@/api/contracts"
 import {premiseApi, type PublicPremise} from "@/api/premise"
+import type {ContactInfoModel} from "@/types/contracts"
 import {Modal, PremiseStatusBadge, ProcessingForm, premiseStatusSurface} from "../modules/shared"
 import {PublicHomeProps} from "@/components/public/types.ts";
 import {throttle} from "lodash";
+import debounce from "lodash.debounce"
 
 const PREMISE_STATUS_TABS = [
     {key: "all", label: "Tất cả"},
@@ -16,8 +18,6 @@ const PREMISE_STATUS_TABS = [
 
 type PremiseStatusTab = (typeof PREMISE_STATUS_TABS)[number]["key"]
 
-const fallbackEmail = import.meta.env.VITE_PUBLIC_CONTACT_EMAIL?.trim() ?? ""
-const fallbackPhone = import.meta.env.VITE_PUBLIC_CONTACT_PHONE?.trim() ?? ""
 const GOOGLE_LOGIN_SESSION_KEY = "contact-google-login"
 const GOOGLE_LOGIN_SESSION_MS = 5 * 60 * 1000
 const GOOGLE_LOGIN_EXTENSION_STEP = 60 * 1000
@@ -50,6 +50,9 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [allPremises, setAllPremises] = useState<PublicPremise[]>([])
     const [premisesLoading, setPremisesLoading] = useState(true)
     const [premisesError, setPremisesError] = useState<string | null>(null)
+    const [debouncedQuery, setDebouncedQuery] = useState("")
+    const updateDebouncedQuery = useMemo(() => debounce(setDebouncedQuery, APP_SETTINGS.debounceDelayMs), [])
+    useEffect(() => () => updateDebouncedQuery.cancel(), [updateDebouncedQuery])
     const [statusTab, setStatusTab] = useState<PremiseStatusTab>("all")
     const [page, setPage] = useState(1)
     const [contactName, setContactName] = useState("")
@@ -79,8 +82,8 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [contactError, setContactError] = useState<string | null>(null)
     const [contactSuccess, setContactSuccess] = useState<string | null>(null)
     const [contactSending, setContactSending] = useState(false)
-    const [ownerContact, setOwnerContact] = useState(MOCK_CONTACTS[0] ?? null)
     const [selectedPremise, setSelectedPremise] = useState<PublicPremise | null>(null)
+    const [ownerContact, setOwnerContact] = useState<ContactInfoModel | null>(null)
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isImageFullscreen, setIsImageFullscreen] = useState(false)
 
@@ -176,7 +179,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
             )[0]
             if (isCurrent && currentContact) setOwnerContact(currentContact)
         }).catch(() => {
-            // Keep the contact sample visible when the Contract API is unavailable.
+            if (isCurrent) setOwnerContact(null)
         })
         return () => {
             isCurrent = false
@@ -197,8 +200,11 @@ export function PublicHome({onManager}: PublicHomeProps) {
         return () => window.removeEventListener("keydown", closeOnEscape)
     }, [isImageFullscreen, selectedPremise])
 
-    const contactEmail = ownerContact?.contactInfoEmail?.trim() || fallbackEmail
-    const contactPhone = ownerContact?.contactInfoPhone?.trim() || fallbackPhone
+    const contactEmail = ownerContact?.contactInfoEmail?.trim() ?? ""
+    const contactPhone = ownerContact?.contactInfoPhone?.trim() ?? ""
+    const zaloContactUrl = contactPhone
+        ? `https://zalo.me/${contactPhone.replace(/\D/g, "")}/`
+        : null
 
     const availablePremises = useMemo(
         () => allPremises.filter((premise) => premise.status === "available"),
@@ -211,7 +217,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
         : []
     const searchedPremises = allPremises.filter((premise) => {
         const searchText = `${premise.name} ${premise.location} ${premise.description}`.toLowerCase()
-        return searchText.includes(query.trim().toLowerCase())
+        return searchText.includes(debouncedQuery.trim().toLowerCase())
     })
     const visiblePremises = statusTab === "all"
         ? searchedPremises
@@ -386,7 +392,9 @@ export function PublicHome({onManager}: PublicHomeProps) {
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><span
                     className="material-symbols-outlined" aria-hidden="true">search</span></span>
                 <input value={query} onChange={(event) => {
-                    setQuery(event.target.value)
+                    const value = event.target.value
+                    setQuery(value)
+                    updateDebouncedQuery(value)
                     setPage(1)
                 }}
                        placeholder="Tìm theo tên, địa chỉ..."
@@ -572,32 +580,29 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <p className="mt-4 text-sm leading-7 text-slate-300">Để lại thông tin quan tâm, hoặc liên hệ
                                 trực tiếp với ban quản lý để được tư vấn.</p>
                             <div className="mt-8 space-y-3 text-sm">
-                                {contactPhone ? <a className="flex items-center gap-3 text-slate-200 hover:text-white"
-                                                   href={`tel:${contactPhone}`}><span
+                                {contactPhone && zaloContactUrl && <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                                   href={zaloContactUrl} target="_blank" rel="noreferrer"><span
                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
                                         className="material-symbols-outlined"
-                                        aria-hidden="true">call</span></span>{contactPhone}</a> :
-                                    <p className="text-xs text-slate-400">Hotline: cấu hình `VITE_PUBLIC_CONTACT_PHONE`
-                                        để hiển thị</p>}
-                                {contactEmail ? <a className="flex items-center gap-3 text-slate-200 hover:text-white"
-                                                   href={`mailto:${contactEmail}`}><span
+                                        aria-hidden="true">chat</span></span><span className="flex-1">Zalo: {contactPhone}</span><span className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a>}
+                                {contactEmail ? <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                                                   href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contactEmail}`} target="_blank"><span
                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
                                         className="material-symbols-outlined"
-                                        aria-hidden="true">mail</span></span>{contactEmail}</a> :
-                                    <p className="text-xs text-slate-400">Email: cấu hình `VITE_PUBLIC_CONTACT_EMAIL` để
-                                        nhận yêu cầu tư vấn</p>}
+                                        aria-hidden="true">mail</span></span><span className="flex-1">{contactEmail}</span><span className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a> :
+                                    <p className="text-xs text-slate-400">Chưa có email liên hệ trong dữ liệu.</p>}
                                 {ownerContact?.contactInfoAddress &&
-                                    <p className="flex items-start gap-3 text-slate-300"><span
+                                    <a className="group -mx-2 flex items-start gap-3 rounded-xl px-2 py-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ownerContact.contactInfoAddress)}`} target="_blank" rel="noreferrer"><span
                                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10"><span
                                         className="material-symbols-outlined"
                                         aria-hidden="true">location_on</span></span><span
-                                        className="pt-2">{ownerContact.contactInfoAddress}</span></p>}
+                                        className="flex-1 pt-2">{ownerContact.contactInfoAddress}</span><span className="material-symbols-outlined mt-2 text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a>}
                                 {ownerContact?.contactSocialLink &&
-                                    <a className="flex items-center gap-3 text-slate-200 hover:text-white"
+                                    <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
                                        href={ownerContact.contactSocialLink} target="_blank" rel="noreferrer"><span
-                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
-                                        className="material-symbols-outlined" aria-hidden="true">share</span></span>Mạng
-                                        xã hội</a>}
+                                       className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
+                                        className="material-symbols-outlined" aria-hidden="true">share</span></span><span className="flex-1">Mạng xã hội</span><span className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a>}
                             </div>
                         </div>
                         <ProcessingForm processing={contactSending} onSubmit={sendInquiry} onChange={() => throttleExtendGoogleLogin()} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
@@ -778,14 +783,14 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 <div className="mt-5 space-y-2 border-t border-slate-200 pt-4 text-sm">
                                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Liên hệ
                                         ban quản lý</p>
-                                    {contactPhone && <a href={`tel:${contactPhone}`}
-                                                        className="flex items-center gap-2 text-slate-700 hover:text-blue-700"><span
+                                    {contactPhone && zaloContactUrl && <a href={zaloContactUrl} target="_blank" rel="noreferrer"
+                                                        className="group flex items-center gap-2 rounded-lg py-1 text-slate-700 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span
                                         className="material-symbols-outlined text-base"
-                                        aria-hidden="true">call</span>{contactPhone}</a>}
+                                        aria-hidden="true">chat</span>Zalo · {contactPhone}<span className="material-symbols-outlined text-sm opacity-60 transition group-hover:translate-x-0.5" aria-hidden="true">open_in_new</span></a>}
                                     {contactEmail && <a href={`mailto:${contactEmail}`}
-                                                        className="flex items-center gap-2 text-slate-700 hover:text-blue-700"><span
+                                                        className="group flex items-center gap-2 rounded-lg py-1 text-slate-700 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span
                                         className="material-symbols-outlined text-base"
-                                        aria-hidden="true">mail</span>{contactEmail}</a>}
+                                        aria-hidden="true">mail</span>{contactEmail}<span className="material-symbols-outlined text-sm opacity-60 transition group-hover:translate-x-0.5" aria-hidden="true">arrow_forward</span></a>}
                                 </div>
                             )}
                         </div>

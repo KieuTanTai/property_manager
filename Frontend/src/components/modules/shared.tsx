@@ -386,6 +386,6 @@ export function FormField({
 }
 
 export const inputCls =
-    "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+    "border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white transition disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
 export const selectCls =
     "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition bg-white disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"

@@ -296,6 +296,34 @@ namespace Contract.Infrastructure.Repository.RegulationRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Regulation staged for update.");
         }
 
+        public async Task SoftDeleteAsync(Guid regulationId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                $"Preparing regulation soft delete for {regulationId}.");
+            var regulation = await GetTrackedByIdAsync(regulationId, cancellationToken);
+            if (regulation is null)
+            {
+                var exception = new InvalidOperationException(
+                    $"RegulationModel not found! \n {regulationId}");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Regulation soft delete rejected because the regulation was not found.");
+                throw exception;
+            }
+
+            if (!regulation.RegulationIsActive)
+            {
+                var exception = new InvalidOperationException("Regulation is already deleted.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Regulation soft delete rejected because it is already inactive.");
+                throw exception;
+            }
+
+            regulation.SetRegulationIsActive(false);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                $"Regulation soft delete staged: {regulationId}.");
+        }
+
         public void UpdateRange(IEnumerable<RegulationModel> entities,
             CancellationToken cancellationToken = default)
         {
