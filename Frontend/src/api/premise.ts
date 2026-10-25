@@ -23,6 +23,24 @@ export type ProductRequest = {
   productDescription: string | null
 }
 
+export type PublicPremise = {
+  id: string
+  name: string
+  floor: number
+  position: number
+  area: string
+  status: "available" | "reserved" | "rented" | "maintenance"
+  locationId: string
+  location: string
+  description: string
+  media: { id: number; url: string }[]
+  openingHours?: string
+  floorArea?: string
+  leasableArea?: string
+  storeCount?: string
+  parkingCapacity?: string
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   try {
@@ -53,6 +71,43 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const premiseApi = {
+  async getPublicPremises(): Promise<PublicPremise[]> {
+    const [premises, locations] = await Promise.all([
+      request<Array<{
+        premiseId: string
+        premiseName: string
+        premiseLocationId: string
+        premiseStatus: "Available" | "Reserved" | "Rented" | "Maintenance"
+        premisePosition: number
+        premiseFloor: number
+        premiseArea: string
+        premiseDescription: string | null
+      }>>("/Premise"),
+      request<LocationModel[]>("/Location"),
+    ])
+    const locationById = new Map(locations.map((location) => [location.locationId, location.locationAddress]))
+    const mediaByPremise = await Promise.all(premises.map(async (premise) => {
+      try {
+        const images = await request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premise.premiseId)}/images`)
+        return [premise.premiseId, images.map((image) => ({id: image.imageId, url: image.imageUrl}))] as const
+      } catch {
+        return [premise.premiseId, []] as const
+      }
+    }))
+    const mediaMap = new Map(mediaByPremise)
+    return premises.map((premise) => ({
+      id: premise.premiseId,
+      name: premise.premiseName,
+      floor: premise.premiseFloor,
+      position: premise.premisePosition,
+      area: premise.premiseArea,
+      status: premise.premiseStatus.toLowerCase() as PublicPremise["status"],
+      locationId: premise.premiseLocationId,
+      location: locationById.get(premise.premiseLocationId) ?? "",
+      description: premise.premiseDescription ?? "",
+      media: mediaMap.get(premise.premiseId) ?? [],
+    }))
+  },
   getPremise() {
     return request<PremiseModel[]>("/Premise")
   },

@@ -1,11 +1,9 @@
 import React, {useEffect, useMemo, useRef, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
-import {LOCATIONS, PREMISES} from "@/mocks/shared.ts"
-import {getMockPremiseData, subscribeToMockPremiseChanges} from "@/mocks/premises.ts"
 import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
 import {contractApi} from "@/api/contracts"
+import {premiseApi, type PublicPremise} from "@/api/premise"
 import {Modal, PremiseStatusBadge, ProcessingForm, premiseStatusSurface} from "../modules/shared"
-import type {Premise} from "../premises/types"
 import {PublicHomeProps} from "@/components/public/types.ts";
 import {throttle} from "lodash";
 
@@ -49,7 +47,9 @@ const formatArea = (value: string) => value.replace(/m²?$/i, " m²")
 
 export function PublicHome({onManager}: PublicHomeProps) {
     const [query, setQuery] = useState("")
-    const [mockPremiseData, setMockPremiseData] = useState(getMockPremiseData)
+    const [allPremises, setAllPremises] = useState<PublicPremise[]>([])
+    const [premisesLoading, setPremisesLoading] = useState(true)
+    const [premisesError, setPremisesError] = useState<string | null>(null)
     const [statusTab, setStatusTab] = useState<PremiseStatusTab>("all")
     const [page, setPage] = useState(1)
     const [contactName, setContactName] = useState("")
@@ -80,11 +80,21 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const [contactSuccess, setContactSuccess] = useState<string | null>(null)
     const [contactSending, setContactSending] = useState(false)
     const [ownerContact, setOwnerContact] = useState(MOCK_CONTACTS[0] ?? null)
-    const [selectedPremise, setSelectedPremise] = useState<Premise | null>(null)
+    const [selectedPremise, setSelectedPremise] = useState<PublicPremise | null>(null)
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isImageFullscreen, setIsImageFullscreen] = useState(false)
 
-    useEffect(() => subscribeToMockPremiseChanges(() => setMockPremiseData(getMockPremiseData())), [])
+    useEffect(() => {
+        let active = true
+        void premiseApi.getPublicPremises().then((premises) => {
+            if (active) setAllPremises(premises)
+        }).catch((cause) => {
+            if (active) setPremisesError(cause instanceof Error ? cause.message : "Không tải được danh sách mặt bằng.")
+        }).finally(() => {
+            if (active) setPremisesLoading(false)
+        })
+        return () => { active = false }
+    }, [])
     const googleLoginMaxExpiresAt =
         googleLoginExpiresAt ? googleLoginExpiresAt + GOOGLE_LOGIN_SESSION_MS : GOOGLE_LOGIN_SESSION_MS
 
@@ -190,15 +200,14 @@ export function PublicHome({onManager}: PublicHomeProps) {
     const contactEmail = ownerContact?.contactInfoEmail?.trim() || fallbackEmail
     const contactPhone = ownerContact?.contactInfoPhone?.trim() || fallbackPhone
 
-    const allPremises = mockPremiseData.premises
     const availablePremises = useMemo(
         () => allPremises.filter((premise) => premise.status === "available"),
         [allPremises],
     )
-    const heroPremise = allPremises.find((premise) => premise.id === "0195c8f6-cd51-7222-8222-200000000002") ?? PREMISES[0]
-    const heroMedia = mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === heroPremise?.id)
+    const heroPremise = availablePremises[0] ?? allPremises[0] ?? null
+    const heroMedia = heroPremise?.media ?? []
     const selectedPremiseMedia = selectedPremise
-        ? mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === selectedPremise.id)
+        ? selectedPremise.media
         : []
     const searchedPremises = allPremises.filter((premise) => {
         const searchText = `${premise.name} ${premise.location} ${premise.description}`.toLowerCase()
@@ -214,7 +223,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
         currentPage * APP_SETTINGS.pagination.defaultPageSize,
     )
 
-    const openPremise = (premise: Premise) => {
+    const openPremise = (premise: PublicPremise) => {
         setContactPremiseId(premise.id)
         setContactError(null)
         setActiveMediaIndex(0)
@@ -307,7 +316,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
             <main id="top">
                 <section className="relative isolate overflow-hidden bg-[#111b2e] text-white">
                     <div className="absolute inset-0 -z-10 opacity-35">
-                        <img src={heroMedia[0]?.premiseMediaImageUrl} alt=""
+                        <img src={heroMedia[0]?.url} alt=""
                              className="h-full w-full object-cover"/>
                         <div
                             className="absolute inset-0 bg-linear-to-r from-[#111b2e] via-[#111b2e]/90 to-[#111b2e]/35"/>
@@ -336,7 +345,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <div className="mt-12 flex gap-10 border-t border-white/10 pt-6">
                                 <div><p className="text-2xl font-semibold">{availablePremises.length}</p><p
                                     className="mt-1 text-xs text-slate-400">Mặt bằng còn trống</p></div>
-                                <div><p className="text-2xl font-semibold">3</p><p
+                                <div><p className="text-2xl font-semibold">{new Set(allPremises.map((premise) => premise.floor)).size}</p><p
                                     className="mt-1 text-xs text-slate-400">Tầng kinh doanh</p></div>
                                 <div><p className="text-lg font-semibold">Trực tiếp</p><p
                                     className="mt-1 text-xs text-slate-400">Tư vấn cùng ban quản lý</p></div>
@@ -346,7 +355,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <div className="absolute -inset-5 rounded-4xl bg-blue-400/15 blur-2xl"/>
                             <div
                                 className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-white/5 p-3 shadow-2xl backdrop-blur-sm">
-                                <img src={heroMedia[0]?.premiseMediaImageUrl}
+                                <img src={heroMedia[0]?.url}
                                      alt={`Mặt bằng ${heroPremise?.name ?? ""}`}
                                      className="h-85 w-full rounded-[1.25rem] object-cover sm:h-105"/>
                                 <div
@@ -453,11 +462,17 @@ export function PublicHome({onManager}: PublicHomeProps) {
                         )}
                     </div>
 
-                    {visiblePremises.length ? (
+                    {premisesLoading ? (
+                        <p className="mt-8 rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Đang tải danh sách mặt bằng...</p>
+                    ) : premisesError ? (
+                        <div role="alert" className="mt-8 rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+                            <p>Không thể tải dữ liệu mặt bằng từ máy chủ: {premisesError}</p>
+                            <button type="button" className="mt-3 font-semibold underline" onClick={() => window.location.reload()}>Thử tải lại</button>
+                        </div>
+                    ) : visiblePremises.length ? (
                         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                             {pagedPremises.map((premise) => {
-                                const media = mockPremiseData.media.filter((item) => item.premiseMediaPremiseId === premise.id)
-                                const location = LOCATIONS.find((item) => item.locationId === premise.locationId)
+                                const media = premise.media
                                 const canRequestConsultation = premise.status === "available"
                                 return (
                                     <button
@@ -470,7 +485,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                             className="relative aspect-16/10 w-full shrink-0 overflow-hidden bg-slate-100">
                                             {media[0] ? (
                                                 <img
-                                                    src={media[0].premiseMediaImageUrl}
+                                                    src={media[0].url}
                                                     alt={`Mặt bằng ${premise.name}`}
                                                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                                                 />
@@ -491,9 +506,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                                 <h3 className="text-xl font-semibold leading-7 text-slate-950">
                                                     Mặt bằng {premise.name}
                                                 </h3>
-                                                <p className="mt-1 min-h-10 text-sm leading-5 text-slate-500">
-                                                    {location?.address ?? premise.location}
-                                                </p>
+                                                <p className="mt-1 min-h-10 text-sm leading-5 text-slate-500">{premise.location}</p>
                                             </div>
                                             <div
                                                 className="mt-5 flex min-h-19 gap-5 border-y border-slate-100 py-4 text-sm">
@@ -667,7 +680,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 </div>
                                 {selectedPremiseMedia[activeMediaIndex] ? (
                                     <img
-                                        src={selectedPremiseMedia[activeMediaIndex].premiseMediaImageUrl}
+                                        src={selectedPremiseMedia[activeMediaIndex].url}
                                         alt={`Mặt bằng ${selectedPremise.name} - ảnh ${activeMediaIndex + 1}`}
                                         role="button"
                                         tabIndex={0}
@@ -713,7 +726,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 <div className="mt-3 flex justify-center gap-1.5">
                                     {selectedPremiseMedia.map((media, index) => (
                                         <button
-                                            key={media.premiseMediaId}
+                                            key={media.id}
                                             type="button"
                                             onClick={() => setActiveMediaIndex(index)}
                                             aria-label={`Xem ảnh ${index + 1}`}
@@ -820,7 +833,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                         &times;
                     </button>
                     <img
-                        src={selectedPremiseMedia[activeMediaIndex].premiseMediaImageUrl}
+                        src={selectedPremiseMedia[activeMediaIndex].url}
                         alt={`Mặt bằng ${selectedPremise.name} - ảnh ${activeMediaIndex + 1}`}
                         className="max-h-[calc(100vh-3rem)] max-w-[calc(100vw-3rem)] object-contain"
                         onClick={(event) => event.stopPropagation()}
