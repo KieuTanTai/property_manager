@@ -13,6 +13,7 @@ type ManagerSession = {
     accountId: string
     email: string
     roleCodes: string[]
+    permissionCodes: string[]
     sessionInstanceId: string
     lastActivityAt: number
 }
@@ -22,7 +23,7 @@ function loadSession(): ManagerSession | null {
         const stored = sessionStorage.getItem(SESSION_KEY)
         if (!stored) return null
         const session = JSON.parse(stored) as ManagerSession
-        if (!session.email || !session.accountId || !session.sessionInstanceId || !session.lastActivityAt) {
+        if (!session.email || !session.accountId || !session.sessionInstanceId || !session.lastActivityAt || !Array.isArray(session.permissionCodes)) {
             sessionStorage.removeItem(SESSION_KEY)
             return null
         }
@@ -154,6 +155,7 @@ export default function App() {
         <>
             {isManagerRoute && session ? (
                 <ManagerWorkspace accountId={session.accountId} email={session.email} roleCodes={session.roleCodes}
+                                  permissionCodes={session.permissionCodes}
                                   onLogout={handleLogout}/>
             ) : (
                 <PublicHome onManager={openManager}/>

@@ -14,10 +14,11 @@ import {PremisesSubTabs} from "../premises/PremisesSubTabs"
 import {PremisesTab} from "../premises/PremisesTab"
 import {ImageAttachments} from "./ImageAttachments"
 import {mediaApi} from "@/api/media"
+import {hasAnyPermission, hasPermission, PERMISSIONS} from "@/utils/authorization"
 
 // ─── Premises Module ────────────────────────────────────────────────────────
 
-export function PremisesModule() {
+export function PremisesModule({permissionCodes = []}: {permissionCodes?: string[]}) {
     const [premises, setPremises] = useState<Premise[]>(() => getMockPremiseData().premises)
     const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>(() => getMockPremiseData().media)
     const [premiseImages, setPremiseImages] = useState<File[]>([])
@@ -63,6 +64,27 @@ export function PremisesModule() {
         locationId: "",
         description: "",
     })
+
+    const canCreatePremise = hasPermission(permissionCodes, PERMISSIONS.premiseCreate)
+    const canUpdatePremise = hasPermission(permissionCodes, PERMISSIONS.premiseUpdate)
+    const canUpdateStatus = hasPermission(permissionCodes, PERMISSIONS.premiseStatusUpdate)
+    const canCreateLocation = hasPermission(permissionCodes, PERMISSIONS.premiseLocationCreate)
+    const canUpdateLocation = hasPermission(permissionCodes, PERMISSIONS.premiseLocationUpdate)
+    const canDeleteLocation = hasPermission(permissionCodes, PERMISSIONS.premiseLocationRevoke)
+    const canReadWhitelist = hasPermission(permissionCodes, PERMISSIONS.premiseWhitelistRead)
+    const canManageWhitelist = hasAnyPermission(permissionCodes, PERMISSIONS.premiseWhitelistCreate, PERMISSIONS.premiseWhitelistRevoke)
+    const canManageBusinessTypes = hasAnyPermission(permissionCodes, PERMISSIONS.premiseBusinessCreate, PERMISSIONS.premiseBusinessAssign, PERMISSIONS.premiseBusinessRevoke)
+    const visibleTabs = (['locations', 'business-types', 'premises'] as PremisesSubTab[]).filter((tab) =>
+        tab === 'locations' ? canCreateLocation || canUpdateLocation || canDeleteLocation
+            : tab === 'business-types' ? canReadWhitelist || canManageWhitelist || canManageBusinessTypes
+                : hasAnyPermission(permissionCodes, PERMISSIONS.premiseReadList, PERMISSIONS.premiseReadOwnRented, PERMISSIONS.premiseStatusUpdate, PERMISSIONS.premiseCreate, PERMISSIONS.premiseUpdate))
+    const canAddActiveTab = activeSubTab === 'locations' ? canCreateLocation
+        : activeSubTab === 'business-types' ? canManageBusinessTypes
+            : canCreatePremise
+
+    useEffect(() => {
+        if (!visibleTabs.includes(activeSubTab) && visibleTabs[0]) setActiveSubTab(visibleTabs[0])
+    }, [activeSubTab, visibleTabs.join('|')])
 
     const filtered =
         filter === "all" ? premises : premises.filter((p) => p.status === filter)
@@ -321,7 +343,7 @@ export function PremisesModule() {
                         Dữ liệu mẫu cục bộ · Premise Backend chưa có API controller
                     </p>
                 </div>
-                <button
+                {canAddActiveTab && <button
                     onClick={
                         activeSubTab === "locations"
                             ? () => {
@@ -341,7 +363,7 @@ export function PremisesModule() {
                         : activeSubTab === "business-types"
                             ? "Thêm loại mặt hàng"
                             : "Thêm mặt bằng"}
-                </button>
+                </button>}
             </div>
 
             <PremisesSubTabs
@@ -349,6 +371,7 @@ export function PremisesModule() {
                 locationCount={locations.length}
                 businessTypeCount={businessTypes.length}
                 premiseCount={premises.length}
+                visibleTabs={visibleTabs}
                 onChange={setActiveSubTab}
             />
 
@@ -361,6 +384,8 @@ export function PremisesModule() {
                         setLocationModal("edit")
                     }}
                     onDelete={handleDeleteLocation}
+                    canEdit={canUpdateLocation}
+                    canDelete={canDeleteLocation}
                 />
             ) : activeSubTab === "business-types" ? (
                 <BusinessTypesTab
@@ -633,14 +658,14 @@ export function PremisesModule() {
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="flex justify-end">
+                                    {canManageBusinessTypes && <div className="flex justify-end">
                                         <button
                                             onClick={startEditingBusinessType}
                                             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                         >
                                             Chỉnh sửa
                                         </button>
-                                    </div>
+                                    </div>}
                                 </div>
                             )}
                         </div>
@@ -667,7 +692,7 @@ export function PremisesModule() {
                                     sản phẩm
                 </span>
                             </div>
-                            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 mb-4">
+                            {canManageWhitelist && <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 mb-4">
                                 <div className="grid grid-cols-2 gap-3">
                                     <FormField label="Tên sản phẩm">
                                         <input
@@ -701,7 +726,7 @@ export function PremisesModule() {
                                         Thêm sản phẩm
                                     </button>
                                 </div>
-                            </div>
+                            </div>}
                             <div className="border border-gray-100 rounded-xl">
                                 {whitelistProducts
                                     .filter(
@@ -730,14 +755,14 @@ export function PremisesModule() {
                               "Chưa có mô tả cho sản phẩm này."}
                         </span>
                       </span>
-                                            <button
+                                            {canManageWhitelist && <button
                                                 onClick={() =>
                                                     handleDeleteWhitelistProduct(product.productId)
                                                 }
                                                 className="text-xs text-gray-300 hover:text-red-500 transition-colors"
                                             >
                                                 Xóa
-                                            </button>
+                                            </button>}
                                         </div>
                                     ))}
                                 {!whitelistProducts.some(
@@ -770,6 +795,7 @@ export function PremisesModule() {
                     <div className="grid grid-cols-2 gap-x-4">
                         <FormField label="Tên mặt bằng">
                             <input
+                                disabled={modal === "view" && !canUpdatePremise}
                                 className={inputCls}
                                 value={form.name}
                                 onChange={(e) => setForm({...form, name: e.target.value})}
@@ -778,6 +804,7 @@ export function PremisesModule() {
                         </FormField>
                         <FormField label="Diện tích">
                             <input
+                                disabled={modal === "view" && !canUpdatePremise}
                                 className={inputCls}
                                 value={form.area}
                                 onChange={(e) => setForm({...form, area: e.target.value})}
@@ -786,6 +813,7 @@ export function PremisesModule() {
                         </FormField>
                         <FormField label="Tầng">
                             <input
+                                disabled={modal === "view" && !canUpdatePremise}
                                 className={inputCls}
                                 type="number"
                                 value={form.floor}
@@ -794,6 +822,7 @@ export function PremisesModule() {
                         </FormField>
                         <FormField label="Vị trí">
                             <input
+                                disabled={modal === "view" && !canUpdatePremise}
                                 className={inputCls}
                                 type="number"
                                 value={form.position}
@@ -801,8 +830,9 @@ export function PremisesModule() {
                             />
                         </FormField>
                     </div>
-                    <FormField label="Địa chỉ đã tạo">
+                        <FormField label="Địa chỉ đã tạo">
                         <select
+                            disabled={modal === "view" && !canUpdatePremise}
                             className={selectCls}
                             value={form.locationId}
                             onChange={(e) => setForm({...form, locationId: e.target.value})}
@@ -816,6 +846,7 @@ export function PremisesModule() {
                     </FormField>
                     <FormField label="Trạng thái">
                         <select
+                            disabled={modal === "view" ? !(canUpdatePremise || canUpdateStatus) : !canCreatePremise}
                             className={selectCls}
                             value={form.status}
                             onChange={(e) =>
@@ -830,6 +861,7 @@ export function PremisesModule() {
                     </FormField>
                     <FormField label="Mô tả">
             <textarea
+                disabled={modal === "view" && !canUpdatePremise}
                 className={inputCls}
                 rows={2}
                 value={form.description}
@@ -1008,12 +1040,12 @@ export function PremisesModule() {
                             >
                                 Đóng
                             </button>
-                            <button
+                            {(canUpdatePremise || canUpdateStatus) && <button
                                 onClick={startEditingPremise}
                                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >
                                 Chỉnh sửa
-                            </button>
+                            </button>}
                         </div>
                     </div>
                 </Modal>

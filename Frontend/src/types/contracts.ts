@@ -134,4 +134,7 @@ export type ContractForm = {
 export interface ContractsModuleProps {
     accountId?: string
     readOnly?: boolean
+    canCreate?: boolean
+    canUpdate?: boolean
+    ownOnly?: boolean
 }

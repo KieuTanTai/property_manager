@@ -12,7 +12,7 @@ const EMPTY_FORM: RegulationForm = {
     active: true,
 }
 
-export function RegulationsModule() {
+export function RegulationsModule({readOnly = false}: {readOnly?: boolean}) {
     const [regulations, setRegulations] = useState<RegulationModel[]>([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -137,13 +137,13 @@ export function RegulationsModule() {
                         quy định đang áp dụng
                     </p>
                 </div>
-                <button
+                {!readOnly && <button
                     onClick={openAdd}
                     className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
                 >
                     <span className="text-base leading-none">+</span>
                     Thêm quy định
-                </button>
+                </button>}
             </div>
 
             {error && !modal && <p role="alert" className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
@@ -259,25 +259,25 @@ export function RegulationsModule() {
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2 pt-1">
-                                <button
+                                {!readOnly && <button
                                     onClick={deleteRegulation}
                                     disabled={saving || !selected.regulationIsActive}
                                     className="mr-auto px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
                                 >
                                     Ngừng áp dụng
-                                </button>
+                                </button>}
                                 <button
                                     onClick={closeModal}
                                     className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                                 >
                                     Đóng
                                 </button>
-                                <button
+                                {!readOnly && <button
                                     onClick={startEditing}
                                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                 >
                                     Chỉnh sửa
-                                </button>
+                                </button>}
                             </div>
                         </div>
                     ) : (

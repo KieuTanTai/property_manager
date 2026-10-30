@@ -1,6 +1,6 @@
 using Identity.Models.Account;
 using Identity.Models.Profile;
-using Identity.Utils.Enum;
+using Shared.Enum;
 using Shared.Persistence.Record;
 
 namespace Identity.Interfaces.IApplication

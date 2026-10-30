@@ -1,8 +1,8 @@
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
-using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
+using Shared.Enum;
 using Shared.Logging;
 using Shared.Persistence;
 using Shared.Persistence.Record;
@@ -72,15 +72,15 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account by email.");
             var account = await _db.Accounts.AsNoTracking()
                 .FirstOrDefaultAsync(account => account.AccountEmail == email, cancellationToken);
-            if (account is null)
+            if (account is not null)
             {
-                var exception = new InvalidOperationException("AccountModel not found!");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Account lookup rejected because the account was not found by email.");
-                throw exception;
+                return account;
             }
+            var exception = new InvalidOperationException("AccountModel not found!");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Account lookup rejected because the account was not found by email.");
+            throw exception;
 
-            return account;
         }
 
         public async Task<AccountModel> GetTrackedAccountByEmailAsync(string email, CancellationToken cancellationToken = default)
@@ -88,15 +88,15 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked account by email.");
             var account = await _db.Accounts.FirstOrDefaultAsync(
                 account => account.AccountEmail == email, cancellationToken);
-            if (account is null)
+            if (account is not null)
             {
-                var exception = new InvalidOperationException("AccountModel not found!");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Tracked account lookup rejected because the account was not found by email.");
-                throw exception;
+                return account;
             }
+            var exception = new InvalidOperationException("AccountModel not found!");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Tracked account lookup rejected because the account was not found by email.");
+            throw exception;
 
-            return account;
         }
 
         public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
@@ -113,7 +113,8 @@ namespace Identity.Infrastructure.Repository.AccountRepository
                 .AsSplitQuery().Where(account => account.AccountEmail == email);
             if (isGetRole)
             {
-                query = query.Include(account => account.Roles);
+                query = query.Include(account => account.Roles)
+                    .ThenInclude(role => role.Permissions);
             }
 
             if (isGetAdditionalPermission)

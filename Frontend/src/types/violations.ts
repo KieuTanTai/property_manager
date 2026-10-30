@@ -6,4 +6,7 @@ export type ViolationForm = Pick<Violation, "contractId" | "tenant" | "content" 
 export interface ViolationsModuleProps {
     accountId?: string
     readOnly?: boolean
+    canCreate?: boolean
+    canUpdate?: boolean
+    ownOnly?: boolean
 }

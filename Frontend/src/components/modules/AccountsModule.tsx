@@ -7,6 +7,7 @@ import type {AccountModel, PermissionModel, RoleModel, UserProfileModel} from "@
 import {BaseTable, FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
 import {accountName, dateLabel} from "@/scripts/identity.ts"
 import {APP_SETTINGS} from "@/config/appSettings"
+import {hasPermission, hasRole, PERMISSIONS} from "@/utils/authorization"
 
 const buttonCls = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
 const fallbackAvatarUrl = "https://lh3.googleusercontent.com/d/11TJu1RDc0clWSfvF5LpkkLlnO-flF7ey?authuser=0"
@@ -70,7 +71,15 @@ function toProfileDraft(profile: UserProfileModel | null): ProfileDraft {
     } : emptyProfileDraft
 }
 
-export function AccountsModule() {
+export function AccountsModule({roleCodes = [], permissionCodes = []}: {roleCodes?: string[]; permissionCodes?: string[]}) {
+    const isAdmin = hasRole(roleCodes, "ADMIN")
+    const isManager = hasRole(roleCodes, "MANAGER")
+    const canCreateEmployee = hasPermission(permissionCodes, PERMISSIONS.identityCreateEmployee)
+    const canCreateInspector = hasPermission(permissionCodes, PERMISSIONS.identityCreateInspector)
+    const canAssignRoles = hasPermission(permissionCodes, PERMISSIONS.identityRoleAssign)
+    const canAssignPermissions = hasPermission(permissionCodes, PERMISSIONS.identityPermissionAssign)
+    const canEditRoleDefinitions = hasPermission(permissionCodes, PERMISSIONS.identityRoleUpdate)
+    const canUpdateAccountStatus = hasPermission(permissionCodes, PERMISSIONS.identityStatusUpdate)
     const [accounts, setAccounts] = useState<AccountModel[]>([])
     const [roles, setRoles] = useState<RoleModel[]>([])
     const [permissions, setPermissions] = useState<PermissionModel[]>([])
@@ -81,6 +90,14 @@ export function AccountsModule() {
     useEffect(() => () => updateDebouncedSearch.cancel(), [updateDebouncedSearch])
     const [roleFilter, setRoleFilter] = useState("all")
     const [selectedAccount, setSelectedAccount] = useState<AccountModel | null>(null)
+    const assignableRoles = isManager && !isAdmin
+        ? roles.filter((role) => ["employee", "inspector"].includes(role.roleCode.toLowerCase()))
+        : roles
+    const creatableRoles = roles.filter((role) =>
+        (role.roleCode.toLowerCase() === "employee" && canCreateEmployee)
+        || (role.roleCode.toLowerCase() === "inspector" && canCreateInspector))
+    const selectedAccountIsAssignable = !!selectedAccount?.roles.length && selectedAccount.roles.every((role) =>
+        !isManager || isAdmin || ["employee", "inspector"].includes(role.roleCode.toLowerCase()))
     const [profileDraft, setProfileDraft] = useState<ProfileDraft>(emptyProfileDraft)
     const [isEditingProfile, setIsEditingProfile] = useState(false)
     const [profileSaving, setProfileSaving] = useState(false)
@@ -387,9 +404,9 @@ export function AccountsModule() {
                         <button className={`${buttonCls} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}
                                 onClick={() => void loadPage()} disabled={loading}>Làm mới
                         </button>
-                        <button className={`${buttonCls} bg-[#0f52ff] text-white hover:bg-[#0a42dd]`}
+                        {(canCreateEmployee || canCreateInspector) && <button className={`${buttonCls} bg-[#0f52ff] text-white hover:bg-[#0a42dd]`}
                                 onClick={() => setShowCreate(true)}>Tạo tài khoản
-                        </button>
+                        </button>}
                     </div>
                 </section>
 
@@ -417,7 +434,7 @@ export function AccountsModule() {
                         />
                     </section>
 
-                    <section className="rounded-2xl border border-[#e2e8f0] bg-white p-5 shadow-sm">
+                    {canEditRoleDefinitions && <section className="rounded-2xl border border-[#e2e8f0] bg-white p-5 shadow-sm">
                         <div className="mb-4"><h2 className="font-semibold text-slate-900">Quyền của vai trò</h2><p
                             className="mt-1 text-xs text-slate-500">Cập nhật qua AuthorizationController</p></div>
                         <FormField label="Vai trò">
@@ -455,7 +472,7 @@ export function AccountsModule() {
                                 quyền vai trò
                             </button>
                         </> : <p className="text-sm text-slate-500">Chưa có vai trò từ Backend.</p>}
-                    </section>
+                    </section>}
                 </div>
             </main>
 
@@ -465,20 +482,20 @@ export function AccountsModule() {
                         <div className="space-y-3">
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò tài khoản</p>
-                                    {!isEditingAccountRoles && <button type="button" className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`} onClick={() => { setAssignedRoleIds(selectedAccount.roles.map((role) => role.roleId)); setIsEditingAccountRoles(true) }}>Chỉnh sửa</button>}
+                                    {!isEditingAccountRoles && canAssignRoles && selectedAccountIsAssignable && <button type="button" className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`} onClick={() => { setAssignedRoleIds(selectedAccount.roles.map((role) => role.roleId)); setIsEditingAccountRoles(true) }}>Chỉnh sửa</button>}
                                 </div>
                                 <div className="mb-2 flex items-center justify-between gap-2">
                                     <p className="text-xs text-slate-500">Chọn thêm vai trò cho tài khoản.</p>
                                     {isEditingAccountRoles && <button type="button" className="shrink-0 text-xs font-medium text-blue-700 hover:text-blue-800"
-                                        disabled={saving || roles.length === 0}
-                                        onClick={() => setAssignedRoleIds(roles.every((role) => assignedRoleIds.includes(role.roleId))
+                                        disabled={saving || assignableRoles.length === 0}
+                                        onClick={() => setAssignedRoleIds(assignableRoles.every((role) => assignedRoleIds.includes(role.roleId))
                                             ? selectedAccount.roles.map((role) => role.roleId)
-                                            : roles.map((role) => role.roleId))}>
-                                        {roles.length > 0 && roles.every((role) => assignedRoleIds.includes(role.roleId)) ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                                            : assignableRoles.map((role) => role.roleId))}>
+                                        {assignableRoles.length > 0 && assignableRoles.every((role) => assignedRoleIds.includes(role.roleId)) ? "Bỏ chọn tất cả" : "Chọn tất cả"}
                                     </button>}
                                 </div>
                                 <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
-                                    {roles.map((role) => <label key={role.roleId}
+                                    {assignableRoles.map((role) => <label key={role.roleId}
                                         className={`flex items-center gap-2 rounded-md p-2 ${isEditingAccountRoles && !selectedAccount.roles.some((item) => item.roleId === role.roleId) ? "cursor-pointer hover:bg-slate-50" : "cursor-default opacity-70"}`}><input
                                         type="checkbox" className="accent-blue-600" disabled={saving || !isEditingAccountRoles || selectedAccount.roles.some((item) => item.roleId === role.roleId)}
                                         checked={assignedRoleIds.includes(role.roleId)}
@@ -490,7 +507,7 @@ export function AccountsModule() {
                             </div>
                             <div className="rounded-lg border border-slate-100 p-3">
                                 <div className="mb-2 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quyền bổ sung</p>
-                                    {!isEditingAccountPermissions && <button type="button" className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`} onClick={() => { setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId)); setIsEditingAccountPermissions(true) }}>Chỉnh sửa</button>}
+                                    {!isEditingAccountPermissions && canAssignPermissions && selectedAccountIsAssignable && <button type="button" className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`} onClick={() => { setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId)); setIsEditingAccountPermissions(true) }}>Chỉnh sửa</button>}
                                 </div>
                                 <div className="mb-2 flex items-center justify-between gap-2">
                                     <p className="text-xs text-slate-500">Gán permission trực tiếp cho tài khoản, ngoài quyền từ vai trò.</p>
@@ -588,7 +605,7 @@ export function AccountsModule() {
                                 </div>
                             </div>
                             <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4">
-                                {selectedAccount.accountIsActive ? <button
+                                {canUpdateAccountStatus && (selectedAccount.accountIsActive ? <button
                                     className={`${buttonCls} border border-red-200 text-red-700 hover:bg-red-50`}
                                     disabled={saving}
                                     onClick={() => void runAction(() => identityApi.deactivateAccountById(selectedAccount.accountId), "Đã vô hiệu hóa tài khoản.").then((succeeded) => {
@@ -598,7 +615,7 @@ export function AccountsModule() {
                                     disabled={saving}
                                     onClick={() => void runAction(() => identityApi.activateAccountByEmail(selectedAccount.accountEmail), "Đã kích hoạt tài khoản.").then((succeeded) => {
                                         if (succeeded) setSelectedAccount(null)
-                                    })}>Kích hoạt</button>}
+                                    })}>Kích hoạt</button>)}
                                 <button
                                     className={`${buttonCls} ml-auto border border-slate-200 text-slate-700 hover:bg-slate-50`}
                                     onClick={() => setSelectedAccount(null)}>Đóng
@@ -625,7 +642,7 @@ export function AccountsModule() {
                                                        onChange={(event) => setCreateForm({
                                                            ...createForm,
                                                            roleId: event.target.value
-                                                       })}>{roles.map((role) => <option key={role.roleId}
+                                                       })}>{creatableRoles.map((role) => <option key={role.roleId}
                                                                                         value={role.roleId}>{role.roleName}</option>)}</select></FormField>
                     <p className="mb-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">Backend tạo tài khoản bằng
                         endpoint register và khởi tạo hồ sơ riêng. Họ tên/mã định danh sẽ bổ sung qua API hồ sơ khi

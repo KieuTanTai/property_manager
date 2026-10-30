@@ -3,8 +3,10 @@ import {BaseTable, FormField, inputCls, InvoiceStatusBadge, Modal, selectCls,} f
 import type {InvoiceStatus} from "@/types/modules.ts"
 import type {InvoiceDetail, InvoiceTab, MonthlyInvoice, Receipt, ReceiptPaymentMethod} from "@/types/invoices"
 import {MOCK_CONTRACT_BILLING, MOCK_INVOICE_DETAILS, MOCK_MONTHLY_INVOICES, MOCK_RECEIPTS} from "@/mocks/invoices.ts"
+import {MOCK_CONTRACTS} from "@/mocks/contracts"
 import {createUuidV7} from "@/scripts/ids.ts"
 import {fmt, isIntegerAmountInput, today} from "@/scripts/format.ts"
+import {hasAnyPermission, hasPermission, PERMISSIONS} from "@/utils/authorization"
 
 const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     cash: "Tiền mặt",
@@ -12,7 +14,11 @@ const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     bank: "Chuyển khoản",
 }
 
-export function InvoicesModule() {
+export function InvoicesModule({permissionCodes = [], accountId, ownOnly = false}: {permissionCodes?: string[]; accountId?: string; ownOnly?: boolean}) {
+    const canCreateInvoice = hasPermission(permissionCodes, PERMISSIONS.invoiceCreate)
+    const canUpdateInvoice = hasAnyPermission(permissionCodes, PERMISSIONS.invoiceUpdate, PERMISSIONS.invoiceStatusUpdate)
+    const canCreateReceipt = hasPermission(permissionCodes, PERMISSIONS.receiptCreate)
+    const canReadReceipts = hasAnyPermission(permissionCodes, "RECEIPT_READ_LIST", "RECEIPT_READ_OWN", PERMISSIONS.receiptCreate)
     const [invoices, setInvoices] = useState<MonthlyInvoice[]>(MOCK_MONTHLY_INVOICES)
     const [details, setDetails] = useState<InvoiceDetail[]>(MOCK_INVOICE_DETAILS)
     const [receipts, setReceipts] = useState<Receipt[]>(MOCK_RECEIPTS)
@@ -61,11 +67,15 @@ export function InvoicesModule() {
         transactionInfo: "",
     })
 
+    const ownContractIds = new Set(MOCK_CONTRACTS.filter((contract) => contract.contractAccountId === accountId).map((contract) => contract.contractId))
+    const visibleInvoices = ownOnly ? invoices.filter((invoice) => ownContractIds.has(invoice.invoiceContractId)) : invoices
+    const visibleInvoiceIds = new Set(visibleInvoices.map((invoice) => invoice.invoiceId))
+    const visibleReceipts = ownOnly ? receipts.filter((receipt) => visibleInvoiceIds.has(receipt.receiptInvoiceId)) : receipts
     const filtered =
         filter === "all"
-            ? invoices
-            : invoices.filter((invoice) => invoice.invoiceStatus === filter)
-    const totalUnpaid = invoices
+            ? visibleInvoices
+            : visibleInvoices.filter((invoice) => invoice.invoiceStatus === filter)
+    const totalUnpaid = visibleInvoices
         .filter((invoice) => invoice.invoiceStatus !== "paid")
         .reduce((sum, invoice) => sum + (invoice.invoiceTotalAmount ?? 0), 0)
 
@@ -452,7 +462,7 @@ export function InvoicesModule() {
                         <span className="font-mono text-red-500">{fmt(totalUnpaid)}</span>
                     </p>
                 </div>
-                <button
+                {(activeTab === "invoices" ? canCreateInvoice : canCreateReceipt) && <button
                     onClick={
                         activeTab === "invoices"
                             ? openAddInvoice
@@ -462,14 +472,14 @@ export function InvoicesModule() {
                 >
                     <span>+</span>{" "}
                     {activeTab === "invoices" ? "Tạo hóa đơn" : "Tạo phiếu thu"}
-                </button>
+                </button>}
             </div>
 
             <div className="border-b border-gray-200 mb-5">
                 <div className="flex gap-6">
                     {([
-                        {id: "invoices", label: "Hóa đơn", count: invoices.length},
-                        {id: "receipts", label: "Phiếu thu", count: receipts.length},
+                        {id: "invoices", label: ownOnly ? "Hóa đơn của tôi" : "Hóa đơn", count: visibleInvoices.length},
+                        ...(canReadReceipts ? [{id: "receipts" as const, label: "Phiếu thu", count: visibleReceipts.length}] : []),
                     ] as const).map((tab) => (
                         <button
                             key={tab.id}
@@ -499,8 +509,8 @@ export function InvoicesModule() {
                             }
                             const count =
                                 status === "all"
-                                    ? invoices.length
-                                    : invoices.filter(
+                                    ? visibleInvoices.length
+                                    : visibleInvoices.filter(
                                         (invoice) => invoice.invoiceStatus === status,
                                     ).length
                             return (
@@ -540,7 +550,7 @@ export function InvoicesModule() {
                 </>
             ) : (
                 <BaseTable
-                    rows={receipts}
+                    rows={visibleReceipts}
                     getRowKey={(receipt) => receipt.receiptId}
                     tableClassName="w-full min-w-5xl text-sm"
                     rowClassName={() => "hover:bg-blue-50/50 transition-colors"}
@@ -834,12 +844,12 @@ export function InvoicesModule() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <InvoiceStatusBadge status={selected.invoiceStatus}/>
-                                    <button
+                                    {canUpdateInvoice && <button
                                         onClick={startEditing}
                                         className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                     >
                                         Chỉnh sửa
-                                    </button>
+                                    </button>}
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 gap-3">
@@ -1048,12 +1058,12 @@ export function InvoicesModule() {
                     </div>
 
                     <div className="flex justify-between mt-6 pt-4 border-t border-gray-100">
-                        <button
+                        {canCreateReceipt && <button
                             onClick={() => openAddReceipt(selected)}
                             className="px-4 py-2 text-sm text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-50"
                         >
                             Tạo phiếu thu
-                        </button>
+                        </button>}
                         <button
                             onClick={() => setInvoiceModal(null)}
                             className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800"
@@ -1339,11 +1349,11 @@ export function InvoicesModule() {
                                     className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
                                 >Đóng
                                 </button>
-                                <button
+                                {canCreateReceipt && <button
                                     onClick={startEditingReceipt}
                                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                 >Chỉnh sửa
-                                </button>
+                                </button>}
                             </>
                         )}
                     </div>

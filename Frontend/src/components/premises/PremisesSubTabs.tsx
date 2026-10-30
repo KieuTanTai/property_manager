@@ -6,6 +6,7 @@ export function PremisesSubTabs({
                                     businessTypeCount,
                                     premiseCount,
                                     onChange,
+                                    visibleTabs,
                                 }: Props) {
     const tabs = [
         {id: "locations" as const, label: "Địa chỉ", count: locationCount},
@@ -20,7 +21,7 @@ export function PremisesSubTabs({
     return (
         <div className="border-b border-gray-200 mb-5">
             <div className="flex gap-6">
-                {tabs.map((tab) => (
+                {tabs.filter((tab) => !visibleTabs || visibleTabs.includes(tab.id)).map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => onChange(tab.id)}

@@ -38,7 +38,7 @@ function allowedContractStatuses(current: ContractStatus): ContractStatus[] {
     }
 }
 
-export function ContractsModule({accountId, readOnly = false}: ContractsModuleProps) {
+export function ContractsModule({accountId, readOnly = false, canCreate = !readOnly, canUpdate = !readOnly, ownOnly = readOnly}: ContractsModuleProps) {
     const [contracts, setContracts] = useState<ContractModel[]>([])
     const [regulations, setRegulations] = useState<RegulationModel[]>([])
     const [customerAccounts, setCustomerAccounts] = useState<AccountProfileOption[]>([])
@@ -90,7 +90,7 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
                 ])
                 if (active) {
                     const normalizedAccountId = accountId?.trim().toLowerCase()
-                    setContracts(readOnly && normalizedAccountId
+                    setContracts(ownOnly && normalizedAccountId
                         ? allContracts.filter((item) => item.contractAccountId.trim().toLowerCase() === normalizedAccountId)
                         : allContracts)
                     setRegulations(allRegulations)
@@ -103,7 +103,7 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
         }
         void load()
         return () => { active = false }
-    }, [accountId, readOnly])
+    }, [accountId, ownOnly])
 
     useEffect(() => {
         let active = true
@@ -328,10 +328,10 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
     return <div>
         <div className="mb-5 flex items-center justify-between">
             <div><h1
-                className="text-xl font-bold text-slate-900">{readOnly ? "Hợp đồng của tôi" : "Quản lý hợp đồng"}</h1><p
+                className="text-xl font-bold text-slate-900">{ownOnly ? "Hợp đồng của tôi" : "Quản lý hợp đồng"}</h1><p
                 className="mt-1 text-sm text-slate-500">{visibleContracts.length} hợp đồng</p>
             </div>
-            {!readOnly &&
+            {canCreate &&
                 <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`} onClick={openCreate}>+ Tạo hợp
                     đồng</button>}</div>
         {error && <div role="alert"
@@ -373,7 +373,7 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
                 </div>
             </ProcessingForm>
         </Modal>}
-        {modal === "detail" && selected &&
+                    {modal === "detail" && selected &&
             <Modal title={editing ? "Chỉnh sửa hợp đồng" : "Chi tiết hợp đồng"} onClose={() => setModal(null)}
                    wide>{editing ? <ProcessingForm processing={saving} onSubmit={save}>{renderForm(true)}
                 <div className="flex justify-end gap-2">
@@ -431,7 +431,7 @@ export function ContractsModule({accountId, readOnly = false}: ContractsModulePr
                 </div>
                 <div className="mt-5 flex justify-end gap-2">
                     <button className={`${button} border border-slate-200`} onClick={() => setModal(null)}>Đóng</button>
-                    {!readOnly && editableContractStatuses.includes(selected.contractStatus) &&
+                    {canUpdate && editableContractStatuses.includes(selected.contractStatus) &&
                         <button className={`${button} bg-blue-600 text-white`} onClick={startEdit}>Chỉnh sửa</button>}
                 </div>
             </div>}</Modal>}

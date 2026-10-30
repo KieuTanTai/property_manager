@@ -24,15 +24,12 @@ const ticketLabel: Record<TicketType, string> = {
 }
 const notificationLabel: Record<NotificationType, string> = {Violation: "Vi phạm", Ticket: "Yêu cầu", Other: "Khác"}
 
-export function TicketsModule({accountId, customerMode = false}: { accountId?: string; customerMode?: boolean }) {
-    const [view, setView] = useState<View>(customerMode ? "notifications" : "tickets")
+export function TicketsModule({accountId, customerMode = false, ownOnly = false, canReadOwn = false, canReadNotifications = false, canCreateViolation = false}: { accountId?: string; customerMode?: boolean; ownOnly?: boolean; canReadOwn?: boolean; canReadNotifications?: boolean; canCreateViolation?: boolean }) {
+    const canViewTickets = !customerMode && (canReadOwn || canCreateViolation)
+    const canViewNotifications = customerMode || canReadNotifications
+    const [view, setView] = useState<View>(customerMode || !canViewTickets ? "notifications" : "tickets")
     const [tickets, setTickets] = useState<TicketModel[]>(MOCK_TICKETS)
-    const [notifications, setNotifications] = useState<NotificationModel[]>(() => customerMode && accountId
-        ? MOCK_NOTIFICATIONS.map((item) => ({
-            ...item,
-            notificationRecipients: item.notificationRecipients.map((recipient) => ({...recipient, accountId})),
-        }))
-        : MOCK_NOTIFICATIONS)
+    const [notifications, setNotifications] = useState<NotificationModel[]>(MOCK_NOTIFICATIONS)
     const [filter, setFilter] = useState<"all" | "open" | "resolved">("all")
     const [modal, setModal] = useState<View | null>(null)
     const [ticketForm, setTicketForm] = useState({accountId: "", content: "", type: "Feedback" as TicketType})
@@ -164,8 +161,9 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
             notificationUpdatedAt: new Date().toISOString()
         } : item))
     }, "Đã đánh dấu thông báo đã đọc.")
-    const filteredTickets = tickets.filter((ticket) => filter === "all" || ticket.ticketIsResolved === (filter === "resolved"))
-    const visibleNotifications = customerMode
+    const accountTickets = ownOnly && accountId ? tickets.filter((ticket) => ticket.ticketAccountId === accountId) : tickets
+    const filteredTickets = accountTickets.filter((ticket) => filter === "all" || ticket.ticketIsResolved === (filter === "resolved"))
+    const visibleNotifications = ownOnly && accountId
         ? notifications.filter((item) => item.notificationRecipients.some((recipient) => recipient.accountId === accountId))
         : notifications
 
@@ -175,18 +173,13 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
                 className="text-xl font-bold text-slate-900">{customerMode ? "Thông báo của tôi" : "Yêu cầu &amp; Thông báo"}</h1>
                 <p className="mt-1 text-sm text-slate-500">{customerMode ? `${visibleNotifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc` : `${tickets.filter((ticket) => !ticket.ticketIsResolved).length} ticket chưa xử lý · ${notifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc`}</p>
             </div>
-            {!customerMode && <div className="flex gap-2">
+            {canCreateViolation && <div className="flex gap-2">
                 <span className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Dữ liệu mẫu</span>
                 <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`} onClick={() => {
-                    setTicketForm({accountId: "", content: "", type: "Feedback"});
+                    setTicketForm({accountId: accountId ?? "", content: "", type: "Violation"});
                     setTicketImages([]);
                     setModal("tickets")
-                }}>Tạo ticket
-                </button>
-                <button className={`${button} bg-slate-900 text-white hover:bg-slate-700`} onClick={() => {
-                    setNotificationForm({senderAccountId: "", recipientAccountId: "", content: "", type: "Other"});
-                    setModal("notifications")
-                }}>Tạo thông báo
+                }}>Tạo ticket vi phạm
                 </button>
             </div>}
         </div>
@@ -197,13 +190,13 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
                         className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
 
         <div className="mb-5 flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
-            {(customerMode ? ["notifications"] as const : ["tickets", "notifications"] as const).map((item) => <button
+            {([...(canViewTickets ? ["tickets" as const] : []), ...(canViewNotifications ? ["notifications" as const] : [])]).map((item) => <button
                 key={item}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium ${view === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
                 onClick={() => setView(item)}>{item === "tickets" ? `Tickets (${tickets.length})` : `Thông báo (${visibleNotifications.length})`}</button>)}
         </div>
 
-        {view === "tickets" ? <>
+        {view === "tickets" && canViewTickets ? <>
             <div
                 className="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">{(["all", "open", "resolved"] as const).map((item) =>
                 <button key={item} onClick={() => setFilter(item)}
@@ -223,7 +216,7 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
                     </div>
                     {ticket.ticketIsResolved ?
                         <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã xử lý</span> :
-                        <button className={`${button} bg-blue-600 text-white`} disabled={saving}
+                        !ownOnly && <button className={`${button} bg-blue-600 text-white`} disabled={saving}
                                 onClick={() => void run(async () => setTickets((current) => current.map((item) => item.ticketId === ticket.ticketId ? {
                                     ...item,
                                     ticketIsResolved: true,
@@ -269,11 +262,11 @@ export function TicketsModule({accountId, customerMode = false}: { accountId?: s
                     ...ticketForm,
                     accountId: event.target.value
                 })}/></FormField>
-                <FormField label="Loại ticket"><select className={selectCls} value={ticketForm.type}
+                <FormField label="Loại ticket"><select className={selectCls} value={ticketForm.type} disabled
                                                        onChange={(event) => setTicketForm({
                                                            ...ticketForm,
                                                            type: event.target.value as TicketType
-                                                       })}>{ticketTypes.map((type) => <option key={type}
+                                                       })}>{(canCreateViolation ? ["Violation"] as TicketType[] : ticketTypes).map((type) => <option key={type}
                                                                                               value={type}>{ticketLabel[type]}</option>)}</select></FormField>
                 <FormField label="Nội dung"><textarea className={inputCls} required maxLength={255} rows={4}
                                                       value={ticketForm.content} onChange={(event) => setTicketForm({

@@ -1,6 +1,6 @@
 using Identity.Models.Permission;
 using Identity.Models.Role;
-using Identity.Utils.Enum;
+using Shared.Enum;
 
 namespace Identity.Interfaces.IApplication
 {
