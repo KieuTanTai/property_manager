@@ -1,6 +1,6 @@
 import type {SubmitEvent} from "react"
 import {useEffect, useState} from "react"
-import {mediaApi} from "@/api/media"
+import {compressImageToDataUrl} from "@/utils/compressImage"
 import {
     type NotificationModel,
     type NotificationType,
@@ -97,14 +97,13 @@ export function TicketsModule({accountId, customerMode = false, ownOnly = false,
         const selectedImages = ticketImages
         const done = await run(async () => {
             if (selectedImages.length > 0) {
-                const imageUrls: string[] = []
-                for (const file of selectedImages) imageUrls.push(await mediaApi.uploadImage(file, "ticket-and-notification"))
+                const imageDataUrls: string[] = await Promise.all(selectedImages.map((file) => compressImageToDataUrl(file, "standard")))
                 const created = await ticketApi.createTicket({
                     accountId: ticketForm.accountId,
                     content: ticketForm.content,
                     type: ticketForm.type
                 })
-                await ticketApi.addTicketMedias(created.ticketId, imageUrls)
+                await ticketApi.addTicketMedias(created.ticketId, imageDataUrls)
                 const ticketMedias = await ticketApi.ticketMedias(created.ticketId)
                 setTickets((current) => [{...created, ticketMedias}, ...current])
             } else {

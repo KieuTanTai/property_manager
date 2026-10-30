@@ -6,7 +6,7 @@ import {MOCK_CONTRACT_BILLING, MOCK_INVOICE_DETAILS, MOCK_MONTHLY_INVOICES, MOCK
 import {MOCK_CONTRACTS} from "@/mocks/contracts"
 import {createUuidV7} from "@/scripts/ids.ts"
 import {fmt, isIntegerAmountInput, today} from "@/scripts/format.ts"
-import {hasAnyPermission, hasPermission, PERMISSIONS} from "@/utils/authorization"
+import {hasAnyPermissionForRole, hasPermission, PERMISSIONS} from "@/utils/authorization"
 
 const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     cash: "Tiền mặt",
@@ -14,11 +14,13 @@ const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     bank: "Chuyển khoản",
 }
 
-export function InvoicesModule({permissionCodes = [], accountId, ownOnly = false}: {permissionCodes?: string[]; accountId?: string; ownOnly?: boolean}) {
-    const canCreateInvoice = hasPermission(permissionCodes, PERMISSIONS.invoiceCreate)
-    const canUpdateInvoice = hasAnyPermission(permissionCodes, PERMISSIONS.invoiceUpdate, PERMISSIONS.invoiceStatusUpdate)
-    const canCreateReceipt = hasPermission(permissionCodes, PERMISSIONS.receiptCreate)
-    const canReadReceipts = hasAnyPermission(permissionCodes, "RECEIPT_READ_LIST", "RECEIPT_READ_OWN", PERMISSIONS.receiptCreate)
+export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId, ownOnly = false}: {roleCodes?: string[]; permissionCodes?: string[]; accountId?: string; ownOnly?: boolean}) {
+    const can = (permission: string) => hasPermission(permissionCodes, permission, roleCodes)
+    const canAny = (...permissions: string[]) => hasAnyPermissionForRole(permissionCodes, roleCodes, ...permissions)
+    const canCreateInvoice = can(PERMISSIONS.invoiceCreate)
+    const canUpdateInvoice = canAny(PERMISSIONS.invoiceUpdate, PERMISSIONS.invoiceStatusUpdate)
+    const canCreateReceipt = can(PERMISSIONS.receiptCreate)
+    const canReadReceipts = canAny("RECEIPT_READ_LIST", "RECEIPT_READ_OWN", PERMISSIONS.receiptCreate)
     const [invoices, setInvoices] = useState<MonthlyInvoice[]>(MOCK_MONTHLY_INVOICES)
     const [details, setDetails] = useState<InvoiceDetail[]>(MOCK_INVOICE_DETAILS)
     const [receipts, setReceipts] = useState<Receipt[]>(MOCK_RECEIPTS)

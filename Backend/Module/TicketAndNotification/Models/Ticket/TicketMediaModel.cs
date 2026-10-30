@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Shared.ModelHelper;
 
 namespace TicketAndNotification.Models.Ticket
 {
@@ -7,14 +8,14 @@ namespace TicketAndNotification.Models.Ticket
         public TicketMediaModel(Guid ticketId, string imageUrl)
         {
             TicketMediaTicketId = ticketId;
-            TicketMediaImageUrl = imageUrl;
+            TicketMediaImageUrl = ImageDataUriGuard.Required(imageUrl, 300 * 1024, nameof(imageUrl));
         }
 
         public TicketMediaModel(int ticketMediaId, Guid ticketId, string imageUrl)
         {
             TicketMediaId = ticketMediaId;
             TicketMediaTicketId = ticketId;
-            TicketMediaImageUrl = imageUrl;
+            TicketMediaImageUrl = ImageDataUriGuard.Required(imageUrl, 300 * 1024, nameof(imageUrl));
         }
 
         public TicketMediaModel() {}
@@ -23,7 +24,7 @@ namespace TicketAndNotification.Models.Ticket
 
         public Guid TicketMediaTicketId { get; private set; }
 
-        [MaxLength(255)]
+        [MaxLength(ImageDataUriGuard.StandardMaxEncodedCharacters)]
         public string TicketMediaImageUrl { get; private set; } = string.Empty;
 
         #region Setter
@@ -35,7 +36,7 @@ namespace TicketAndNotification.Models.Ticket
 
         public void SetTicketMediaImageUrl(string imageUrl)
         {
-            TicketMediaImageUrl = imageUrl;
+            TicketMediaImageUrl = ImageDataUriGuard.Required(imageUrl, 300 * 1024, nameof(imageUrl));
         }
 
         #endregion

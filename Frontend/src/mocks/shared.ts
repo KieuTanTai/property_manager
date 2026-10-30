@@ -360,7 +360,7 @@ export const PREMISE_MEDIA: PremiseMedia[] = [
         premiseMediaId: 8,
         premiseMediaPremiseId: PREMISES[2].id,
         premiseMediaImageUrl:
-            "https://lh3.googleusercontent.com/d/19A57tOeyQZS0wMGLYgOEpknN7E3ooJNe?authuser=0",
+            "/assets/premise-placeholder.svg",
         premiseMediaCreatedAt: "2026-01-20T11:10:00",
         premiseMediaUpdatedAt: "2026-01-20T11:10:00",
     },
@@ -368,7 +368,7 @@ export const PREMISE_MEDIA: PremiseMedia[] = [
         premiseMediaId: 9,
         premiseMediaPremiseId: PREMISES[2].id,
         premiseMediaImageUrl:
-            "https://lh3.googleusercontent.com/d/1sDN6yuw5s1xa-w07bDyUnzQTcUiEtdyF?authuser=0",
+            "/assets/premise-placeholder.svg",
 
         premiseMediaCreatedAt: "2026-01-05T08:40:00",
         premiseMediaUpdatedAt: "2026-01-05T08:40:00",

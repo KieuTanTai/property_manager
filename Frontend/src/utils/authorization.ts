@@ -45,17 +45,25 @@ export const PERMISSIONS = {
     notificationDeleteHard: "NOTIFICATION_DELETE_HARD",
 } as const
 
+// Admin is unrestricted in the UI except for customer-only premise rental.
+const ADMIN_PREVENT_PERMISSIONS = new Set(["PREMISE_RENT"])
+
 function normalizeCode(code: string) {
-    return code.toUpperCase().replaceAll("_", "")
+    return code.toUpperCase().replace(/_/g, "")
 }
 
-export function hasPermission(permissionCodes: string[], permission: string) {
+export function hasPermission(permissionCodes: string[], permission: string, roleCodes: string[] = []) {
     const target = normalizeCode(permission)
+    if (hasRole(roleCodes, "ADMIN")) return !ADMIN_PREVENT_PERMISSIONS.has(target)
     return permissionCodes.some((code) => normalizeCode(code) === target)
 }
 
 export function hasAnyPermission(permissionCodes: string[], ...permissions: string[]) {
     return permissions.some((permission) => hasPermission(permissionCodes, permission))
+}
+
+export function hasAnyPermissionForRole(permissionCodes: string[], roleCodes: string[], ...permissions: string[]) {
+    return permissions.some((permission) => hasPermission(permissionCodes, permission, roleCodes))
 }
 
 export function hasRole(roleCodes: string[], ...roles: string[]) {

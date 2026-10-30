@@ -1,5 +1,4 @@
 using Shared.Logging;
-using Shared.Services;
 using System.Text.Json.Serialization;
 using Gateway.Services;
 using Gateway.Middleware;
@@ -12,7 +11,6 @@ builder.Configuration["ModuleUrls:TicketAndNotification"] ??= "https://localhost
 
 builder.Services.AddOpenApi();
 builder.Services.AddSingleton<ILogPool, LogPool>();
-builder.Services.AddHttpClient<GoogleDriveImageStorage>();
 builder.Services.AddProxyMapping(builder.Environment);
 builder.Services.AddScoped<ModuleProxyService>();
 builder.Services.AddControllers()

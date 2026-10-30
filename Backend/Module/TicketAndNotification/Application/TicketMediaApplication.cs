@@ -1,5 +1,6 @@
 using Shared.Interfaces;
 using Shared.Logging;
+using Shared.ModelHelper;
 using TicketAndNotification.Interfaces.Application;
 using TicketAndNotification.Interfaces.Repository;
 using TicketAndNotification.Models.Ticket;
@@ -168,10 +169,7 @@ namespace TicketAndNotification.Application
             {
                 throw new ArgumentException("Ticket id is required.", nameof(ticketMedia));
             }
-            if (string.IsNullOrWhiteSpace(ticketMedia.TicketMediaImageUrl) || ticketMedia.TicketMediaImageUrl.Length > 255)
-            {
-                throw new ArgumentException("Ticket media image URL is required and must not exceed 255 characters.", nameof(ticketMedia));
-            }
+            ImageDataUriGuard.Required(ticketMedia.TicketMediaImageUrl, 300 * 1024, nameof(ticketMedia.TicketMediaImageUrl));
         }
 
         #endregion

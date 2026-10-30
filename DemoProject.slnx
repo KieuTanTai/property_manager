@@ -36,11 +36,16 @@
         <File Path="Frontend/public/assets/9d522.svg" />
         <File Path="Frontend/public/assets/b9ab1.svg" />
         <File Path="Frontend/public/assets/bb57f.svg" />
+        <File Path="Frontend\public\assets\avatar-placeholder.svg" />
+        <File Path="Frontend\public\assets\premise-placeholder.svg" />
     </Folder>
     <Folder Name="/Frontend/src/">
         <File Path="Frontend/src/main.tsx" />
         <File Path="Frontend/src/vite-env.d.ts" />
-        <File Path="Frontend\src\utils\imageUrls.ts" />
+    </Folder>
+    <Folder Name="/Frontend/src/utils/">
+        <File Path="Frontend/src/utils/authorization.ts" />
+        <File Path="Frontend/src/utils/compressImage.ts" />
     </Folder>
     <Folder Name="/Frontend/src/components/" />
     <Folder Name="/Frontend/src/components/modules/">
@@ -100,7 +105,6 @@
         <File Path="Frontend/src/api/contracts.ts" />
         <File Path="Frontend/src/api/identity.ts" />
         <File Path="Frontend/src/api/ticketAndNotification.ts" />
-        <File Path="Frontend\src\api\media.ts" />
     </Folder>
     <Project Path="TestProject/TestProject.csproj" />
 </Solution>

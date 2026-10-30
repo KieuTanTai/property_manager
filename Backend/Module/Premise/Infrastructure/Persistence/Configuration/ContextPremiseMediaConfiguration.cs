@@ -22,6 +22,7 @@ namespace Premise.Infrastructure.Persistence.Configuration
 
             entity.Property(premiseMedia => premiseMedia.PremiseMediaImageUrl)
                 .HasColumnName("premise_media_image_url")
+                .HasColumnType("longtext")
                 .HasConversion<string>()
                 .IsRequired();
 

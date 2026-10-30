@@ -2,7 +2,7 @@ import type {SubmitEvent} from "react"
 import {useCallback, useEffect, useMemo, useState} from "react"
 import debounce from "lodash.debounce"
 import {identityApi} from "@/api/identity.ts"
-import {mediaApi} from "@/api/media.ts"
+import {compressImageToDataUrl} from "@/utils/compressImage"
 import type {AccountModel, PermissionModel, RoleModel, UserProfileModel} from "@/types/identity"
 import {BaseTable, FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
 import {accountName, dateLabel} from "@/scripts/identity.ts"
@@ -10,12 +10,19 @@ import {APP_SETTINGS} from "@/config/appSettings"
 import {hasPermission, hasRole, PERMISSIONS} from "@/utils/authorization"
 
 const buttonCls = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-const fallbackAvatarUrl = "https://lh3.googleusercontent.com/d/11TJu1RDc0clWSfvF5LpkkLlnO-flF7ey?authuser=0"
+const fallbackAvatarUrl = "/assets/avatar-placeholder.svg"
 
 function avatarDisplayUrl(url: string | null | undefined): string {
-    if (!url) return fallbackAvatarUrl
-    const driveFileId = url.match(/\/d\/([^/?#]+)/)?.[1]
-    return driveFileId ? `/api/media/${encodeURIComponent(driveFileId)}/content` : url
+    return isStoredImageReference(url) ? url : fallbackAvatarUrl
+}
+
+function isStoredImageReference(url: string | null | undefined): url is string {
+    if (url?.startsWith("data:image/")) return true
+    try {
+        return !!url && new URL(url).protocol === "https:"
+    } catch {
+        return false
+    }
 }
 
 function AvatarUploader({file, currentUrl, disabled, onChange}: {file: File | null; currentUrl: string; disabled: boolean; onChange: (file: File | null) => void}) {
@@ -74,12 +81,13 @@ function toProfileDraft(profile: UserProfileModel | null): ProfileDraft {
 export function AccountsModule({roleCodes = [], permissionCodes = []}: {roleCodes?: string[]; permissionCodes?: string[]}) {
     const isAdmin = hasRole(roleCodes, "ADMIN")
     const isManager = hasRole(roleCodes, "MANAGER")
-    const canCreateEmployee = hasPermission(permissionCodes, PERMISSIONS.identityCreateEmployee)
-    const canCreateInspector = hasPermission(permissionCodes, PERMISSIONS.identityCreateInspector)
-    const canAssignRoles = hasPermission(permissionCodes, PERMISSIONS.identityRoleAssign)
-    const canAssignPermissions = hasPermission(permissionCodes, PERMISSIONS.identityPermissionAssign)
-    const canEditRoleDefinitions = hasPermission(permissionCodes, PERMISSIONS.identityRoleUpdate)
-    const canUpdateAccountStatus = hasPermission(permissionCodes, PERMISSIONS.identityStatusUpdate)
+    const can = (permission: string) => hasPermission(permissionCodes, permission, roleCodes)
+    const canCreateEmployee = can(PERMISSIONS.identityCreateEmployee)
+    const canCreateInspector = can(PERMISSIONS.identityCreateInspector)
+    const canAssignRoles = can(PERMISSIONS.identityRoleAssign)
+    const canAssignPermissions = can(PERMISSIONS.identityPermissionAssign)
+    const canEditRoleDefinitions = can(PERMISSIONS.identityRoleUpdate)
+    const canUpdateAccountStatus = can(PERMISSIONS.identityStatusUpdate)
     const [accounts, setAccounts] = useState<AccountModel[]>([])
     const [roles, setRoles] = useState<RoleModel[]>([])
     const [permissions, setPermissions] = useState<PermissionModel[]>([])
@@ -333,7 +341,9 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {roleCode
         setProfileSaving(true)
         setProfileError(null)
         try {
-            const avatarUrl = avatarFile ? await mediaApi.uploadImage(avatarFile, "avatar") : profileDraft.avatarUrl.trim() || null
+            const avatarUrl = avatarFile
+                ? await compressImageToDataUrl(avatarFile, "avatar")
+                : isStoredImageReference(profileDraft.avatarUrl) ? profileDraft.avatarUrl : null
             const profile = await identityApi.updateProfile({
                 ...selectedAccount.userProfile,
                 userProfileFirstName: profileDraft.firstName.trim() || null,

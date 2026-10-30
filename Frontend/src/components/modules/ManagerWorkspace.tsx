@@ -10,31 +10,33 @@ import {RegulationsModule} from "./RegulationsModule"
 import {StatisticsModule} from "./StatisticsModule"
 import {TicketsModule} from "./TicketsModule"
 import {ViolationsModule} from "./ViolationsModule"
-import {hasAnyPermission, hasPermission, hasRole, PERMISSIONS} from "@/utils/authorization"
+import {hasAnyPermissionForRole, hasPermission, hasRole, PERMISSIONS} from "@/utils/authorization"
 
-const NAV: { id: Module; label: string; icon: string; canView: (permissions: string[], management: boolean) => boolean }[] = [
-    {id: "dashboard", label: "Tổng quan", icon: "dashboard", canView: (_permissions, management) => management},
-    {id: "statistics", label: "Thống kê", icon: "monitoring", canView: (_permissions, management) => management},
-    {id: "accounts", label: "Tài khoản", icon: "group", canView: (permissions) => hasPermission(permissions, PERMISSIONS.identityReadList)},
-    {id: "contracts", label: "Hợp đồng", icon: "description", canView: (permissions) => hasAnyPermission(permissions, PERMISSIONS.contractReadList, PERMISSIONS.contractReadOwn)},
-    {id: "invoices", label: "Hóa đơn", icon: "receipt_long", canView: (permissions) => hasAnyPermission(permissions, PERMISSIONS.invoiceReadList, PERMISSIONS.invoiceReadOwn)},
-    {id: "regulations", label: "Quy định", icon: "gavel", canView: (permissions) => hasAnyPermission(permissions, PERMISSIONS.contractRegulationRead, PERMISSIONS.contractRegulationReadOwn)},
-    {id: "violations", label: "Vi phạm", icon: "warning", canView: (permissions) => hasAnyPermission(permissions, PERMISSIONS.contractViolationRead, PERMISSIONS.contractViolationReadOwn)},
-    {id: "tickets", label: "Yêu cầu", icon: "confirmation_number", canView: (permissions) => hasAnyPermission(permissions, PERMISSIONS.ticketReadList, PERMISSIONS.ticketReadOwn, PERMISSIONS.ticketViolationCreate)},
-    {id: "notifications", label: "Thông báo", icon: "notifications", canView: (permissions) => hasPermission(permissions, PERMISSIONS.notificationReadOwn)},
-    {id: "premises", label: "Mặt bằng", icon: "storefront", canView: (permissions) => hasAnyPermission(permissions, PERMISSIONS.premiseReadList, PERMISSIONS.premiseReadOwnRented, PERMISSIONS.premiseStatusUpdate, PERMISSIONS.premiseWhitelistRead, PERMISSIONS.premiseCreate, PERMISSIONS.premiseUpdate)},
-    {id: "contacts", label: "Thông tin liên hệ", icon: "contact_phone", canView: (_permissions, management) => management},
+const NAV: { id: Module; label: string; icon: string; canView: (permissions: string[], roles: string[], management: boolean) => boolean }[] = [
+    {id: "dashboard", label: "Tổng quan", icon: "dashboard", canView: (_permissions, _roles, management) => management},
+    {id: "statistics", label: "Thống kê", icon: "monitoring", canView: (_permissions, _roles, management) => management},
+    {id: "accounts", label: "Tài khoản", icon: "group", canView: (permissions, roles) => hasPermission(permissions, PERMISSIONS.identityReadList, roles)},
+    {id: "contracts", label: "Hợp đồng", icon: "description", canView: (permissions, roles) => hasAnyPermissionForRole(permissions, roles, PERMISSIONS.contractReadList, PERMISSIONS.contractReadOwn)},
+    {id: "invoices", label: "Hóa đơn", icon: "receipt_long", canView: (permissions, roles) => hasAnyPermissionForRole(permissions, roles, PERMISSIONS.invoiceReadList, PERMISSIONS.invoiceReadOwn)},
+    {id: "regulations", label: "Quy định", icon: "gavel", canView: (permissions, roles) => hasAnyPermissionForRole(permissions, roles, PERMISSIONS.contractRegulationRead, PERMISSIONS.contractRegulationReadOwn)},
+    {id: "violations", label: "Vi phạm", icon: "warning", canView: (permissions, roles) => hasAnyPermissionForRole(permissions, roles, PERMISSIONS.contractViolationRead, PERMISSIONS.contractViolationReadOwn)},
+    {id: "tickets", label: "Yêu cầu", icon: "confirmation_number", canView: (permissions, roles) => hasAnyPermissionForRole(permissions, roles, PERMISSIONS.ticketReadList, PERMISSIONS.ticketReadOwn, PERMISSIONS.ticketViolationCreate)},
+    {id: "notifications", label: "Thông báo", icon: "notifications", canView: (permissions, roles) => hasPermission(permissions, PERMISSIONS.notificationReadOwn, roles)},
+    {id: "premises", label: "Mặt bằng", icon: "storefront", canView: (permissions, roles) => hasAnyPermissionForRole(permissions, roles, PERMISSIONS.premiseReadList, PERMISSIONS.premiseReadOwnRented, PERMISSIONS.premiseStatusUpdate, PERMISSIONS.premiseWhitelistRead, PERMISSIONS.premiseCreate, PERMISSIONS.premiseUpdate)},
+    {id: "contacts", label: "Thông tin liên hệ", icon: "contact_phone", canView: (_permissions, _roles, management) => management},
 ]
 
 export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, onLogout}: Props) {
     const [active, setActive] = useState<Module>("dashboard")
     const isManagementRole = hasRole(roleCodes, "ADMIN", "MANAGER")
-    const nav = NAV.filter((item) => item.canView(permissionCodes, isManagementRole))
+    const can = (permission: string) => hasPermission(permissionCodes, permission, roleCodes)
+    const canAny = (...permissions: string[]) => hasAnyPermissionForRole(permissionCodes, roleCodes, ...permissions)
+    const nav = NAV.filter((item) => item.canView(permissionCodes, roleCodes, isManagementRole))
     const currentActive = nav.some((item) => item.id === active) ? active : nav[0]?.id
-    const canReadAllTickets = hasPermission(permissionCodes, PERMISSIONS.ticketReadList)
-    const canReadOwnTickets = hasPermission(permissionCodes, PERMISSIONS.ticketReadOwn)
-    const canViewOwnContracts = hasPermission(permissionCodes, PERMISSIONS.contractReadOwn)
-    const canViewOwnViolations = hasPermission(permissionCodes, PERMISSIONS.contractViolationReadOwn)
+    const canReadAllTickets = can(PERMISSIONS.ticketReadList)
+    const canReadOwnTickets = can(PERMISSIONS.ticketReadOwn)
+    const canViewOwnContracts = can(PERMISSIONS.contractReadOwn)
+    const canViewOwnViolations = can(PERMISSIONS.contractViolationReadOwn)
     const accountInitial = email.charAt(0).toUpperCase()
 
     return (
@@ -102,21 +104,21 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
                 <div className="flex-1 overflow-y-auto p-8">
                     {currentActive === "dashboard" && <Dashboard/>}
                     {currentActive === "statistics" && <StatisticsModule/>}
-                    {currentActive === "premises" && <PremisesModule permissionCodes={permissionCodes}/>}
+                    {currentActive === "premises" && <PremisesModule roleCodes={roleCodes} permissionCodes={permissionCodes}/>}
                     {currentActive === "contracts" &&
-                        <ContractsModule accountId={accountId} readOnly={!hasPermission(permissionCodes, PERMISSIONS.contractUpdate)}
-                                        canCreate={hasPermission(permissionCodes, PERMISSIONS.contractCreate)}
-                                        canUpdate={hasPermission(permissionCodes, PERMISSIONS.contractUpdate)}
-                                        ownOnly={canViewOwnContracts && !hasPermission(permissionCodes, PERMISSIONS.contractReadList)}/>}
-                    {currentActive === "invoices" && <InvoicesModule permissionCodes={permissionCodes} accountId={accountId}
-                                                                       ownOnly={hasPermission(permissionCodes, PERMISSIONS.invoiceReadOwn) && !hasPermission(permissionCodes, PERMISSIONS.invoiceReadList)}/>}
-                    {currentActive === "regulations" && <RegulationsModule readOnly={!hasAnyPermission(permissionCodes, PERMISSIONS.contractRegulationCreate, PERMISSIONS.contractRegulationUpdate, PERMISSIONS.contractRegulationRevoke)}/>}
+                        <ContractsModule accountId={accountId} readOnly={!can(PERMISSIONS.contractUpdate)}
+                                        canCreate={can(PERMISSIONS.contractCreate)}
+                                        canUpdate={can(PERMISSIONS.contractUpdate)}
+                                        ownOnly={canViewOwnContracts && !can(PERMISSIONS.contractReadList)}/>}
+                    {currentActive === "invoices" && <InvoicesModule roleCodes={roleCodes} permissionCodes={permissionCodes} accountId={accountId}
+                                                                       ownOnly={can(PERMISSIONS.invoiceReadOwn) && !can(PERMISSIONS.invoiceReadList)}/>}
+                    {currentActive === "regulations" && <RegulationsModule readOnly={!canAny(PERMISSIONS.contractRegulationCreate, PERMISSIONS.contractRegulationUpdate, PERMISSIONS.contractRegulationRevoke)}/>}
                     {currentActive === "violations" &&
-                        <ViolationsModule accountId={accountId} readOnly={!hasPermission(permissionCodes, "CONTRACT_VIOLATION_UPDATE")}
-                                          ownOnly={canViewOwnViolations && !hasPermission(permissionCodes, PERMISSIONS.contractViolationRead)}/>}
-                    {currentActive === "tickets" && <TicketsModule accountId={accountId} ownOnly={!canReadAllTickets} canCreateViolation={hasPermission(permissionCodes, PERMISSIONS.ticketViolationCreate)} canReadOwn={canReadOwnTickets} canReadNotifications={hasPermission(permissionCodes, PERMISSIONS.notificationReadOwn)}/>}
+                        <ViolationsModule accountId={accountId} readOnly={!can("CONTRACT_VIOLATION_UPDATE")}
+                                          ownOnly={canViewOwnViolations && !can(PERMISSIONS.contractViolationRead)}/>}
+                    {currentActive === "tickets" && <TicketsModule accountId={accountId} ownOnly={!canReadAllTickets} canCreateViolation={can(PERMISSIONS.ticketViolationCreate)} canReadOwn={canReadOwnTickets} canReadNotifications={can(PERMISSIONS.notificationReadOwn)}/>}
                     {currentActive === "notifications" &&
-                        <TicketsModule accountId={accountId} customerMode ownOnly canReadOwn={canReadOwnTickets} canReadNotifications={hasPermission(permissionCodes, PERMISSIONS.notificationReadOwn)}/>}
+                        <TicketsModule accountId={accountId} customerMode ownOnly={!isManagementRole} canReadOwn={canReadOwnTickets} canReadNotifications={can(PERMISSIONS.notificationReadOwn)}/>}
                     {currentActive === "accounts" && <AccountsModule roleCodes={roleCodes} permissionCodes={permissionCodes}/>}
                     {currentActive === "contacts" && <ContactsModule/>}
                 </div>

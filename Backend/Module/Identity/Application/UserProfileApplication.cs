@@ -4,6 +4,7 @@ using Identity.Interfaces.IRepository;
 using Identity.Models.Profile;
 using Shared.Interfaces;
 using Shared.Logging;
+using Shared.ModelHelper;
 
 namespace Identity.Application
 {
@@ -167,11 +168,12 @@ namespace Identity.Application
             if (profile.UserProfileFirstName?.Length > 30
                 || profile.UserProfileLastName?.Length > 30
                 || profile.UserProfilePhoneNumber?.Length > 10
-                || profile.UserProfileAddress?.Length > 255
-                || profile.UserProfileAvatarUrl?.Length > 255)
+                || profile.UserProfileAddress?.Length > 255)
             {
                 throw new ArgumentException("One or more profile fields exceed their maximum length.", nameof(profile));
             }
+
+            ImageDataUriGuard.OptionalAvatar(profile.UserProfileAvatarUrl, nameof(profile.UserProfileAvatarUrl));
         }
 
         private static bool TryProcessPhoneNumber(string input, out string stringPhoneNumber)

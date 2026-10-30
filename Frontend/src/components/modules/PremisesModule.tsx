@@ -13,12 +13,12 @@ import {LocationsTab} from "../premises/LocationsTab"
 import {PremisesSubTabs} from "../premises/PremisesSubTabs"
 import {PremisesTab} from "../premises/PremisesTab"
 import {ImageAttachments} from "./ImageAttachments"
-import {mediaApi} from "@/api/media"
-import {hasAnyPermission, hasPermission, PERMISSIONS} from "@/utils/authorization"
+import {compressImageToDataUrl} from "@/utils/compressImage"
+import {hasPermission, PERMISSIONS} from "@/utils/authorization"
 
 // ─── Premises Module ────────────────────────────────────────────────────────
 
-export function PremisesModule({permissionCodes = []}: {permissionCodes?: string[]}) {
+export function PremisesModule({roleCodes = [], permissionCodes = []}: {roleCodes?: string[]; permissionCodes?: string[]}) {
     const [premises, setPremises] = useState<Premise[]>(() => getMockPremiseData().premises)
     const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>(() => getMockPremiseData().media)
     const [premiseImages, setPremiseImages] = useState<File[]>([])
@@ -65,19 +65,21 @@ export function PremisesModule({permissionCodes = []}: {permissionCodes?: string
         description: "",
     })
 
-    const canCreatePremise = hasPermission(permissionCodes, PERMISSIONS.premiseCreate)
-    const canUpdatePremise = hasPermission(permissionCodes, PERMISSIONS.premiseUpdate)
-    const canUpdateStatus = hasPermission(permissionCodes, PERMISSIONS.premiseStatusUpdate)
-    const canCreateLocation = hasPermission(permissionCodes, PERMISSIONS.premiseLocationCreate)
-    const canUpdateLocation = hasPermission(permissionCodes, PERMISSIONS.premiseLocationUpdate)
-    const canDeleteLocation = hasPermission(permissionCodes, PERMISSIONS.premiseLocationRevoke)
-    const canReadWhitelist = hasPermission(permissionCodes, PERMISSIONS.premiseWhitelistRead)
-    const canManageWhitelist = hasAnyPermission(permissionCodes, PERMISSIONS.premiseWhitelistCreate, PERMISSIONS.premiseWhitelistRevoke)
-    const canManageBusinessTypes = hasAnyPermission(permissionCodes, PERMISSIONS.premiseBusinessCreate, PERMISSIONS.premiseBusinessAssign, PERMISSIONS.premiseBusinessRevoke)
+    const can = (permission: string) => hasPermission(permissionCodes, permission, roleCodes)
+    const canAny = (...permissions: string[]) => permissions.some((permission) => can(permission))
+    const canCreatePremise = can(PERMISSIONS.premiseCreate)
+    const canUpdatePremise = can(PERMISSIONS.premiseUpdate)
+    const canUpdateStatus = can(PERMISSIONS.premiseStatusUpdate)
+    const canCreateLocation = can(PERMISSIONS.premiseLocationCreate)
+    const canUpdateLocation = can(PERMISSIONS.premiseLocationUpdate)
+    const canDeleteLocation = can(PERMISSIONS.premiseLocationRevoke)
+    const canReadWhitelist = can(PERMISSIONS.premiseWhitelistRead)
+    const canManageWhitelist = canAny(PERMISSIONS.premiseWhitelistCreate, PERMISSIONS.premiseWhitelistRevoke)
+    const canManageBusinessTypes = canAny(PERMISSIONS.premiseBusinessCreate, PERMISSIONS.premiseBusinessAssign, PERMISSIONS.premiseBusinessRevoke)
     const visibleTabs = (['locations', 'business-types', 'premises'] as PremisesSubTab[]).filter((tab) =>
         tab === 'locations' ? canCreateLocation || canUpdateLocation || canDeleteLocation
             : tab === 'business-types' ? canReadWhitelist || canManageWhitelist || canManageBusinessTypes
-                : hasAnyPermission(permissionCodes, PERMISSIONS.premiseReadList, PERMISSIONS.premiseReadOwnRented, PERMISSIONS.premiseStatusUpdate, PERMISSIONS.premiseCreate, PERMISSIONS.premiseUpdate))
+                : canAny(PERMISSIONS.premiseReadList, PERMISSIONS.premiseReadOwnRented, PERMISSIONS.premiseStatusUpdate, PERMISSIONS.premiseCreate, PERMISSIONS.premiseUpdate))
     const canAddActiveTab = activeSubTab === 'locations' ? canCreateLocation
         : activeSubTab === 'business-types' ? canManageBusinessTypes
             : canCreatePremise
@@ -149,11 +151,11 @@ export function PremisesModule({permissionCodes = []}: {permissionCodes?: string
         )
         if (!location) return
         setIsUploadingPremiseImages(true)
-        let imageUrls: string[]
+        let imageDataUrls: string[]
         try {
-            imageUrls = await Promise.all(premiseImages.map((file) => mediaApi.uploadImage(file, "premise")))
+            imageDataUrls = await Promise.all(premiseImages.map((file) => compressImageToDataUrl(file, "standard")))
         } catch (error) {
-            alert(error instanceof Error ? error.message : "Không tải được ảnh mặt bằng lên Google Drive.")
+            alert(error instanceof Error ? error.message : "Không thể nén và mã hóa ảnh mặt bằng.")
             setIsUploadingPremiseImages(false)
             return
         }
@@ -170,13 +172,13 @@ export function PremisesModule({permissionCodes = []}: {permissionCodes?: string
             isMockData: true,
         }
         let newMedia: PremiseMedia[] = []
-        if (imageUrls.length) {
+        if (imageDataUrls.length) {
             const now = new Date().toISOString()
             const firstId = Math.max(0, ...premiseMedia.map((media) => media.premiseMediaId)) + 1
-            newMedia = imageUrls.map((imageUrl, index) => ({
+            newMedia = imageDataUrls.map((imageDataUrl, index) => ({
                 premiseMediaId: firstId + index,
                 premiseMediaPremiseId: newP.id,
-                premiseMediaImageUrl: imageUrl,
+                premiseMediaImageUrl: imageDataUrl,
                 premiseMediaCreatedAt: now,
                 premiseMediaUpdatedAt: now,
             }))
