@@ -121,7 +121,8 @@ namespace Contract.Infrastructure.Repository.InvoiceRepository
                 .Distinct()
                 .ToArray();
 
-            if (invoiceIds.Length > 0 && await _db.InvoiceDetails.AnyAsync(
+            if (invoiceIds.Length > 0
+                && await _db.InvoiceDetails.AnyAsync(
                     detail => invoiceIds.AsEnumerable().Contains(detail.InvoiceDetailInvoiceId), cancellationToken))
             {
                 var exception = new InvalidOperationException(

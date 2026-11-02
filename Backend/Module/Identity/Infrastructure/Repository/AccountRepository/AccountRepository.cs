@@ -80,7 +80,6 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 "Account lookup rejected because the account was not found by email.");
             throw exception;
-
         }
 
         public async Task<AccountModel> GetTrackedAccountByEmailAsync(string email, CancellationToken cancellationToken = default)
@@ -96,7 +95,6 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 "Tracked account lookup rejected because the account was not found by email.");
             throw exception;
-
         }
 
         public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)

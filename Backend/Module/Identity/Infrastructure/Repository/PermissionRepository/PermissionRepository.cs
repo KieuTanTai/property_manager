@@ -1,10 +1,10 @@
+using System.Text.RegularExpressions;
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Permission;
 using Microsoft.EntityFrameworkCore;
 using Shared.Enum;
 using Shared.Logging;
-using System.Text.RegularExpressions;
 
 namespace Identity.Infrastructure.Repository.PermissionRepository
 {

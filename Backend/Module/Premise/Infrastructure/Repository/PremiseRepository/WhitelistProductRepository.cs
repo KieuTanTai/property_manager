@@ -12,11 +12,29 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         ILogPool logPool) : IWhitelistProductRepository
     {
         private const string Module = "Premise";
+
         private const string Layer = "Infrastructures/Repository/WhitelistProductRepository";
 
         private readonly PremiseDbContext _db = context;
+
         private readonly ILogPool _logPool = logPool;
+
         private readonly ILogger<WhitelistProductRepository> _logger = logger;
+
+        private void Validate(WhitelistProductModel entity)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            if (!string.IsNullOrWhiteSpace(entity.WhitelistProductName))
+            {
+                return;
+            }
+
+            var exception = new ArgumentException(
+                "WhitelistProductModel name is required.", nameof(entity.WhitelistProductName));
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Whitelist product rejected because its name is missing.");
+            throw exception;
+        }
 
         #region GET
 
@@ -131,8 +149,8 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             foreach (var product in products)
             {
                 Validate(product);
-                if (!names.Add(product.WhitelistProductName) ||
-                    await _db.WhitelistProducts.AnyAsync(
+                if (!names.Add(product.WhitelistProductName)
+                    || await _db.WhitelistProducts.AnyAsync(
                         existing => existing.WhitelistProductName == product.WhitelistProductName,
                         cancellationToken))
                 {
@@ -177,8 +195,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             }
 
             var nameExists = await _db.WhitelistProducts.AnyAsync(
-                product => product.WhitelistProductId != entity.WhitelistProductId &&
-                          product.WhitelistProductName == entity.WhitelistProductName,
+                product => product.WhitelistProductId != entity.WhitelistProductId && product.WhitelistProductName == entity.WhitelistProductName,
                 cancellationToken);
             if (nameExists)
             {
@@ -219,20 +236,5 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         }
 
         #endregion
-
-        private void Validate(WhitelistProductModel entity)
-        {
-            ArgumentNullException.ThrowIfNull(entity);
-            if (!string.IsNullOrWhiteSpace(entity.WhitelistProductName))
-            {
-                return;
-            }
-
-            var exception = new ArgumentException(
-                "WhitelistProductModel name is required.", nameof(entity.WhitelistProductName));
-            _logger.LogLayerError(_logPool, Module, Layer, exception,
-                "Whitelist product rejected because its name is missing.");
-            throw exception;
-        }
     }
 }

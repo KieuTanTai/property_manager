@@ -24,7 +24,21 @@ const ticketLabel: Record<TicketType, string> = {
 }
 const notificationLabel: Record<NotificationType, string> = {Violation: "Vi phạm", Ticket: "Yêu cầu", Other: "Khác"}
 
-export function TicketsModule({accountId, customerMode = false, ownOnly = false, canReadOwn = false, canReadNotifications = false, canCreateViolation = false}: { accountId?: string; customerMode?: boolean; ownOnly?: boolean; canReadOwn?: boolean; canReadNotifications?: boolean; canCreateViolation?: boolean }) {
+export function TicketsModule({
+                                  accountId,
+                                  customerMode = false,
+                                  ownOnly = false,
+                                  canReadOwn = false,
+                                  canReadNotifications = false,
+                                  canCreateViolation = false
+                              }: {
+    accountId?: string;
+    customerMode?: boolean;
+    ownOnly?: boolean;
+    canReadOwn?: boolean;
+    canReadNotifications?: boolean;
+    canCreateViolation?: boolean
+}) {
     const canViewTickets = !customerMode && (canReadOwn || canCreateViolation)
     const canViewNotifications = customerMode || canReadNotifications
     const [view, setView] = useState<View>(customerMode || !canViewTickets ? "notifications" : "tickets")
@@ -189,10 +203,11 @@ export function TicketsModule({accountId, customerMode = false, ownOnly = false,
                         className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
 
         <div className="mb-5 flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
-            {([...(canViewTickets ? ["tickets" as const] : []), ...(canViewNotifications ? ["notifications" as const] : [])]).map((item) => <button
-                key={item}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium ${view === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
-                onClick={() => setView(item)}>{item === "tickets" ? `Tickets (${tickets.length})` : `Thông báo (${visibleNotifications.length})`}</button>)}
+            {([...(canViewTickets ? ["tickets" as const] : []), ...(canViewNotifications ? ["notifications" as const] : [])]).map((item) =>
+                <button
+                    key={item}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium ${view === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+                    onClick={() => setView(item)}>{item === "tickets" ? `Tickets (${tickets.length})` : `Thông báo (${visibleNotifications.length})`}</button>)}
         </div>
 
         {view === "tickets" && canViewTickets ? <>
@@ -216,11 +231,11 @@ export function TicketsModule({accountId, customerMode = false, ownOnly = false,
                     {ticket.ticketIsResolved ?
                         <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã xử lý</span> :
                         !ownOnly && <button className={`${button} bg-blue-600 text-white`} disabled={saving}
-                                onClick={() => void run(async () => setTickets((current) => current.map((item) => item.ticketId === ticket.ticketId ? {
-                                    ...item,
-                                    ticketIsResolved: true,
-                                    ticketUpdatedAt: new Date().toISOString()
-                                } : item)), "Đã xử lý ticket.")}>Đánh dấu xử lý</button>}</div>
+                                            onClick={() => void run(async () => setTickets((current) => current.map((item) => item.ticketId === ticket.ticketId ? {
+                                                ...item,
+                                                ticketIsResolved: true,
+                                                ticketUpdatedAt: new Date().toISOString()
+                                            } : item)), "Đã xử lý ticket.")}>Đánh dấu xử lý</button>}</div>
                 {ticket.ticketMedias.length > 0 &&
                     <div className="mt-3 flex flex-wrap gap-2">{ticket.ticketMedias.map((media, index) => <button
                         key={media.ticketMediaId} type="button" onClick={() => setImageToView({
@@ -265,8 +280,9 @@ export function TicketsModule({accountId, customerMode = false, ownOnly = false,
                                                        onChange={(event) => setTicketForm({
                                                            ...ticketForm,
                                                            type: event.target.value as TicketType
-                                                       })}>{(canCreateViolation ? ["Violation"] as TicketType[] : ticketTypes).map((type) => <option key={type}
-                                                                                              value={type}>{ticketLabel[type]}</option>)}</select></FormField>
+                                                       })}>{(canCreateViolation ? ["Violation"] as TicketType[] : ticketTypes).map((type) =>
+                    <option key={type}
+                            value={type}>{ticketLabel[type]}</option>)}</select></FormField>
                 <FormField label="Nội dung"><textarea className={inputCls} required maxLength={255} rows={4}
                                                       value={ticketForm.content} onChange={(event) => setTicketForm({
                     ...ticketForm,

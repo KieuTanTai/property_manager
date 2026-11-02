@@ -1,9 +1,10 @@
 using Premise.Models.Business;
 
-namespace Premise.Interfaces.IApplication;
-
-public interface IBusinessTypeApplication
+namespace Premise.Interfaces.IApplication
 {
-    Task<IReadOnlyList<BusinessTypeModel>> GetAllAsync(
-        CancellationToken cancellationToken = default);
+    public interface IBusinessTypeApplication
+    {
+        Task<IReadOnlyList<BusinessTypeModel>> GetAllAsync(
+            CancellationToken cancellationToken = default);
+    }
 }

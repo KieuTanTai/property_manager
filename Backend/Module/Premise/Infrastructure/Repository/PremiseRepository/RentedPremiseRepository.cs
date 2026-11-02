@@ -12,11 +12,29 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         ILogPool logPool) : IRentedPremiseRepository
     {
         private const string Module = "Premise";
+
         private const string Layer = "Infrastructures/Repository/RentedPremiseRepository";
 
         private readonly PremiseDbContext _db = context;
+
         private readonly ILogPool _logPool = logPool;
+
         private readonly ILogger<RentedPremiseRepository> _logger = logger;
+
+        private void Validate(RentedPremiseModel entity)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            if (entity.ContractId != Guid.Empty && entity.PremiseId != Guid.Empty)
+            {
+                return;
+            }
+
+            var exception = new ArgumentException(
+                "Both contract id and premise id are required.", nameof(entity));
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Rented premise rejected because an id is missing.");
+            throw exception;
+        }
 
         #region GET
 
@@ -105,8 +123,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             foreach (var rental in rentals)
             {
                 Validate(rental);
-                if (!keys.Add((rental.ContractId, rental.PremiseId)) ||
-                    await ExistsAsync(rental.ContractId, rental.PremiseId, cancellationToken))
+                if (!keys.Add((rental.ContractId, rental.PremiseId)) || await ExistsAsync(rental.ContractId, rental.PremiseId, cancellationToken))
                 {
                     var exception = new InvalidOperationException(
                         $"Rented premise already exists: {rental.ContractId}, {rental.PremiseId}.");
@@ -144,20 +161,5 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         }
 
         #endregion
-
-        private void Validate(RentedPremiseModel entity)
-        {
-            ArgumentNullException.ThrowIfNull(entity);
-            if (entity.ContractId != Guid.Empty && entity.PremiseId != Guid.Empty)
-            {
-                return;
-            }
-
-            var exception = new ArgumentException(
-                "Both contract id and premise id are required.", nameof(entity));
-            _logger.LogLayerError(_logPool, Module, Layer, exception,
-                "Rented premise rejected because an id is missing.");
-            throw exception;
-        }
     }
 }

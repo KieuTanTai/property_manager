@@ -6,7 +6,6 @@ namespace Premise.Presentations.Record.Product
         [Required]
         [StringLength(100)]
         string ProductName,
-
         [StringLength(255)]
         string? ProductDescription
     );

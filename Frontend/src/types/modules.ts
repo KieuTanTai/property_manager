@@ -1,5 +1,5 @@
 export type {
- PremiseMedia, Location, BusinessType, WhitelistProduct
+    PremiseMedia, Location, BusinessType, WhitelistProduct
 } from "../components/premises/types"
 
 import type {ContractStatus} from "./contracts"
@@ -61,13 +61,13 @@ export interface Account {
     name: string
 }
 
-export interface Premise{
-  premiseId : number,
-  premiseName : string,
-  premiseLocation : string,
-  premiseStatus: PremiseStatus,
-  premisePosition: number,
-  premiseFloor: number,
-  premiseArea: string,
-  premiseDescription: string,
+export interface Premise {
+    premiseId: number,
+    premiseName: string,
+    premiseLocation: string,
+    premiseStatus: PremiseStatus,
+    premisePosition: number,
+    premiseFloor: number,
+    premiseArea: string,
+    premiseDescription: string,
 }

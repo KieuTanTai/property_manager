@@ -194,20 +194,20 @@ type BaseTableProps<T> = {
 
 /** Reusable data table with optional display-only sequence number and page controls. */
 export function BaseTable<T>({
-    rows,
-    columns,
-    getRowKey,
-    isHaveStt = true,
-    sttStart = 1,
-    pageSize = APP_SETTINGS.pagination.defaultPageSize,
-    paginationResetKey,
-    loading = false,
-    emptyMessage = "Không có dữ liệu.",
-    tableClassName = "w-full text-sm",
-    rowClassName,
-    onRowClick,
-    rowTitle,
-}: BaseTableProps<T>) {
+                                 rows,
+                                 columns,
+                                 getRowKey,
+                                 isHaveStt = true,
+                                 sttStart = 1,
+                                 pageSize = APP_SETTINGS.pagination.defaultPageSize,
+                                 paginationResetKey,
+                                 loading = false,
+                                 emptyMessage = "Không có dữ liệu.",
+                                 tableClassName = "w-full text-sm",
+                                 rowClassName,
+                                 onRowClick,
+                                 rowTitle,
+                             }: BaseTableProps<T>) {
     const [requestedPage, setRequestedPage] = useState(1)
     const [isEditingPage, setIsEditingPage] = useState(false)
     const [pageInput, setPageInput] = useState("1")
@@ -241,12 +241,15 @@ export function BaseTable<T>({
             <tr>
                 {isHaveStt && <th className="w-14 px-4 py-3 text-center font-medium">STT</th>}
                 {columns.map((column) => <th key={column.key}
-                    className={column.headerClassName ?? "px-4 py-3 text-left font-medium"}>{column.header}</th>)}
+                                             className={column.headerClassName ?? "px-4 py-3 text-left font-medium"}>{column.header}</th>)}
             </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-            {loading ? <tr><td colSpan={columns.length + (isHaveStt ? 1 : 0)}
-                className="p-8 text-center text-slate-500">Đang tải...</td></tr> : rows.length ? pageRows.map((row, index) =>
+            {loading ? <tr>
+                <td colSpan={columns.length + (isHaveStt ? 1 : 0)}
+                    className="p-8 text-center text-slate-500">Đang tải...
+                </td>
+            </tr> : rows.length ? pageRows.map((row, index) =>
                 <tr key={getRowKey(row)} onClick={() => onRowClick?.(row)}
                     onKeyDown={onRowClick ? (event) => {
                         if (event.key === "Enter" || event.key === " ") {
@@ -256,20 +259,25 @@ export function BaseTable<T>({
                     } : undefined}
                     tabIndex={onRowClick ? 0 : undefined} title={rowTitle}
                     className={`${rowClassName?.(row, index) ?? ""} ${onRowClick ? "cursor-pointer" : ""}`}>
-                    {isHaveStt && <td className="px-4 py-3 text-center tabular-nums text-slate-400">{sttStart + (page - 1) * pageSize + index}</td>}
+                    {isHaveStt &&
+                        <td className="px-4 py-3 text-center tabular-nums text-slate-400">{sttStart + (page - 1) * pageSize + index}</td>}
                     {columns.map((column) => <td key={column.key} className={column.cellClassName ?? "px-4 py-3"}>
                         {column.render(row, index)}
                     </td>)}
-                </tr>) : <tr><td colSpan={columns.length + (isHaveStt ? 1 : 0)}
-                className="p-8 text-center text-slate-500">{emptyMessage}</td></tr>}
+                </tr>) : <tr>
+                <td colSpan={columns.length + (isHaveStt ? 1 : 0)}
+                    className="p-8 text-center text-slate-500">{emptyMessage}</td>
+            </tr>}
             </tbody>
         </table>
         {canPaginate && <footer className="flex justify-center border-t border-slate-100 px-3 py-3">
             <nav aria-label="Phân trang" className="flex items-center justify-center gap-4 text-sm">
-                <button type="button" aria-label="Trang trước" disabled={page <= 1} onClick={() => setRequestedPage((current) => Math.max(1, current - 1))}
-                    className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
+                <button type="button" aria-label="Trang trước" disabled={page <= 1}
+                        onClick={() => setRequestedPage((current) => Math.max(1, current - 1))}
+                        className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                         className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6"/>
                     </svg>
                 </button>
                 <span aria-live="polite" className="min-w-20 text-center text-slate-600">
@@ -303,10 +311,12 @@ export function BaseTable<T>({
                     <span className="mx-1">/</span>
                     {pageCount}
                 </span>
-                <button type="button" aria-label="Trang sau" disabled={page >= pageCount} onClick={() => setRequestedPage((current) => Math.min(pageCount, current + 1))}
-                    className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
+                <button type="button" aria-label="Trang sau" disabled={page >= pageCount}
+                        onClick={() => setRequestedPage((current) => Math.min(pageCount, current + 1))}
+                        className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                         className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6"/>
                     </svg>
                 </button>
             </nav>

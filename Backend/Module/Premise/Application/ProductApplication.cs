@@ -1,6 +1,6 @@
+using Premise.Interfaces.IApplication;
 using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Interfaces.IRepository.Product;
-using Premise.Interfaces.IApplication;
 using Premise.Models.Business;
 using Premise.Models.Product;
 using Shared.Interfaces;
@@ -17,13 +17,19 @@ namespace Premise.Application
         IUnitOfWork unitOfWork) : IProductApplication
     {
         private const string Module = "Premise";
+
         private const string Layer = "Application";
 
-        private readonly ILogger<ProductApplication> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
-        private readonly IWhitelistProductRepository _productRepository = productRepository;
         private readonly IBusinessTypeRepository _businessTypeRepository = businessTypeRepository;
+
+        private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<ProductApplication> _logger = logger;
+
         private readonly IProductBusinessTypeRepository _productBusinessTypeRepository = productBusinessTypeRepository;
+
+        private readonly IWhitelistProductRepository _productRepository = productRepository;
+
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         public async Task<IReadOnlyList<WhitelistProductModel>> GetAllAsync(
@@ -169,7 +175,7 @@ namespace Premise.Application
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating product.");
             var product = await _productRepository.GetTrackedByIdAsync(productId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Product not found: {productId}.");
+                          ?? throw new KeyNotFoundException($"Product not found: {productId}.");
 
             product.SetWhitelistProductName(productName);
             if (string.IsNullOrWhiteSpace(productDescription))

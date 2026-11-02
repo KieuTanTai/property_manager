@@ -25,50 +25,50 @@ export default defineConfig(({mode, command}) => {
             key: fs.readFileSync(keyPath),
         }
 
-  return {
-    base: "/",
-    build: {
-      sourcemap: emitSourcemaps ? "inline" : false,
-      minify: !emitSourcemaps,
-    },
-    plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        "@": path.resolve(frontendDirectory, "./src"),
-      },
-    },
-    server: {
-      host: process.env.HOST || "0.0.0.0",
-      port: parseInt(process.env.PORT || "8443", 10),
-      strictPort: true,
-      https,
-      proxy: {
-        "/api/account": { target: apiProxyTarget, changeOrigin: true, secure: false },
-        "/api/authorization": { target: apiProxyTarget, changeOrigin: true, secure: false },
-        "/api/profile": { target: apiProxyTarget, changeOrigin: true, secure: false },
-        "/api/media": { target: gatewayApiProxyTarget, changeOrigin: true, secure: false },
-        // Local ASP.NET development endpoints use a self-signed certificate.
-        "/api/Premise": { target: "https://localhost:7081", changeOrigin: true, secure: false },
-        "/api/Location": { target: "https://localhost:7081", changeOrigin: true, secure: false },
-        "/api/BusinessType": { target: "https://localhost:7081", changeOrigin: true, secure: false },
-        "/api/Product": { target: "https://localhost:7081", changeOrigin: true, secure: false },
-        "/api/Contract": { target: "https://localhost:7255", changeOrigin: true, secure: false },
-        "/api/Regulation": { target: "https://localhost:7255", changeOrigin: true, secure: false },
-        "/api/Invoice": { target: "https://localhost:7255", changeOrigin: true, secure: false },
-        "/api/Receipt": { target: "https://localhost:7255", changeOrigin: true, secure: false },
-        "/api/ContactInfo": { target: "https://localhost:7255", changeOrigin: true, secure: false },
-        "/api/Violation": { target: "https://localhost:7255", changeOrigin: true, secure: false },
-        "/api/tickets": { target: "https://localhost:7092", changeOrigin: true, secure: false },
-        "/api/ticket-medias": { target: "https://localhost:7092", changeOrigin: true, secure: false },
-        "/api/notifications": { target: "https://localhost:7092", changeOrigin: true, secure: false },
-        "/api/notification-recipients": { target: "https://localhost:7092", changeOrigin: true, secure: false },
-        "/api/premise-medias": { target: "https://localhost:7081", changeOrigin: true, secure: false },
-      },
-    },
-    preview: {
-      host: process.env.HOST || "0.0.0.0",
-      port: parseInt(process.env.PORT || "8443", 10),
-      https,
-    },
-  }
+    return {
+        base: "/",
+        build: {
+            sourcemap: emitSourcemaps ? "inline" : false,
+            minify: !emitSourcemaps,
+        },
+        plugins: [react(), tailwindcss()],
+        resolve: {
+            alias: {
+                "@": path.resolve(frontendDirectory, "./src"),
+            },
+        },
+        server: {
+            host: process.env.HOST || "0.0.0.0",
+            port: parseInt(process.env.PORT || "8443", 10),
+            strictPort: true,
+            https,
+            proxy: {
+                "/api/account": {target: apiProxyTarget, changeOrigin: true, secure: false},
+                "/api/authorization": {target: apiProxyTarget, changeOrigin: true, secure: false},
+                "/api/profile": {target: apiProxyTarget, changeOrigin: true, secure: false},
+                "/api/media": {target: gatewayApiProxyTarget, changeOrigin: true, secure: false},
+                // Local ASP.NET development endpoints use a self-signed certificate.
+                "/api/Premise": {target: "https://localhost:7081", changeOrigin: true, secure: false},
+                "/api/Location": {target: "https://localhost:7081", changeOrigin: true, secure: false},
+                "/api/BusinessType": {target: "https://localhost:7081", changeOrigin: true, secure: false},
+                "/api/Product": {target: "https://localhost:7081", changeOrigin: true, secure: false},
+                "/api/Contract": {target: "https://localhost:7255", changeOrigin: true, secure: false},
+                "/api/Regulation": {target: "https://localhost:7255", changeOrigin: true, secure: false},
+                "/api/Invoice": {target: "https://localhost:7255", changeOrigin: true, secure: false},
+                "/api/Receipt": {target: "https://localhost:7255", changeOrigin: true, secure: false},
+                "/api/ContactInfo": {target: "https://localhost:7255", changeOrigin: true, secure: false},
+                "/api/Violation": {target: "https://localhost:7255", changeOrigin: true, secure: false},
+                "/api/tickets": {target: "https://localhost:7092", changeOrigin: true, secure: false},
+                "/api/ticket-medias": {target: "https://localhost:7092", changeOrigin: true, secure: false},
+                "/api/notifications": {target: "https://localhost:7092", changeOrigin: true, secure: false},
+                "/api/notification-recipients": {target: "https://localhost:7092", changeOrigin: true, secure: false},
+                "/api/premise-medias": {target: "https://localhost:7081", changeOrigin: true, secure: false},
+            },
+        },
+        preview: {
+            host: process.env.HOST || "0.0.0.0",
+            port: parseInt(process.env.PORT || "8443", 10),
+            https,
+        },
+    }
 })

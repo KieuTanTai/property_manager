@@ -1,7 +1,6 @@
 using Identity.Application;
 using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
-using Identity.Models;
 using Identity.Models.Account;
 using Identity.Utils;
 using Microsoft.AspNetCore.Identity;

@@ -1,12 +1,12 @@
-using Premise.Interfaces.IRepository.Location;
 using Premise.Interfaces.IApplication;
+using Premise.Interfaces.IRepository.Location;
 using Premise.Models.Premise;
 using Shared.Interfaces;
 using Shared.Logging;
 
 namespace Premise.Application
 {
-    public partial class LocationApplication(
+    public class LocationApplication(
         ILogger<LocationApplication> logger,
         ILogPool logPool,
         ILocationRepository locationRepository,
@@ -14,11 +14,15 @@ namespace Premise.Application
     ) : ILocationApplication
     {
         private const string Module = "Premise";
+
         private const string Layer = "Application";
 
-        private readonly ILogger<LocationApplication> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
         private readonly ILocationRepository _locationRepository = locationRepository;
+
+        private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<LocationApplication> _logger = logger;
+
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         public async Task<IReadOnlyList<LocationModel>> GetAllAsync(
@@ -96,7 +100,7 @@ namespace Premise.Application
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating location.");
             var location = await _locationRepository.GetTrackedByIdAsync(locationId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
+                           ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
 
             location.SetLocationAddress(locationAddress);
             await _locationRepository.UpdateAsync(location, cancellationToken);
@@ -123,7 +127,7 @@ namespace Premise.Application
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Deleting location.");
             var existingLocation = await _locationRepository.GetTrackedByIdAsync(locationId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
+                                   ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
 
             await _locationRepository.SoftDeleteAsync(locationId, cancellationToken);
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);

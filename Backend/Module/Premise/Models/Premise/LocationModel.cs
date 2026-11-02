@@ -33,7 +33,6 @@ namespace Premise.Models.Premise
             LocationAddress = ModelFieldGuard.Required(address, 255, nameof(address));
         }
 
-
         #endregion
     }
 }

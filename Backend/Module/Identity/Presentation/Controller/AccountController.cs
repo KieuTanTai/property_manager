@@ -97,7 +97,10 @@ namespace Identity.Presentation.Controller
             try
             {
                 var result = await _accountApplication.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
-                if (result.Count == 0) return NotFound("No accounts found.");
+                if (result.Count == 0)
+                {
+                    return NotFound("No accounts found.");
+                }
 
                 var accounts = result.Select(account => new RecordAccountProfileOption(
                     account.AccountId,
@@ -217,13 +220,13 @@ namespace Identity.Presentation.Controller
                 var result = await _accountApplication.LoginAsync(requestDto.Email, requestDto.Password, cancellationToken);
                 RecordProfileResponse? profile = null;
                 RecordAuthResponse? account = null;
-                
-                var threadMappingAccount = new Thread(() => {
-                    account = _apiHelper.MappingAuthResult(result);
+
+                var threadMappingAccount = new Thread(() => { account = _apiHelper.MappingAuthResult(result); });
+                var threadMappingProfile = new Thread(() => {
+                    profile = result.UserProfile is null
+                        ? null
+                        : _apiHelper.MappingProfileResult(result.UserProfile);
                 });
-                var threadMappingProfile = new Thread(() => { profile = result.UserProfile is null
-                    ? null
-                    : _apiHelper.MappingProfileResult(result.UserProfile); });
 
                 threadMappingAccount.Start();
                 threadMappingProfile.Start();

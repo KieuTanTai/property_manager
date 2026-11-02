@@ -172,7 +172,9 @@ namespace Identity.Application
             _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code operation started.");
             var result = _accountRepository.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
             if (result.Result.Count == 0)
+            {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "No accounts found for the specified role code.");
+            }
             _logger.LogLayerInformation(_logPool, Module, Layer, $"Get all accounts by role code operation completed. Found {result.Result.Count} accounts.");
             return result;
         }

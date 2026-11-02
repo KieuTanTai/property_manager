@@ -1,8 +1,7 @@
-using Premise.Interfaces.IRepository;
+using Premise.Interfaces.IApplication;
 using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Interfaces.IRepository.Location;
 using Premise.Interfaces.IRepository.Premise;
-using Premise.Interfaces.IApplication;
 using Premise.Models.Business;
 using Premise.Models.Premise;
 using Shared.Enum;
@@ -23,15 +22,23 @@ namespace Premise.Application
         IUnitOfWork unitOfWork) : IPremiseApplication
     {
         private const string Module = "Premise";
+
         private const string Layer = "Application";
 
-        private readonly ILogger<PremiseApplication> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
-        private readonly IPremiseRepository _premiseRepository = premiseRepository;
-        private readonly IPremiseMediaRepository _premiseMediaRepository = premiseMediaRepository;
-        private readonly ILocationRepository _locationRepository = locationRepository;
         private readonly IBusinessTypeRepository _businessTypeRepository = businessTypeRepository;
+
+        private readonly ILocationRepository _locationRepository = locationRepository;
+
+        private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<PremiseApplication> _logger = logger;
+
         private readonly IPremiseBusinessTypeRepository _premiseBusinessTypeRepository = premiseBusinessTypeRepository;
+
+        private readonly IPremiseMediaRepository _premiseMediaRepository = premiseMediaRepository;
+
+        private readonly IPremiseRepository _premiseRepository = premiseRepository;
+
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         public async Task<IReadOnlyList<PremiseModel>> GetAllAsync(
@@ -45,7 +52,7 @@ namespace Premise.Application
             }
 
             var exception = new InvalidOperationException("No premises found.");
-            _logger.LogLayerError(_logPool, Module, Layer, exception,"Premise list request failed because no premises were found.");
+            _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise list request failed because no premises were found.");
             throw exception;
         }
 
@@ -56,7 +63,7 @@ namespace Premise.Application
             if (premiseId == Guid.Empty)
             {
                 var exception = new ArgumentException("Premise id is required.", nameof(premiseId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,"Premise lookup rejected because the id is missing.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise lookup rejected because the id is missing.");
                 throw exception;
             }
 
@@ -109,10 +116,10 @@ namespace Premise.Application
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading premise details.");
             var premise = await _premiseRepository.GetPremiseAndNavigationByIdAsync(
                 premiseId,
-                isGetLocation: true,
-                isGetMedia: includeMedia,
-                isGetBusinessTypes: includeBusinessTypes,
-                cancellationToken: cancellationToken);
+                true,
+                includeMedia,
+                includeBusinessTypes,
+                cancellationToken);
             if (premise is not null)
             {
                 return premise;
@@ -366,7 +373,7 @@ namespace Premise.Application
             }
             catch (ArgumentException exception)
             {
-                _logger.LogLayerError(_logPool,Module,Layer,exception,"Premise update rejected because one or more fields are invalid.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise update rejected because one or more fields are invalid.");
                 throw;
             }
 
@@ -425,14 +432,14 @@ namespace Premise.Application
             if (premiseId == Guid.Empty)
             {
                 var exception = new ArgumentException("Premise id is required.", nameof(premiseId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,"Premise image creation rejected because the premise id is missing.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise image creation rejected because the premise id is missing.");
                 throw exception;
             }
 
             if (string.IsNullOrWhiteSpace(imageUrl))
             {
                 var exception = new ArgumentException("Image URL is required.", nameof(imageUrl));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,"Premise image creation rejected because the image URL is missing.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise image creation rejected because the image URL is missing.");
                 throw exception;
             }
 
@@ -702,7 +709,7 @@ namespace Premise.Application
             if (affectedRows == 0)
             {
                 var exception = new InvalidOperationException("Failed to remove business type from premise.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,"Premise business type removal failed.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise business type removal failed.");
                 throw exception;
             }
 
@@ -716,14 +723,14 @@ namespace Premise.Application
             if (premiseId == Guid.Empty)
             {
                 var exception = new ArgumentException("Premise id is required.", nameof(premiseId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,"Premise lookup rejected because the id is missing.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise lookup rejected because the id is missing.");
                 throw exception;
             }
 
             if (!await _premiseRepository.ExistsAsync(premiseId, cancellationToken))
             {
                 var exception = new KeyNotFoundException($"Premise not found: {premiseId}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,"Premise lookup failed because the premise was not found.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception, "Premise lookup failed because the premise was not found.");
                 throw exception;
             }
         }

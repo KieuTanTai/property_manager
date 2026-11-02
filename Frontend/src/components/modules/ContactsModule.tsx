@@ -125,15 +125,36 @@ export function ContactsModule() {
                 rowTitle="Bấm để xem chi tiết"
                 onRowClick={openContact}
                 columns={[
-                    {key: "email", header: "Email", cellClassName: "px-4 py-3 font-medium text-gray-800", render: (contact) => contact.contactInfoEmail},
-                    {key: "phone", header: "Điện thoại", cellClassName: "px-4 py-3 text-gray-600", render: (contact) => contact.contactInfoPhone},
-                    {key: "address", header: "Địa chỉ", cellClassName: "max-w-sm px-4 py-3 text-gray-600", render: (contact) => contact.contactInfoAddress},
-                    {key: "social", header: "Mạng xã hội", render: (contact) => contact.contactSocialLink ?
-                        <span className="group relative inline-flex"><a href={contact.contactSocialLink} target="_blank" rel="noreferrer" title={contact.contactSocialLink}
-                            onClick={(event) => event.stopPropagation()}
-                            className="inline-flex items-center gap-1 text-blue-600 hover:underline">Mở liên kết <span className="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span></a><span role="tooltip"
-                            className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden max-w-80 break-all rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-lg group-hover:block group-focus-within:block">{contact.contactSocialLink}</span></span> :
-                        <span className="text-gray-400">—</span>},
+                    {
+                        key: "email",
+                        header: "Email",
+                        cellClassName: "px-4 py-3 font-medium text-gray-800",
+                        render: (contact) => contact.contactInfoEmail
+                    },
+                    {
+                        key: "phone",
+                        header: "Điện thoại",
+                        cellClassName: "px-4 py-3 text-gray-600",
+                        render: (contact) => contact.contactInfoPhone
+                    },
+                    {
+                        key: "address",
+                        header: "Địa chỉ",
+                        cellClassName: "max-w-sm px-4 py-3 text-gray-600",
+                        render: (contact) => contact.contactInfoAddress
+                    },
+                    {
+                        key: "social", header: "Mạng xã hội", render: (contact) => contact.contactSocialLink ?
+                            <span className="group relative inline-flex"><a href={contact.contactSocialLink}
+                                                                            target="_blank" rel="noreferrer"
+                                                                            title={contact.contactSocialLink}
+                                                                            onClick={(event) => event.stopPropagation()}
+                                                                            className="inline-flex items-center gap-1 text-blue-600 hover:underline">Mở liên kết <span
+                                className="material-symbols-outlined text-sm"
+                                aria-hidden="true">open_in_new</span></a><span role="tooltip"
+                                                                               className="pointer-events-none absolute left-0 top-full z-20 mt-2 hidden max-w-80 break-all rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-lg group-hover:block group-focus-within:block">{contact.contactSocialLink}</span></span> :
+                            <span className="text-gray-400">—</span>
+                    },
                 ]}
             />
 
@@ -169,9 +190,12 @@ export function ContactsModule() {
                                         className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">{saving ? "Đang lưu..." : "Lưu thay đổi"}</button>
                             </> : <>
                                 <button type="button" onClick={() => selected && void remove(selected)}
-                                        className="mr-auto rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Xóa</button>
+                                        className="mr-auto rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Xóa
+                                </button>
                                 <button type="button" onClick={() => setIsEditing(true)}
-                                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Chỉnh sửa</button>
+                                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Chỉnh
+                                    sửa
+                                </button>
                             </>}
                         </div>
                     </ProcessingForm>

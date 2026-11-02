@@ -1,10 +1,9 @@
 import React, {useEffect, useMemo, useRef, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
-import {MOCK_CONTACTS} from "@/mocks/contacts.ts"
 import {contractApi} from "@/api/contracts"
 import {premiseApi, type PublicPremise} from "@/api/premise"
 import type {ContactInfoModel} from "@/types/contracts"
-import {Modal, PremiseStatusBadge, ProcessingForm, premiseStatusSurface} from "../modules/shared"
+import {Modal, PremiseStatusBadge, premiseStatusSurface, ProcessingForm} from "../modules/shared"
 import {PublicHomeProps} from "@/components/public/types.ts";
 import {throttle} from "lodash";
 import debounce from "lodash.debounce"
@@ -24,7 +23,7 @@ const GOOGLE_LOGIN_EXTENSION_STEP = 60 * 1000
 
 let googleIdentityScriptPromise: Promise<any> | null = null
 let googleIdentityInitialized = false
-let googleCredentialHandler: ((response: {credential?: string}) => void) | null = null
+let googleCredentialHandler: ((response: { credential?: string }) => void) | null = null
 
 function loadGoogleIdentity() {
     const google = (window as any).google
@@ -73,7 +72,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
             return null
         }
     })
-    
+
     const [logout, setLogout] = useState(false)
     const [googleIdentityReady, setGoogleIdentityReady] = useState(false)
     const googleButtonRef = useRef<HTMLDivElement>(null)
@@ -96,7 +95,9 @@ export function PublicHome({onManager}: PublicHomeProps) {
         }).finally(() => {
             if (active) setPremisesLoading(false)
         })
-        return () => { active = false }
+        return () => {
+            active = false
+        }
     }, [])
     const googleLoginMaxExpiresAt =
         googleLoginExpiresAt ? googleLoginExpiresAt + GOOGLE_LOGIN_SESSION_MS : GOOGLE_LOGIN_SESSION_MS
@@ -105,7 +106,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
         if (!clientId) return
         let isCurrent = true
-        const handleGoogleCredential = (response: {credential?: string}) => {
+        const handleGoogleCredential = (response: { credential?: string }) => {
             try {
                 const payload = response.credential?.split(".")[1]
                 if (!payload) throw new Error("Google không trả về email.")
@@ -128,7 +129,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
             if (!googleIdentityInitialized) {
                 google.accounts.id.initialize({
                     client_id: clientId,
-                    callback: (response: {credential?: string}) => googleCredentialHandler?.(response),
+                    callback: (response: { credential?: string }) => googleCredentialHandler?.(response),
                 })
                 googleIdentityInitialized = true
             }
@@ -282,17 +283,17 @@ export function PublicHome({onManager}: PublicHomeProps) {
         setContactSenderEmail("")
         setGoogleLoginExpiresAt(null)
     }
-    
+
     const throttleExtendGoogleLogin = useMemo(
-    () => throttle(() => {
-        if (!contactSenderEmail || !googleLoginExpiresAt) return
-        const now = Date.now()
-        const remaining = googleLoginExpiresAt - now
-        
-        if (remaining < GOOGLE_LOGIN_SESSION_MS)
-            setGoogleLoginExpiresAt(Math.min(googleLoginExpiresAt + GOOGLE_LOGIN_EXTENSION_STEP, googleLoginMaxExpiresAt))
-        
-    }, 10000), [contactSenderEmail, googleLoginExpiresAt, googleLoginMaxExpiresAt])
+        () => throttle(() => {
+            if (!contactSenderEmail || !googleLoginExpiresAt) return
+            const now = Date.now()
+            const remaining = googleLoginExpiresAt - now
+
+            if (remaining < GOOGLE_LOGIN_SESSION_MS)
+                setGoogleLoginExpiresAt(Math.min(googleLoginExpiresAt + GOOGLE_LOGIN_EXTENSION_STEP, googleLoginMaxExpiresAt))
+
+        }, 10000), [contactSenderEmail, googleLoginExpiresAt, googleLoginMaxExpiresAt])
 
     return (
         <div className="min-h-screen bg-[#f7f8fa] text-slate-900">
@@ -351,8 +352,10 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <div className="mt-12 flex gap-10 border-t border-white/10 pt-6">
                                 <div><p className="text-2xl font-semibold">{availablePremises.length}</p><p
                                     className="mt-1 text-xs text-slate-400">Mặt bằng còn trống</p></div>
-                                <div><p className="text-2xl font-semibold">{new Set(allPremises.map((premise) => premise.floor)).size}</p><p
-                                    className="mt-1 text-xs text-slate-400">Tầng kinh doanh</p></div>
+                                <div><p
+                                    className="text-2xl font-semibold">{new Set(allPremises.map((premise) => premise.floor)).size}</p>
+                                    <p
+                                        className="mt-1 text-xs text-slate-400">Tầng kinh doanh</p></div>
                                 <div><p className="text-lg font-semibold">Trực tiếp</p><p
                                     className="mt-1 text-xs text-slate-400">Tư vấn cùng ban quản lý</p></div>
                             </div>
@@ -471,11 +474,15 @@ export function PublicHome({onManager}: PublicHomeProps) {
                     </div>
 
                     {premisesLoading ? (
-                        <p className="mt-8 rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Đang tải danh sách mặt bằng...</p>
+                        <p className="mt-8 rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Đang
+                            tải danh sách mặt bằng...</p>
                     ) : premisesError ? (
-                        <div role="alert" className="mt-8 rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+                        <div role="alert"
+                             className="mt-8 rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
                             <p>Không thể tải dữ liệu mặt bằng từ máy chủ: {premisesError}</p>
-                            <button type="button" className="mt-3 font-semibold underline" onClick={() => window.location.reload()}>Thử tải lại</button>
+                            <button type="button" className="mt-3 font-semibold underline"
+                                    onClick={() => window.location.reload()}>Thử tải lại
+                            </button>
                         </div>
                     ) : visiblePremises.length ? (
                         <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -580,43 +587,71 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             <p className="mt-4 text-sm leading-7 text-slate-300">Để lại thông tin quan tâm, hoặc liên hệ
                                 trực tiếp với ban quản lý để được tư vấn.</p>
                             <div className="mt-8 space-y-3 text-sm">
-                                {contactPhone && zaloContactUrl && <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-                                   href={zaloContactUrl} target="_blank" rel="noreferrer"><span
+                                {contactPhone && zaloContactUrl &&
+                                    <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                                       href={zaloContactUrl} target="_blank" rel="noreferrer"><span
                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
                                         className="material-symbols-outlined"
-                                        aria-hidden="true">chat</span></span><span className="flex-1">Zalo: {contactPhone}</span><span className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a>}
-                                {contactEmail ? <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-                                                   href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contactEmail}`} target="_blank"><span
+                                        aria-hidden="true">chat</span></span><span
+                                        className="flex-1">Zalo: {contactPhone}</span><span
+                                        className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white"
+                                        aria-hidden="true">open_in_new</span></a>}
+                                {contactEmail ?
+                                    <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+                                       href={`https://mail.google.com/mail/?view=cm&fs=1&to=${contactEmail}`}
+                                       target="_blank"><span
                                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
                                         className="material-symbols-outlined"
-                                        aria-hidden="true">mail</span></span><span className="flex-1">{contactEmail}</span><span className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a> :
+                                        aria-hidden="true">mail</span></span><span
+                                        className="flex-1">{contactEmail}</span><span
+                                        className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white"
+                                        aria-hidden="true">open_in_new</span></a> :
                                     <p className="text-xs text-slate-400">Chưa có email liên hệ trong dữ liệu.</p>}
                                 {ownerContact?.contactInfoAddress &&
                                     <a className="group -mx-2 flex items-start gap-3 rounded-xl px-2 py-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-                                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ownerContact.contactInfoAddress)}`} target="_blank" rel="noreferrer"><span
+                                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ownerContact.contactInfoAddress)}`}
+                                       target="_blank" rel="noreferrer"><span
                                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10"><span
                                         className="material-symbols-outlined"
                                         aria-hidden="true">location_on</span></span><span
-                                        className="flex-1 pt-2">{ownerContact.contactInfoAddress}</span><span className="material-symbols-outlined mt-2 text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a>}
+                                        className="flex-1 pt-2">{ownerContact.contactInfoAddress}</span><span
+                                        className="material-symbols-outlined mt-2 text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white"
+                                        aria-hidden="true">open_in_new</span></a>}
                                 {ownerContact?.contactSocialLink &&
                                     <a className="group -mx-2 flex items-center gap-3 rounded-xl px-2 py-1.5 text-slate-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
                                        href={ownerContact.contactSocialLink} target="_blank" rel="noreferrer"><span
-                                       className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
-                                        className="material-symbols-outlined" aria-hidden="true">share</span></span><span className="flex-1">Mạng xã hội</span><span className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" aria-hidden="true">open_in_new</span></a>}
+                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10"><span
+                                        className="material-symbols-outlined"
+                                        aria-hidden="true">share</span></span><span
+                                        className="flex-1">Mạng xã hội</span><span
+                                        className="material-symbols-outlined text-base text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white"
+                                        aria-hidden="true">open_in_new</span></a>}
                             </div>
                         </div>
-                        <ProcessingForm processing={contactSending} onSubmit={sendInquiry} onChange={() => throttleExtendGoogleLogin()} className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
+                        <ProcessingForm processing={contactSending} onSubmit={sendInquiry}
+                                        onChange={() => throttleExtendGoogleLogin()}
+                                        className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
                             <h3 className="text-lg font-semibold">Yêu cầu tư vấn</h3>
                             <p className="mt-1 text-sm text-slate-500">Thông tin sẽ được gửi đến ban quản lý qua
                                 email.</p>
-                            <div ref={googleButtonRef} className={contactSenderEmail ? "hidden" : "flex mt-4 justify-center"}/>
+                            <div ref={googleButtonRef}
+                                 className={contactSenderEmail ? "hidden" : "flex mt-4 justify-center"}/>
                             {contactSenderEmail && <div className="flex justify-between">
-                                <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium border-2 border-gradient-success text-emerald-800">Đăng nhập thành công! Phiên kết thúc sau 5 phút.</p>
-                                <button onClick={logoutGoogle} className="mt-4 rounded-xl border-gradient-error bg-red-500 px-4 py-3 text-sm font-medium text-white">Đăng xuất</button>
+                                <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium border-2 border-gradient-success text-emerald-800">Đăng
+                                    nhập thành công! Phiên kết thúc sau 5 phút.</p>
+                                <button onClick={logoutGoogle}
+                                        className="mt-4 rounded-xl border-gradient-error bg-red-500 px-4 py-3 text-sm font-medium text-white">Đăng
+                                    xuất
+                                </button>
                             </div>}
-                            {contactSenderEmail && <p className="mt-2 text-xs font-bold italic text-yellow-500">Email này chỉ được dùng để gửi yêu cầu và trả lời thư.</p>}
-                            {!googleIdentityReady && <p className="mt-2 text-xs text-slate-400">Đăng nhập Google chưa khả dụng. Kiểm tra VITE_GOOGLE_CLIENT_ID và kết nối mạng.</p>}
-                            <fieldset disabled={!contactSenderEmail || contactSending} className="mt-5 grid gap-4 disabled:opacity-50 sm:grid-cols-2">
+                            {contactSenderEmail &&
+                                <p className="mt-2 text-xs font-bold italic text-yellow-500">Email này chỉ được dùng để
+                                    gửi yêu cầu và trả lời thư.</p>}
+                            {!googleIdentityReady &&
+                                <p className="mt-2 text-xs text-slate-400">Đăng nhập Google chưa khả dụng. Kiểm tra
+                                    VITE_GOOGLE_CLIENT_ID và kết nối mạng.</p>}
+                            <fieldset disabled={!contactSenderEmail || contactSending}
+                                      className="mt-5 grid gap-4 disabled:opacity-50 sm:grid-cols-2">
                                 <label className="block"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Họ tên</span><input
                                     required value={contactName}
@@ -783,14 +818,19 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                 <div className="mt-5 space-y-2 border-t border-slate-200 pt-4 text-sm">
                                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Liên hệ
                                         ban quản lý</p>
-                                    {contactPhone && zaloContactUrl && <a href={zaloContactUrl} target="_blank" rel="noreferrer"
-                                                        className="group flex items-center gap-2 rounded-lg py-1 text-slate-700 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span
-                                        className="material-symbols-outlined text-base"
-                                        aria-hidden="true">chat</span>Zalo · {contactPhone}<span className="material-symbols-outlined text-sm opacity-60 transition group-hover:translate-x-0.5" aria-hidden="true">open_in_new</span></a>}
+                                    {contactPhone && zaloContactUrl &&
+                                        <a href={zaloContactUrl} target="_blank" rel="noreferrer"
+                                           className="group flex items-center gap-2 rounded-lg py-1 text-slate-700 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span
+                                            className="material-symbols-outlined text-base"
+                                            aria-hidden="true">chat</span>Zalo · {contactPhone}<span
+                                            className="material-symbols-outlined text-sm opacity-60 transition group-hover:translate-x-0.5"
+                                            aria-hidden="true">open_in_new</span></a>}
                                     {contactEmail && <a href={`mailto:${contactEmail}`}
                                                         className="group flex items-center gap-2 rounded-lg py-1 text-slate-700 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span
                                         className="material-symbols-outlined text-base"
-                                        aria-hidden="true">mail</span>{contactEmail}<span className="material-symbols-outlined text-sm opacity-60 transition group-hover:translate-x-0.5" aria-hidden="true">arrow_forward</span></a>}
+                                        aria-hidden="true">mail</span>{contactEmail}<span
+                                        className="material-symbols-outlined text-sm opacity-60 transition group-hover:translate-x-0.5"
+                                        aria-hidden="true">arrow_forward</span></a>}
                                 </div>
                             )}
                         </div>

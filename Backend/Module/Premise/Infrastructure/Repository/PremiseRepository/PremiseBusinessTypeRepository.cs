@@ -12,11 +12,29 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         ILogPool logPool) : IPremiseBusinessTypeRepository
     {
         private const string Module = "Premise";
+
         private const string Layer = "Infrastructures/Repository/PremiseBusinessTypeRepository";
 
         private readonly PremiseDbContext _db = context;
+
         private readonly ILogPool _logPool = logPool;
+
         private readonly ILogger<PremiseBusinessTypeRepository> _logger = logger;
+
+        private void Validate(PremiseBusinessTypeModel entity)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            if (entity.PremiseId != Guid.Empty && entity.BusinessTypeId != Guid.Empty)
+            {
+                return;
+            }
+
+            var exception = new ArgumentException(
+                "Both premise id and business type id are required.", nameof(entity));
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Premise business type association rejected because an id is missing.");
+            throw exception;
+        }
 
         #region GET
 
@@ -100,8 +118,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading association by composite id.");
             return await _db.PremiseBusinessTypes.AsNoTracking()
                 .FirstOrDefaultAsync(
-                    association => association.PremiseId == premiseId &&
-                                   association.BusinessTypeId == businessTypeId,
+                    association => association.PremiseId == premiseId && association.BusinessTypeId == businessTypeId,
                     cancellationToken);
         }
 
@@ -112,8 +129,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Checking premise business type association.");
             return await _db.PremiseBusinessTypes.AnyAsync(
-                association => association.PremiseId == premiseId &&
-                               association.BusinessTypeId == businessTypeId,
+                association => association.PremiseId == premiseId && association.BusinessTypeId == businessTypeId,
                 cancellationToken);
         }
 
@@ -155,8 +171,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             foreach (var entity in associations)
             {
                 Validate(entity);
-                if (!keys.Add((entity.PremiseId, entity.BusinessTypeId)) ||
-                    await ExistsAsync(entity.PremiseId, entity.BusinessTypeId, cancellationToken))
+                if (!keys.Add((entity.PremiseId, entity.BusinessTypeId)) || await ExistsAsync(entity.PremiseId, entity.BusinessTypeId, cancellationToken))
                 {
                     var exception = new InvalidOperationException(
                         $"Premise business type association already exists: {entity.PremiseId}, {entity.BusinessTypeId}.");
@@ -195,20 +210,5 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         }
 
         #endregion
-
-        private void Validate(PremiseBusinessTypeModel entity)
-        {
-            ArgumentNullException.ThrowIfNull(entity);
-            if (entity.PremiseId != Guid.Empty && entity.BusinessTypeId != Guid.Empty)
-            {
-                return;
-            }
-
-            var exception = new ArgumentException(
-                "Both premise id and business type id are required.", nameof(entity));
-            _logger.LogLayerError(_logPool, Module, Layer, exception,
-                "Premise business type association rejected because an id is missing.");
-            throw exception;
-        }
     }
 }

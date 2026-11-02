@@ -2,9 +2,9 @@ using Contract.Interfaces.IApplication;
 using Contract.Interfaces.Services;
 using Contract.Models.Contact;
 using Contract.Presentation.Record.Contact;
-using Shared.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Presentation.Controller;
 
@@ -121,16 +121,16 @@ namespace Contract.Presentation.Controller
             {
                 if (!_identityHelper.IsEmailValid(request.SenderEmail))
                 {
-                    _logger.LogLayerWarning(_logPool, Module, Layer, $"Invalid sender email format");
+                    _logger.LogLayerWarning(_logPool, Module, Layer, "Invalid sender email format");
                     return BadRequest("Sender email is invalid.");
                 }
 
                 if (!_identityHelper.IsPhoneNumberValid(request.Phone))
                 {
-                    _logger.LogLayerWarning(_logPool, Module, Layer, $"Invalid phone number format");
+                    _logger.LogLayerWarning(_logPool, Module, Layer, "Invalid phone number format");
                     return BadRequest("Phone number is invalid.");
                 }
-                
+
                 var premise = string.IsNullOrWhiteSpace(request.PremiseName)
                     ? "Chưa chọn"
                     : request.PremiseName.Trim();
@@ -145,7 +145,7 @@ namespace Contract.Presentation.Controller
                            + $"Nội dung: {(string.IsNullOrWhiteSpace(request.Message) ? "Vui lòng liên hệ tư vấn." : request.Message.Trim())}";
 
                 _logger.LogLayerInformation(_logPool, Module, Layer,
-                    $"Sending a consultation request email.");
+                    "Sending a consultation request email.");
                 var recipientEmail = await _emailSender.SendAsync(
                     senderEmail,
                     subject,

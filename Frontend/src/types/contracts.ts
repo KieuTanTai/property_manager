@@ -1,5 +1,3 @@
-import {Contract} from "@/types/modules.ts";
-
 export type ContractStatus = "PendingApproval" | "PendingSignature" | "Canceled" | "Expired" | "Signed" | "Terminated"
 export type InvoiceStatus = "Unpaid" | "Paid" | "Overdue"
 

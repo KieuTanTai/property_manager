@@ -53,7 +53,7 @@ export default function App() {
         window.addEventListener("popstate", onPopState)
         return () => window.removeEventListener("popstate", onPopState)
     }, [])
-    
+
     useEffect(() => {
         if (session) {
             setIsLoginOpen(false)

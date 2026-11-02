@@ -21,7 +21,13 @@ const emptyForm: ViolationForm = {
 
 const newMockId = createUuid
 
-export function ViolationsModule({accountId, readOnly = false, canCreate = !readOnly, canUpdate = !readOnly, ownOnly = readOnly}: ViolationsModuleProps) {
+export function ViolationsModule({
+                                     accountId,
+                                     readOnly = false,
+                                     canCreate = !readOnly,
+                                     canUpdate = !readOnly,
+                                     ownOnly = readOnly
+                                 }: ViolationsModuleProps) {
     const initialMockViolations = filterViolationsForAccount(MOCK_VIOLATIONS, MOCK_CONTRACTS, accountId, ownOnly)
     const [violations, setViolations] = useState<Violation[]>(initialMockViolations)
     const [modal, setModal] = useState<"add" | "view" | null>(null)
@@ -131,14 +137,55 @@ export function ViolationsModule({accountId, readOnly = false, canCreate = !read
             rowTitle="Bấm để xem chi tiết"
             onRowClick={openView}
             columns={[
-                {key: "id", header: "Mã vi phạm", cellClassName: "max-w-40 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (item) => item.id},
-                {key: "contract", header: "Mã hợp đồng", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-600", render: (item) => item.contractId},
-                {key: "tenant", header: "Khách thuê", cellClassName: "px-4 py-3 font-medium text-gray-800", render: (item) => item.tenant || "—"},
-                {key: "content", header: "Nội dung", cellClassName: "max-w-64 truncate px-4 py-3 text-gray-600", render: (item) => <span title={item.content}>{item.content}</span>},
-                {key: "date", header: "Ngày vi phạm", cellClassName: "whitespace-nowrap px-4 py-3", render: (item) => item.date},
-                {key: "dueDate", header: "Hạn xử lý", cellClassName: "whitespace-nowrap px-4 py-3", render: (item) => item.dueDate},
-                {key: "amount", header: "Tiền phạt", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono", render: (item) => fmt(item.penaltyAmount)},
-                {key: "status", header: "Trạng thái", render: (item) => <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.resolved ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{item.resolved ? "Đã xử lý" : "Chưa xử lý"}</span>},
+                {
+                    key: "id",
+                    header: "Mã vi phạm",
+                    cellClassName: "max-w-40 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                    render: (item) => item.id
+                },
+                {
+                    key: "contract",
+                    header: "Mã hợp đồng",
+                    cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-600",
+                    render: (item) => item.contractId
+                },
+                {
+                    key: "tenant",
+                    header: "Khách thuê",
+                    cellClassName: "px-4 py-3 font-medium text-gray-800",
+                    render: (item) => item.tenant || "—"
+                },
+                {
+                    key: "content",
+                    header: "Nội dung",
+                    cellClassName: "max-w-64 truncate px-4 py-3 text-gray-600",
+                    render: (item) => <span title={item.content}>{item.content}</span>
+                },
+                {
+                    key: "date",
+                    header: "Ngày vi phạm",
+                    cellClassName: "whitespace-nowrap px-4 py-3",
+                    render: (item) => item.date
+                },
+                {
+                    key: "dueDate",
+                    header: "Hạn xử lý",
+                    cellClassName: "whitespace-nowrap px-4 py-3",
+                    render: (item) => item.dueDate
+                },
+                {
+                    key: "amount",
+                    header: "Tiền phạt",
+                    headerClassName: "px-4 py-3 text-right font-medium",
+                    cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono",
+                    render: (item) => fmt(item.penaltyAmount)
+                },
+                {
+                    key: "status",
+                    header: "Trạng thái",
+                    render: (item) => <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.resolved ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{item.resolved ? "Đã xử lý" : "Chưa xử lý"}</span>
+                },
             ]}
         />
 
@@ -175,9 +222,10 @@ export function ViolationsModule({accountId, readOnly = false, canCreate = !read
                                                         onChange={(event) => {
                                                             if (!isIntegerAmountInput(event.target.value)) return
                                                             setForm({
-                                                            ...form,
-                                                            penaltyAmount: event.target.value === "" ? 0 : Number(event.target.value)
-                                                        })}}/></FormField>
+                                                                ...form,
+                                                                penaltyAmount: event.target.value === "" ? 0 : Number(event.target.value)
+                                                            })
+                                                        }}/></FormField>
                 {modal === "view" && <FormField label="Trạng thái"><select className={selectCls}
                                                                            value={form.resolved ? "resolved" : "open"}
                                                                            disabled={disabled}
@@ -196,7 +244,7 @@ export function ViolationsModule({accountId, readOnly = false, canCreate = !read
                         <button type="submit" disabled={saving || !form.contractId || !form.content.trim()}
                                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{saving ? "Đang lưu..." : "Ghi nhận"}</button>
                     </> : !canUpdate ? <button type="button" onClick={closeModal}
-                                             className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600">Đóng</button> : isEditing ? <>
+                                               className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600">Đóng</button> : isEditing ? <>
                         <button type="button" disabled={!canUpdate} onClick={() => {
                             if (selected) setForm({...selected});
                             setIsEditing(false)
@@ -212,7 +260,8 @@ export function ViolationsModule({accountId, readOnly = false, canCreate = !read
                             <button type="button" disabled={saving} onClick={() => hardDelete(selected)}
                                     className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 disabled:opacity-50">Xóa</button>}
                         {canUpdate && <button type="button" onClick={() => setIsEditing(true)}
-                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white">Chỉnh sửa
+                                              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white">Chỉnh
+                            sửa
                         </button>}
                     </>}
                 </div>

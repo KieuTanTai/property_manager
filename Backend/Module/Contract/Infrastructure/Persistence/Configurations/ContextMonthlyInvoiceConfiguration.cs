@@ -1,4 +1,5 @@
 using Contract.Models.Invoice;
+using Contract.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shared.Enum;
@@ -42,7 +43,7 @@ namespace Contract.Infrastructure.Persistence.Configurations
                 .HasColumnName("invoice_status")
                 .HasConversion(
                     status => SnakeCaseEnum.ToSnakeCase(status),
-                    status => SnakeCaseEnum.FromSnakeCase<Contract.Utils.Enum.EInvoiceStatus>(status))
+                    status => SnakeCaseEnum.FromSnakeCase<EInvoiceStatus>(status))
                 .HasMaxLength(10)
                 .HasDefaultValueSql("'unpaid'")
                 .IsRequired();

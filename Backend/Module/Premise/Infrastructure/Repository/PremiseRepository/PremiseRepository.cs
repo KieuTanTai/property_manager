@@ -338,7 +338,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total rented premise!");
             return await _db.Premises.LongCountAsync(
-                premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Rented,
+                premise => premise.PremiseStatus == EPremiseStatus.Rented,
                 cancellationToken);
         }
 
@@ -346,25 +346,26 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total available premise!");
             return await _db.Premises.LongCountAsync(
-                premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Available,
+                premise => premise.PremiseStatus == EPremiseStatus.Available,
                 cancellationToken);
         }
-        
+
         public async Task<long> CountTotalMaintenancePremiseAsync(CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total available premise!");
             return await _db.Premises.LongCountAsync(
-                premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Maintenance,
+                premise => premise.PremiseStatus == EPremiseStatus.Maintenance,
                 cancellationToken);
         }
-        
+
         public async Task<long> CountTotalReservedPremiseAsync(CancellationToken cancellationToken = default)
-                {
-                    _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total available premise!");
-                    return await _db.Premises.LongCountAsync(
-                        premise => premise.PremiseStatus == Shared.Enum.EPremiseStatus.Reserved,
-                        cancellationToken);
-                }
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Getting total available premise!");
+            return await _db.Premises.LongCountAsync(
+                premise => premise.PremiseStatus == EPremiseStatus.Reserved,
+                cancellationToken);
+        }
+
         #endregion
     }
 }

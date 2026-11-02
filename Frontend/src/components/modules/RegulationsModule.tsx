@@ -12,7 +12,7 @@ const EMPTY_FORM: RegulationForm = {
     active: true,
 }
 
-export function RegulationsModule({readOnly = false}: {readOnly?: boolean}) {
+export function RegulationsModule({readOnly = false}: { readOnly?: boolean }) {
     const [regulations, setRegulations] = useState<RegulationModel[]>([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -25,12 +25,18 @@ export function RegulationsModule({readOnly = false}: {readOnly?: boolean}) {
     useEffect(() => {
         let active = true
         contractApi.regulations()
-            .then((page) => { if (active) setRegulations(page.items) })
+            .then((page) => {
+                if (active) setRegulations(page.items)
+            })
             .catch((reason: unknown) => {
                 if (active) setError(reason instanceof Error ? reason.message : "Không thể tải danh sách quy định.")
             })
-            .finally(() => { if (active) setLoading(false) })
-        return () => { active = false }
+            .finally(() => {
+                if (active) setLoading(false)
+            })
+        return () => {
+            active = false
+        }
     }, [])
 
     const openAdd = () => {
@@ -146,7 +152,8 @@ export function RegulationsModule({readOnly = false}: {readOnly?: boolean}) {
                 </button>}
             </div>
 
-            {error && !modal && <p role="alert" className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+            {error && !modal && <p role="alert"
+                                   className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
             <BaseTable
                 rows={regulations}
@@ -158,14 +165,52 @@ export function RegulationsModule({readOnly = false}: {readOnly?: boolean}) {
                 rowTitle="Bấm để xem chi tiết"
                 onRowClick={openView}
                 columns={[
-                    {key: "id", header: "Regulation ID", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (item) => <span title={item.regulationId}>{item.regulationId}</span>},
-                    {key: "name", header: "Tên quy định", cellClassName: "max-w-48 px-4 py-3 font-semibold text-gray-900", render: (item) => item.regulationName},
-                    {key: "description", header: "Mô tả", cellClassName: "max-w-64 px-4 py-3 text-xs text-gray-500", render: (item) => <span title={item.regulationDescription ?? undefined}>{item.regulationDescription || "—"}</span>},
-                    {key: "fine", header: "Mức phạt", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-700", render: (item) => item.regulationFineAmount === null ? "—" : fmt(item.regulationFineAmount)},
-                    {key: "active", header: "Trạng thái", render: (item) => <span className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold ${item.regulationIsActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${item.regulationIsActive ? "bg-emerald-500" : "bg-gray-400"}`} />{item.regulationIsActive ? "Đang áp dụng" : "Ngừng áp dụng"}</span>},
-                    {key: "created", header: "Ngày tạo", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (item) => formatDateTime(item.regulationCreatedAt)},
-                    {key: "updated", header: "Ngày cập nhật", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (item) => formatDateTime(item.regulationUpdatedAt)},
+                    {
+                        key: "id",
+                        header: "Regulation ID",
+                        cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                        render: (item) => <span title={item.regulationId}>{item.regulationId}</span>
+                    },
+                    {
+                        key: "name",
+                        header: "Tên quy định",
+                        cellClassName: "max-w-48 px-4 py-3 font-semibold text-gray-900",
+                        render: (item) => item.regulationName
+                    },
+                    {
+                        key: "description",
+                        header: "Mô tả",
+                        cellClassName: "max-w-64 px-4 py-3 text-xs text-gray-500",
+                        render: (item) => <span
+                            title={item.regulationDescription ?? undefined}>{item.regulationDescription || "—"}</span>
+                    },
+                    {
+                        key: "fine",
+                        header: "Mức phạt",
+                        headerClassName: "px-4 py-3 text-right font-medium",
+                        cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-700",
+                        render: (item) => item.regulationFineAmount === null ? "—" : fmt(item.regulationFineAmount)
+                    },
+                    {
+                        key: "active",
+                        header: "Trạng thái",
+                        render: (item) => <span
+                            className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-semibold ${item.regulationIsActive ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        <span
+                            className={`h-1.5 w-1.5 rounded-full ${item.regulationIsActive ? "bg-emerald-500" : "bg-gray-400"}`}/>{item.regulationIsActive ? "Đang áp dụng" : "Ngừng áp dụng"}</span>
+                    },
+                    {
+                        key: "created",
+                        header: "Ngày tạo",
+                        cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500",
+                        render: (item) => formatDateTime(item.regulationCreatedAt)
+                    },
+                    {
+                        key: "updated",
+                        header: "Ngày cập nhật",
+                        cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500",
+                        render: (item) => formatDateTime(item.regulationUpdatedAt)
+                    },
                 ]}
             />
 
@@ -180,7 +225,8 @@ export function RegulationsModule({readOnly = false}: {readOnly?: boolean}) {
                     }
                     onClose={closeModal}
                 >
-                    {error && <p role="alert" className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+                    {error && <p role="alert"
+                                 className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
                     {modal === "view" && selected && !isEditing ? (
                         <div className="space-y-5">
                             <div>
@@ -281,7 +327,10 @@ export function RegulationsModule({readOnly = false}: {readOnly?: boolean}) {
                             </div>
                         </div>
                     ) : (
-                        <ProcessingForm processing={saving} onSubmit={(event) => { event.preventDefault(); void saveRegulation() }}>
+                        <ProcessingForm processing={saving} onSubmit={(event) => {
+                            event.preventDefault();
+                            void saveRegulation()
+                        }}>
                             <FormField label="Tên quy định">
                                 <input
                                     className={inputCls}

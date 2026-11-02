@@ -4,6 +4,7 @@ namespace Shared.ModelHelper
     {
         // Base64 expands N bytes to 4 * ceil(N / 3) characters; allow up to 64 chars for the data URI prefix.
         public const int AvatarMaxEncodedCharacters = 4 * ((200 * 1024 + 2) / 3) + 64;
+
         public const int StandardMaxEncodedCharacters = 4 * ((300 * 1024 + 2) / 3) + 64;
 
         private static readonly HashSet<string> SupportedMediaTypes = new(StringComparer.OrdinalIgnoreCase)

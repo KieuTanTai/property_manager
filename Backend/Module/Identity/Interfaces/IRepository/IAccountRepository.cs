@@ -23,6 +23,5 @@ namespace Identity.Interfaces.IRepository
             CancellationToken cancellationToken = default);
 
         Task<IReadOnlyList<AccountModel>> GetAllAccountsByRoleCodeAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default);
-
     }
 }

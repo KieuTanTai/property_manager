@@ -1,7 +1,7 @@
-using Shared.Logging;
 using System.Text.Json.Serialization;
-using Gateway.Services;
 using Gateway.Middleware;
+using Gateway.Services;
+using Shared.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 

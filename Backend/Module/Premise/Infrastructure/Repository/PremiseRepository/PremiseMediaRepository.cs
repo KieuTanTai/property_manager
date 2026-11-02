@@ -12,11 +12,37 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         ILogPool logPool) : IPremiseMediaRepository
     {
         private const string Module = "Premise";
+
         private const string Layer = "Infrastructures/Repository/PremiseMediaRepository";
 
         private readonly PremiseDbContext _db = context;
+
         private readonly ILogPool _logPool = logPool;
+
         private readonly ILogger<PremiseMediaRepository> _logger = logger;
+
+        private void Validate(PremiseMediaModel entity)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+
+            if (entity.PremiseMediaPremiseId == Guid.Empty)
+            {
+                var exception = new ArgumentException(
+                    "PremiseMediaModel premise id is required.", nameof(entity.PremiseMediaPremiseId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise media rejected because its premise id is missing.");
+                throw exception;
+            }
+
+            if (string.IsNullOrWhiteSpace(entity.PremiseMediaImageUrl))
+            {
+                var exception = new ArgumentException(
+                    "PremiseMediaModel image URL is required.", nameof(entity.PremiseMediaImageUrl));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Premise media rejected because its image URL is missing.");
+                throw exception;
+            }
+        }
 
         #region GET
 
@@ -128,9 +154,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise media range creation.");
             var media = entities.ToList();
             foreach (var entity in media)
-            {
                 Validate(entity);
-            }
 
             await _db.PremiseMedias.AddRangeAsync(media, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Premise media range staged for creation.");
@@ -191,28 +215,5 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         }
 
         #endregion
-
-        private void Validate(PremiseMediaModel entity)
-        {
-            ArgumentNullException.ThrowIfNull(entity);
-
-            if (entity.PremiseMediaPremiseId == Guid.Empty)
-            {
-                var exception = new ArgumentException(
-                    "PremiseMediaModel premise id is required.", nameof(entity.PremiseMediaPremiseId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Premise media rejected because its premise id is missing.");
-                throw exception;
-            }
-
-            if (string.IsNullOrWhiteSpace(entity.PremiseMediaImageUrl))
-            {
-                var exception = new ArgumentException(
-                    "PremiseMediaModel image URL is required.", nameof(entity.PremiseMediaImageUrl));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Premise media rejected because its image URL is missing.");
-                throw exception;
-            }
-        }
     }
 }

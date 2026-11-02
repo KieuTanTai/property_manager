@@ -1,4 +1,3 @@
-using System.Net;
 using Microsoft.Extensions.Primitives;
 
 namespace Gateway.Services
@@ -8,7 +7,7 @@ namespace Gateway.Services
         private static readonly HashSet<string> HopByHopHeaders = new(StringComparer.OrdinalIgnoreCase)
         {
             "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE",
-            "Trailer", "Transfer-Encoding", "Upgrade", "Host", "Content-Length",
+            "Trailer", "Transfer-Encoding", "Upgrade", "Host", "Content-Length"
         };
 
         public async Task ForwardAsync(HttpContext context, string moduleUrlKey)
@@ -28,18 +27,25 @@ namespace Gateway.Services
             var targetUri = new UriBuilder(moduleUrl)
             {
                 Path = $"{new Uri(moduleUrl).AbsolutePath.TrimEnd('/')}{path}",
-                Query = context.Request.QueryString.Value?.TrimStart('?') ?? string.Empty,
+                Query = context.Request.QueryString.Value?.TrimStart('?') ?? string.Empty
             }.Uri;
 
             using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), targetUri);
             if (context.Request.ContentLength is > 0 || context.Request.Headers.ContainsKey("Transfer-Encoding"))
+            {
                 request.Content = new StreamContent(context.Request.Body);
+            }
 
             foreach (var header in context.Request.Headers)
             {
-                if (HopByHopHeaders.Contains(header.Key)) continue;
+                if (HopByHopHeaders.Contains(header.Key))
+                {
+                    continue;
+                }
                 if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                {
                     request.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                }
             }
 
             using var response = await httpClientFactory.CreateClient("ModuleProxy")
@@ -47,15 +53,15 @@ namespace Gateway.Services
 
             context.Response.StatusCode = (int)response.StatusCode;
             foreach (var header in response.Headers)
-            {
                 if (!HopByHopHeaders.Contains(header.Key))
+                {
                     context.Response.Headers[header.Key] = new StringValues(header.Value.ToArray());
-            }
+                }
             foreach (var header in response.Content.Headers)
-            {
                 if (!HopByHopHeaders.Contains(header.Key))
+                {
                     context.Response.Headers[header.Key] = new StringValues(header.Value.ToArray());
-            }
+                }
 
             await response.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
         }

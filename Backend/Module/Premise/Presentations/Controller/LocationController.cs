@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Premise.Application;
 using Premise.Interfaces.IApplication;
 using Premise.Models.Premise;
 using Premise.Presentations.Record.Location;

@@ -1,4 +1,3 @@
-
 namespace Shared.Interfaces
 {
     public interface IIdentityHelper<in TAccountModel> where TAccountModel : class
@@ -6,8 +5,6 @@ namespace Shared.Interfaces
         bool IsEmailValid(string email);
         bool IsPhoneNumberValid(string phoneNumber);
         bool IsPasswordValid(string password);
-
-
 
 
         string GetHashPassword(TAccountModel account, string password);

@@ -1,6 +1,14 @@
 import type {CursorPage} from "@/types/identity"
-import type {ContactInfoModel, ContactInfoRequest, ConsultationRequest, ContractModel,
-    ContractViolationModel, CreateContractRequest, RegulationModel, UpdateContractRequest} from "@/types/contracts"
+import type {
+    ConsultationRequest,
+    ContactInfoModel,
+    ContactInfoRequest,
+    ContractModel,
+    ContractViolationModel,
+    CreateContractRequest,
+    RegulationModel,
+    UpdateContractRequest
+} from "@/types/contracts"
 import {APP_SETTINGS} from "@/config/appSettings"
 
 const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
@@ -42,7 +50,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const contractApi = {
     contracts(cursor: string | null) {
-        const query = new URLSearchParams({pageSize: baseReqPageItemsLoaded, isGetViolations: "true", isGetInvoices: "true"})
+        const query = new URLSearchParams({
+            pageSize: baseReqPageItemsLoaded,
+            isGetViolations: "true",
+            isGetInvoices: "true"
+        })
         if (cursor) query.set("cursor", cursor)
         return request<CursorPage<ContractModel>>(`/Contract?${query}`)
     },
@@ -55,7 +67,10 @@ export const contractApi = {
         return request<RegulationModel>("/Regulation", {method: "POST", body: JSON.stringify(body)})
     },
     updateRegulation(id: string, body: Omit<RegulationModel, "regulationId" | "regulationCreatedAt" | "regulationUpdatedAt">) {
-        return request<RegulationModel>(`/Regulation/${encodeURIComponent(id)}`, {method: "PUT", body: JSON.stringify(body)})
+        return request<RegulationModel>(`/Regulation/${encodeURIComponent(id)}`, {
+            method: "PUT",
+            body: JSON.stringify(body)
+        })
     },
     deleteRegulation(id: string) {
         return request<void>(`/Regulation/${encodeURIComponent(id)}`, {method: "DELETE"})

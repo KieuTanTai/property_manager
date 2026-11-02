@@ -12,11 +12,29 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         ILogPool logPool) : IProductBusinessTypeRepository
     {
         private const string Module = "Premise";
+
         private const string Layer = "Infrastructures/Repository/ProductBusinessTypeRepository";
 
         private readonly PremiseDbContext _db = context;
+
         private readonly ILogPool _logPool = logPool;
+
         private readonly ILogger<ProductBusinessTypeRepository> _logger = logger;
+
+        private void Validate(ProductBusinessTypeModel entity)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            if (entity.ProductId != Guid.Empty && entity.BusinessTypeId != Guid.Empty)
+            {
+                return;
+            }
+
+            var exception = new ArgumentException(
+                "Both product id and business type id are required.", nameof(entity));
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Product business type association rejected because an id is missing.");
+            throw exception;
+        }
 
         #region GET
 
@@ -100,8 +118,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading association by composite id.");
             return await _db.ProductBusinessTypes.AsNoTracking()
                 .FirstOrDefaultAsync(
-                    association => association.ProductId == productId &&
-                                   association.BusinessTypeId == businessTypeId,
+                    association => association.ProductId == productId && association.BusinessTypeId == businessTypeId,
                     cancellationToken);
         }
 
@@ -112,8 +129,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Checking product business type association.");
             return await _db.ProductBusinessTypes.AnyAsync(
-                association => association.ProductId == productId &&
-                               association.BusinessTypeId == businessTypeId,
+                association => association.ProductId == productId && association.BusinessTypeId == businessTypeId,
                 cancellationToken);
         }
 
@@ -155,8 +171,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             foreach (var entity in associations)
             {
                 Validate(entity);
-                if (!keys.Add((entity.ProductId, entity.BusinessTypeId)) ||
-                    await ExistsAsync(entity.ProductId, entity.BusinessTypeId, cancellationToken))
+                if (!keys.Add((entity.ProductId, entity.BusinessTypeId)) || await ExistsAsync(entity.ProductId, entity.BusinessTypeId, cancellationToken))
                 {
                     var exception = new InvalidOperationException(
                         $"Product business type association already exists: {entity.ProductId}, {entity.BusinessTypeId}.");
@@ -195,20 +210,5 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         }
 
         #endregion
-
-        private void Validate(ProductBusinessTypeModel entity)
-        {
-            ArgumentNullException.ThrowIfNull(entity);
-            if (entity.ProductId != Guid.Empty && entity.BusinessTypeId != Guid.Empty)
-            {
-                return;
-            }
-
-            var exception = new ArgumentException(
-                "Both product id and business type id are required.", nameof(entity));
-            _logger.LogLayerError(_logPool, Module, Layer, exception,
-                "Product business type association rejected because an id is missing.");
-            throw exception;
-        }
     }
 }

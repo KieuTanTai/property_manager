@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Premise.Application;
+using Premise.Infrastructure.DIContainer;
 using Premise.Infrastructure.Persistence.DbContext;
 using Premise.Infrastructure.Repository;
 using Premise.Infrastructure.Repository.PremiseRepository;
@@ -11,7 +12,6 @@ using Premise.Interfaces.IRepository.Premise;
 using Premise.Interfaces.IRepository.Product;
 using Shared.Interfaces;
 using Shared.Logging;
-using Premise.Infrastructure.DIContainer;
 
 var builder = WebApplication.CreateBuilder(args);
 

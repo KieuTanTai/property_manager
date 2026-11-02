@@ -1,24 +1,28 @@
+using Premise.Interfaces.IApplication;
 using Premise.Interfaces.IRepository.Location;
 using Premise.Interfaces.IRepository.Premise;
-using Premise.Interfaces.IApplication;
 using Shared.Logging;
 
 namespace Premise.Application
 {
-    public class PremiseStatisticApplication
-    (
+    public class PremiseStatisticApplication(
         ILogger<PremiseStatisticApplication> logger,
         ILogPool logPool,
         IPremiseRepository premiseRepository,
         ILocationRepository locationRepository
     ) : IPremiseStatisticApplication
     {
-        private readonly ILogger<PremiseStatisticApplication> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
-        private readonly IPremiseRepository _premiseRepository = premiseRepository;
-        private readonly ILocationRepository _locationRepository = locationRepository;
         private const string Module = "Statistic";
+
         private const string Layer = "Application";
+
+        private readonly ILocationRepository _locationRepository = locationRepository;
+
+        private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<PremiseStatisticApplication> _logger = logger;
+
+        private readonly IPremiseRepository _premiseRepository = premiseRepository;
 
         public async Task<long> GetTotalPremiseCountAsync(
             CancellationToken cancellationToken = default)

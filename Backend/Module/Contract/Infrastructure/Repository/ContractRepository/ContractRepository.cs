@@ -89,8 +89,8 @@ namespace Contract.Infrastructure.Repository.ContractRepository
 
             string? rejectionReason = null;
 
-            if (existedContract.ContractTerminationDate.HasValue ||
-                currentStatus is EContractStatus.Canceled
+            if (existedContract.ContractTerminationDate.HasValue
+                || currentStatus is EContractStatus.Canceled
                     or EContractStatus.Expired
                     or EContractStatus.Terminated)
             {
@@ -120,7 +120,10 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 }
             }
 
-            if (rejectionReason is null) return;
+            if (rejectionReason is null)
+            {
+                return;
+            }
 
             var exception = new InvalidOperationException(
                 $"{rejectionReason}\nContractId: {contractModel.ContractId}");
@@ -135,7 +138,6 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             throw exception;
         }
 
-        
         #endregion
 
         #region GET

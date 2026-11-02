@@ -1,17 +1,18 @@
-namespace Gateway.Middleware;
-
-public static class ProxyMappingMiddleware
+namespace Gateway.Middleware
 {
-    public static IServiceCollection AddProxyMapping(this IServiceCollection services, IHostEnvironment environment)
+    public static class ProxyMappingMiddleware
     {
-        services.AddHttpClient("ModuleProxy", client => client.Timeout = Timeout.InfiniteTimeSpan)
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = environment.IsDevelopment()
-                    ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                    : null,
-            });
+        public static IServiceCollection AddProxyMapping(this IServiceCollection services, IHostEnvironment environment)
+        {
+            services.AddHttpClient("ModuleProxy", client => client.Timeout = Timeout.InfiniteTimeSpan)
+                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = environment.IsDevelopment()
+                        ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                        : null
+                });
 
-        return services;
+            return services;
+        }
     }
 }

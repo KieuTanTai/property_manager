@@ -68,40 +68,40 @@ export function LoginModal({onClose, onLogin}: Props) {
 
                 <ProcessingForm processing={isSubmitting} onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-4">
-                    <label className="block">
-                        <span className="mb-1.5 block text-sm font-medium text-slate-700">Email</span>
-                        <input
-                            autoFocus
-                            required
-                            type="email"
-                            autoComplete="username"
-                            value={email}
-                            onChange={(event) => setEmail(event.target.value)}
-                            placeholder="ten@congty.vn"
-                            className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                        />
-                    </label>
-                    <label className="block">
-                        <span className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</span>
-                        <input
-                            required
-                            type="password"
-                            autoComplete="current-password"
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
-                            placeholder="Nhập mật khẩu"
-                            className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                        />
-                    </label>
-                    {error && <p role="alert"
-                                 className="rounded-xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">{error}</p>}
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
-                    >
-                        {isSubmitting ? "Đang xác thực..." : "Đăng nhập"}
-                    </button>
+                        <label className="block">
+                            <span className="mb-1.5 block text-sm font-medium text-slate-700">Email</span>
+                            <input
+                                autoFocus
+                                required
+                                type="email"
+                                autoComplete="username"
+                                value={email}
+                                onChange={(event) => setEmail(event.target.value)}
+                                placeholder="ten@congty.vn"
+                                className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                            />
+                        </label>
+                        <label className="block">
+                            <span className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</span>
+                            <input
+                                required
+                                type="password"
+                                autoComplete="current-password"
+                                value={password}
+                                onChange={(event) => setPassword(event.target.value)}
+                                placeholder="Nhập mật khẩu"
+                                className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                            />
+                        </label>
+                        {error && <p role="alert"
+                                     className="rounded-xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">{error}</p>}
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
+                        >
+                            {isSubmitting ? "Đang xác thực..." : "Đăng nhập"}
+                        </button>
                     </div>
                 </ProcessingForm>
                 <p className="mt-5 text-center text-xs leading-5 text-slate-400">Tài khoản khách thuê được ban quản lý

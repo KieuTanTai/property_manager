@@ -14,7 +14,12 @@ const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     bank: "Chuyển khoản",
 }
 
-export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId, ownOnly = false}: {roleCodes?: string[]; permissionCodes?: string[]; accountId?: string; ownOnly?: boolean}) {
+export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId, ownOnly = false}: {
+    roleCodes?: string[];
+    permissionCodes?: string[];
+    accountId?: string;
+    ownOnly?: boolean
+}) {
     const can = (permission: string) => hasPermission(permissionCodes, permission, roleCodes)
     const canAny = (...permissions: string[]) => hasAnyPermissionForRole(permissionCodes, roleCodes, ...permissions)
     const canCreateInvoice = can(PERMISSIONS.invoiceCreate)
@@ -481,7 +486,11 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                 <div className="flex gap-6">
                     {([
                         {id: "invoices", label: ownOnly ? "Hóa đơn của tôi" : "Hóa đơn", count: visibleInvoices.length},
-                        ...(canReadReceipts ? [{id: "receipts" as const, label: "Phiếu thu", count: visibleReceipts.length}] : []),
+                        ...(canReadReceipts ? [{
+                            id: "receipts" as const,
+                            label: "Phiếu thu",
+                            count: visibleReceipts.length
+                        }] : []),
                     ] as const).map((tab) => (
                         <button
                             key={tab.id}
@@ -540,13 +549,50 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                         rowTitle="Bấm để xem các chi tiết hóa đơn"
                         onRowClick={openInvoice}
                         columns={[
-                            {key: "invoiceId", header: "Invoice ID", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (invoice) => invoice.invoiceId},
-                            {key: "contractId", header: "Contract ID", cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (invoice) => invoice.invoiceContractId},
-                            {key: "paymentDate", header: "Ngày lập", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (invoice) => invoice.invoicePaymentDate},
-                            {key: "dueDate", header: "Ngày đến hạn", cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500", render: (invoice) => invoice.invoiceDueDate},
-                            {key: "amount", header: "Tổng tiền", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-800", render: (invoice) => invoice.invoiceTotalAmount === null ? "—" : fmt(invoice.invoiceTotalAmount)},
-                            {key: "details", header: "Chi tiết", headerClassName: "px-4 py-3 text-center font-medium", cellClassName: "px-4 py-3 text-center", render: (invoice) => <span className="rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600">{details.filter((detail) => detail.invoiceDetailInvoiceId === invoice.invoiceId).length}</span>},
-                            {key: "status", header: "Trạng thái", render: (invoice) => <InvoiceStatusBadge status={invoice.invoiceStatus}/>},
+                            {
+                                key: "invoiceId",
+                                header: "Invoice ID",
+                                cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                                render: (invoice) => invoice.invoiceId
+                            },
+                            {
+                                key: "contractId",
+                                header: "Contract ID",
+                                cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                                render: (invoice) => invoice.invoiceContractId
+                            },
+                            {
+                                key: "paymentDate",
+                                header: "Ngày lập",
+                                cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500",
+                                render: (invoice) => invoice.invoicePaymentDate
+                            },
+                            {
+                                key: "dueDate",
+                                header: "Ngày đến hạn",
+                                cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500",
+                                render: (invoice) => invoice.invoiceDueDate
+                            },
+                            {
+                                key: "amount",
+                                header: "Tổng tiền",
+                                headerClassName: "px-4 py-3 text-right font-medium",
+                                cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-800",
+                                render: (invoice) => invoice.invoiceTotalAmount === null ? "—" : fmt(invoice.invoiceTotalAmount)
+                            },
+                            {
+                                key: "details",
+                                header: "Chi tiết",
+                                headerClassName: "px-4 py-3 text-center font-medium",
+                                cellClassName: "px-4 py-3 text-center",
+                                render: (invoice) => <span
+                                    className="rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600">{details.filter((detail) => detail.invoiceDetailInvoiceId === invoice.invoiceId).length}</span>
+                            },
+                            {
+                                key: "status",
+                                header: "Trạng thái",
+                                render: (invoice) => <InvoiceStatusBadge status={invoice.invoiceStatus}/>
+                            },
                         ]}
                     />
                 </>
@@ -558,12 +604,43 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                     rowClassName={() => "hover:bg-blue-50/50 transition-colors"}
                     onRowClick={openReceipt}
                     columns={[
-                        {key: "receiptId", header: "Receipt ID", cellClassName: "max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (receipt) => receipt.receiptId},
-                        {key: "invoiceId", header: "Invoice ID", cellClassName: "max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500", render: (receipt) => receipt.receiptInvoiceId},
-                        {key: "method", header: "Phương thức", cellClassName: "px-4 py-3 text-xs text-gray-600", render: (receipt) => paymentMethodLabels[receipt.receiptPaymentMethod]},
-                        {key: "amount", header: "Số tiền", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "px-4 py-3 text-right font-mono text-xs font-semibold text-emerald-600", render: (receipt) => fmt(receipt.receiptAmount)},
-                        {key: "paymentDate", header: "Ngày thanh toán", cellClassName: "px-4 py-3 text-xs text-gray-500", render: (receipt) => receipt.receiptPaymentDate},
-                        {key: "bank", header: "Ngân hàng", cellClassName: "px-4 py-3 text-xs text-gray-500", render: (receipt) => receipt.receiptBankName || "—"},
+                        {
+                            key: "receiptId",
+                            header: "Receipt ID",
+                            cellClassName: "max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                            render: (receipt) => receipt.receiptId
+                        },
+                        {
+                            key: "invoiceId",
+                            header: "Invoice ID",
+                            cellClassName: "max-w-48 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                            render: (receipt) => receipt.receiptInvoiceId
+                        },
+                        {
+                            key: "method",
+                            header: "Phương thức",
+                            cellClassName: "px-4 py-3 text-xs text-gray-600",
+                            render: (receipt) => paymentMethodLabels[receipt.receiptPaymentMethod]
+                        },
+                        {
+                            key: "amount",
+                            header: "Số tiền",
+                            headerClassName: "px-4 py-3 text-right font-medium",
+                            cellClassName: "px-4 py-3 text-right font-mono text-xs font-semibold text-emerald-600",
+                            render: (receipt) => fmt(receipt.receiptAmount)
+                        },
+                        {
+                            key: "paymentDate",
+                            header: "Ngày thanh toán",
+                            cellClassName: "px-4 py-3 text-xs text-gray-500",
+                            render: (receipt) => receipt.receiptPaymentDate
+                        },
+                        {
+                            key: "bank",
+                            header: "Ngân hàng",
+                            cellClassName: "px-4 py-3 text-xs text-gray-500",
+                            render: (receipt) => receipt.receiptBankName || "—"
+                        },
                     ]}
                 />
             )}
@@ -924,13 +1001,54 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                             tableClassName="w-full min-w-5xl text-sm"
                             rowClassName={() => "hover:bg-blue-50/40 transition-colors"}
                             columns={[
-                                {key: "id", header: "ID", cellClassName: "px-3 py-3 font-mono text-xs text-gray-500", render: (detail) => `#${detail.invoiceDetailId}`},
-                                {key: "premise", header: "Premise ID", cellClassName: "max-w-48 truncate px-3 py-3 font-mono text-xs text-gray-500", render: (detail) => <span title={detail.invoiceDetailPremiseId}>{detail.invoiceDetailPremiseId}</span>},
-                                {key: "rental", header: "Tiền thuê", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailRentalPrice)},
-                                {key: "electricity", header: "Tiền điện", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailElectricityFee)},
-                                {key: "water", header: "Tiền nước", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailWaterFee)},
-                                {key: "garbage", header: "Phí rác", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600", render: (detail) => fmt(detail.invoiceDetailGarbageFee)},
-                                {key: "total", header: "Tổng cộng", headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400", cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs font-bold text-blue-700", render: (detail) => fmt(detail.invoiceDetailTotalAmount)},
+                                {
+                                    key: "id",
+                                    header: "ID",
+                                    cellClassName: "px-3 py-3 font-mono text-xs text-gray-500",
+                                    render: (detail) => `#${detail.invoiceDetailId}`
+                                },
+                                {
+                                    key: "premise",
+                                    header: "Premise ID",
+                                    cellClassName: "max-w-48 truncate px-3 py-3 font-mono text-xs text-gray-500",
+                                    render: (detail) => <span
+                                        title={detail.invoiceDetailPremiseId}>{detail.invoiceDetailPremiseId}</span>
+                                },
+                                {
+                                    key: "rental",
+                                    header: "Tiền thuê",
+                                    headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400",
+                                    cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600",
+                                    render: (detail) => fmt(detail.invoiceDetailRentalPrice)
+                                },
+                                {
+                                    key: "electricity",
+                                    header: "Tiền điện",
+                                    headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400",
+                                    cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600",
+                                    render: (detail) => fmt(detail.invoiceDetailElectricityFee)
+                                },
+                                {
+                                    key: "water",
+                                    header: "Tiền nước",
+                                    headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400",
+                                    cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600",
+                                    render: (detail) => fmt(detail.invoiceDetailWaterFee)
+                                },
+                                {
+                                    key: "garbage",
+                                    header: "Phí rác",
+                                    headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400",
+                                    cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs text-gray-600",
+                                    render: (detail) => fmt(detail.invoiceDetailGarbageFee)
+                                },
+                                {
+                                    key: "total",
+                                    header: "Tổng cộng",
+                                    headerClassName: "px-3 py-2.5 text-right text-xs font-semibold text-gray-400",
+                                    cellClassName: "whitespace-nowrap px-3 py-3 text-right font-mono text-xs font-bold text-blue-700",
+                                    render: (detail) => fmt(detail.invoiceDetailTotalAmount)
+                                },
                             ]}
                         />
                         <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">

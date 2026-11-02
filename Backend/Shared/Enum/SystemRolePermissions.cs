@@ -73,11 +73,11 @@ namespace Shared.Enum
         // API/service phải giới hạn account đích chỉ là Inspector hoặc Employee.
         public static IReadOnlySet<ESystemPermissionCode> Manager { get; } =
             Admin.Where(permission => permission is not ESystemPermissionCode.IdentityRoleCreate
-                                      and not ESystemPermissionCode.IdentityRoleUpdate
-                                      and not ESystemPermissionCode.IdentityRoleRevoke
-                                      and not ESystemPermissionCode.IdentityPermissionCreate
-                                      and not ESystemPermissionCode.IdentityPermissionUpdate
-                                      and not ESystemPermissionCode.IdentityPermissionRevoke)
+                    and not ESystemPermissionCode.IdentityRoleUpdate
+                    and not ESystemPermissionCode.IdentityRoleRevoke
+                    and not ESystemPermissionCode.IdentityPermissionCreate
+                    and not ESystemPermissionCode.IdentityPermissionUpdate
+                    and not ESystemPermissionCode.IdentityPermissionRevoke)
                 .ToHashSet();
 
         public static IReadOnlySet<ESystemPermissionCode> GetPermissions(ESystemRoleCode roleCode)
