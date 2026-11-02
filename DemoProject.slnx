@@ -108,5 +108,4 @@
         <File Path="Frontend/src/api/premise.ts"/>
         <File Path="Frontend/src/api/ticketAndNotification.ts"/>
     </Folder>
-    <Project Path="TestProject/TestProject.csproj"/>
 </Solution>

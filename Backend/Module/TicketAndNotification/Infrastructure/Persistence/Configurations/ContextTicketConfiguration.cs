@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Shared.Enum;
 using TicketAndNotification.Models.Ticket;
 
 namespace TicketAndNotification.Infrastructure.Persistence.Configurations
@@ -28,7 +29,7 @@ namespace TicketAndNotification.Infrastructure.Persistence.Configurations
             entity.Property(ticket => ticket.TicketType)
                 .HasColumnName("ticket_type")
                 .HasConversion<string>()
-                .HasDefaultValue("feedback")
+                .HasDefaultValue(ETicketType.Feedback)
                 .IsRequired();
 
             entity.Property(ticket => ticket.TicketIsResolved)

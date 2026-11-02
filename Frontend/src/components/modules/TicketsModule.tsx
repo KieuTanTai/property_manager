@@ -8,14 +8,13 @@ import {
     type TicketModel,
     type TicketType
 } from "../../api/ticketAndNotification"
+import {APP_SETTINGS} from "@/config/appSettings"
 import {FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
 import {ImageAttachments} from "./ImageAttachments"
-import {MOCK_NOTIFICATIONS, MOCK_TICKETS} from "../../mocks/tickets"
+import {MOCK_NOTIFICATIONS} from "../../mocks/tickets"
 
-type View = "tickets" | "notifications"
 const button = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
 const ticketTypes: TicketType[] = ["Review", "Complaint", "Violation", "Feedback"]
-const notificationTypes: NotificationType[] = ["Violation", "Ticket", "Other"]
 const ticketLabel: Record<TicketType, string> = {
     Review: "Đánh giá",
     Complaint: "Khiếu nại",
@@ -29,49 +28,56 @@ export function TicketsModule({
                                   customerMode = false,
                                   ownOnly = false,
                                   canReadOwn = false,
-                                  canReadNotifications = false,
                                   canCreateViolation = false
                               }: {
     accountId?: string;
     customerMode?: boolean;
     ownOnly?: boolean;
     canReadOwn?: boolean;
-    canReadNotifications?: boolean;
     canCreateViolation?: boolean
 }) {
     const canViewTickets = !customerMode && (canReadOwn || canCreateViolation)
-    const canViewNotifications = customerMode || canReadNotifications
-    const [view, setView] = useState<View>(customerMode || !canViewTickets ? "notifications" : "tickets")
-    const [tickets, setTickets] = useState<TicketModel[]>(MOCK_TICKETS)
+    const [tickets, setTickets] = useState<TicketModel[]>([])
     const [notifications, setNotifications] = useState<NotificationModel[]>(MOCK_NOTIFICATIONS)
     const [filter, setFilter] = useState<"all" | "open" | "resolved">("all")
-    const [modal, setModal] = useState<View | null>(null)
+    const [ticketTypeFilter, setTicketTypeFilter] = useState<TicketType | "all">("all")
+    const [ticketPage, setTicketPage] = useState(1)
+    const [isEditingTicketPage, setIsEditingTicketPage] = useState(false)
+    const [ticketPageInput, setTicketPageInput] = useState("1")
+    const [ticketReload, setTicketReload] = useState(0)
+    const [modal, setModal] = useState<"tickets" | null>(null)
     const [ticketForm, setTicketForm] = useState({accountId: "", content: "", type: "Feedback" as TicketType})
     const [ticketImages, setTicketImages] = useState<File[]>([])
     const [imageToView, setImageToView] = useState<{ urls: string[]; index: number } | null>(null)
-    const [notificationForm, setNotificationForm] = useState({
-        senderAccountId: "",
-        recipientAccountId: "",
-        content: "",
-        type: "Other" as NotificationType
-    })
-    const loading = false
+    const [loadingTickets, setLoadingTickets] = useState(true)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [ticketLoadError, setTicketLoadError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
     const loadingNotifications = false
 
     useEffect(() => {
+        if (customerMode || !canViewTickets) {
+            setLoadingTickets(false)
+            return
+        }
+
         let isCurrent = true
+        setLoadingTickets(true)
+        setTicketLoadError(null)
         void ticketApi.tickets().then((items) => {
             if (isCurrent) setTickets(items)
-        }).catch(() => {
-            // Keep the local sample tickets available when the API is not running.
+        }).catch((cause: unknown) => {
+            if (!isCurrent) return
+            setTickets([])
+            setTicketLoadError(cause instanceof Error ? cause.message : "Không thể tải danh sách yêu cầu.")
+        }).finally(() => {
+            if (isCurrent) setLoadingTickets(false)
         })
         return () => {
             isCurrent = false
         }
-    }, [])
+    }, [canViewTickets, customerMode, ticketReload])
 
     useEffect(() => {
         if (!imageToView) return
@@ -110,61 +116,23 @@ export function TicketsModule({
         event.preventDefault()
         const selectedImages = ticketImages
         const done = await run(async () => {
+            const imageDataUrls: string[] = await Promise.all(selectedImages.map((file) => compressImageToDataUrl(file, "standard")))
+            const created = await ticketApi.createTicket({
+                accountId: ticketForm.accountId,
+                content: ticketForm.content,
+                type: ticketForm.type
+            })
+            let ticketMedias = created.ticketMedias ?? []
             if (selectedImages.length > 0) {
-                const imageDataUrls: string[] = await Promise.all(selectedImages.map((file) => compressImageToDataUrl(file, "standard")))
-                const created = await ticketApi.createTicket({
-                    accountId: ticketForm.accountId,
-                    content: ticketForm.content,
-                    type: ticketForm.type
-                })
                 await ticketApi.addTicketMedias(created.ticketId, imageDataUrls)
-                const ticketMedias = await ticketApi.ticketMedias(created.ticketId)
-                setTickets((current) => [{...created, ticketMedias}, ...current])
-            } else {
-                const now = new Date().toISOString()
-                const sample: TicketModel = {
-                    ticketId: crypto.randomUUID(),
-                    ticketAccountId: ticketForm.accountId,
-                    ticketContent: ticketForm.content,
-                    ticketType: ticketForm.type,
-                    ticketIsResolved: false,
-                    ticketCreatedAt: now,
-                    ticketUpdatedAt: now,
-                    ticketMedias: []
-                }
-                setTickets((current) => [sample, ...current])
+                ticketMedias = await ticketApi.ticketMedias(created.ticketId)
             }
+            setTickets((current) => [{...created, ticketMedias}, ...current])
+            setTicketPage(1)
         }, "Đã tạo yêu cầu.")
         if (done) {
             setTicketImages([]);
             setModal(null)
-        }
-    }
-    const createNotification = async (event: SubmitEvent<HTMLFormElement>) => {
-        event.preventDefault()
-        setSaving(true)
-        setError(null)
-        setNotice(null)
-        try {
-            const now = new Date().toISOString()
-            const id = crypto.randomUUID()
-            const notification: NotificationModel = {
-                notificationId: id,
-                notificationSenderAccountId: notificationForm.senderAccountId,
-                notificationType: notificationForm.type,
-                notificationContent: notificationForm.content,
-                notificationIsRead: false,
-                notificationCreatedAt: now,
-                notificationUpdatedAt: now,
-                notificationRecipients: [{notificationId: id, accountId: notificationForm.recipientAccountId}]
-            }
-            setNotifications((current) => [notification, ...current])
-            setNotice("Đã tạo thông báo và thêm người nhận.")
-            setModal(null)
-        } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "Không tạo được thông báo.")
-        } finally {
-            setSaving(false)
         }
     }
     const markRead = (notification: NotificationModel) => void run(async () => {
@@ -175,7 +143,29 @@ export function TicketsModule({
         } : item))
     }, "Đã đánh dấu thông báo đã đọc.")
     const accountTickets = ownOnly && accountId ? tickets.filter((ticket) => ticket.ticketAccountId === accountId) : tickets
-    const filteredTickets = accountTickets.filter((ticket) => filter === "all" || ticket.ticketIsResolved === (filter === "resolved"))
+    const filteredTickets = accountTickets.filter((ticket) =>
+        (filter === "all" || ticket.ticketIsResolved === (filter === "resolved"))
+        && (ticketTypeFilter === "all" || ticket.ticketType === ticketTypeFilter))
+    const ticketPageSize = APP_SETTINGS.pagination.defaultPageSize
+    const ticketPageCount = Math.max(1, Math.ceil(filteredTickets.length / ticketPageSize))
+    const activeTicketPage = Math.min(ticketPage, ticketPageCount)
+    const visibleTickets = filteredTickets.slice((activeTicketPage - 1) * ticketPageSize, activeTicketPage * ticketPageSize)
+
+    useEffect(() => {
+        if (ticketPage !== activeTicketPage) setTicketPage(activeTicketPage)
+    }, [activeTicketPage, ticketPage])
+    useEffect(() => setTicketPageInput(String(activeTicketPage)), [activeTicketPage])
+
+    const commitTicketPageInput = () => {
+        const inputPage = Number(ticketPageInput)
+        const nextPage = Number.isFinite(inputPage)
+            ? Math.max(1, Math.min(ticketPageCount, Math.trunc(inputPage)))
+            : activeTicketPage
+        setTicketPage(nextPage)
+        setTicketPageInput(String(nextPage))
+        setIsEditingTicketPage(false)
+    }
+
     const visibleNotifications = ownOnly && accountId
         ? notifications.filter((item) => item.notificationRecipients.some((recipient) => recipient.accountId === accountId))
         : notifications
@@ -183,11 +173,10 @@ export function TicketsModule({
     return <div>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div><h1
-                className="text-xl font-bold text-slate-900">{customerMode ? "Thông báo của tôi" : "Yêu cầu &amp; Thông báo"}</h1>
-                <p className="mt-1 text-sm text-slate-500">{customerMode ? `${visibleNotifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc` : `${tickets.filter((ticket) => !ticket.ticketIsResolved).length} ticket chưa xử lý · ${notifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc`}</p>
+                className="text-xl font-bold text-slate-900">{customerMode ? "Thông báo của tôi" : "Yêu cầu"}</h1>
+                <p className="mt-1 text-sm text-slate-500">{customerMode ? `${visibleNotifications.filter((item) => !item.notificationIsRead).length} thông báo chưa đọc` : `${accountTickets.filter((ticket) => !ticket.ticketIsResolved).length} ticket chưa xử lý`}</p>
             </div>
             {canCreateViolation && <div className="flex gap-2">
-                <span className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">Dữ liệu mẫu</span>
                 <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`} onClick={() => {
                     setTicketForm({accountId: accountId ?? "", content: "", type: "Violation"});
                     setTicketImages([]);
@@ -202,21 +191,37 @@ export function TicketsModule({
         {notice && <div role="status"
                         className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
 
-        <div className="mb-5 flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
-            {([...(canViewTickets ? ["tickets" as const] : []), ...(canViewNotifications ? ["notifications" as const] : [])]).map((item) =>
-                <button
-                    key={item}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium ${view === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
-                    onClick={() => setView(item)}>{item === "tickets" ? `Tickets (${tickets.length})` : `Thông báo (${visibleNotifications.length})`}</button>)}
-        </div>
-
-        {view === "tickets" && canViewTickets ? <>
-            <div
-                className="mb-4 flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">{(["all", "open", "resolved"] as const).map((item) =>
-                <button key={item} onClick={() => setFilter(item)}
-                        className={`rounded-md px-3 py-1.5 text-xs font-medium ${filter === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{item === "all" ? "Tất cả" : item === "open" ? "Chưa xử lý" : "Đã xử lý"}</button>)}</div>
-            <div className="space-y-3">{loading ? <p className="py-10 text-center text-sm text-slate-500">Đang
-                tải...</p> : filteredTickets.map((ticket) => <article key={ticket.ticketId}
+        {!customerMode && canViewTickets ? <>
+            {ticketLoadError && <div role="alert"
+                                      className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <span>{ticketLoadError}</span>
+                <button type="button" className={`${button} border border-red-200 bg-white`}
+                        onClick={() => setTicketReload((current) => current + 1)}>Thử tải lại</button>
+            </div>}
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div
+                    className="flex gap-1 rounded-lg bg-slate-100 p-1 w-fit">{(["all", "open", "resolved"] as const).map((item) =>
+                    <button key={item} onClick={() => {
+                        setFilter(item)
+                        setTicketPage(1)
+                    }}
+                            className={`rounded-md px-3 py-1.5 text-xs font-medium ${filter === item ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>{item === "all" ? "Tất cả" : item === "open" ? "Chưa xử lý" : "Đã xử lý"}</button>)}</div>
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <span>Loại yêu cầu</span>
+                    <select className={selectCls} aria-label="Lọc theo loại yêu cầu"
+                            value={ticketTypeFilter}
+                            onChange={(event) => {
+                                setTicketTypeFilter(event.target.value as TicketType | "all")
+                                setTicketPage(1)
+                            }}>
+                        <option value="all">Tất cả loại</option>
+                        {ticketTypes.map((type) =>
+                            <option key={type} value={type}>{ticketLabel[type]}</option>)}
+                    </select>
+                </label>
+            </div>
+            <div className="space-y-3">{loadingTickets ? <p className="py-10 text-center text-sm text-slate-500">Đang
+                tải...</p> : visibleTickets.map((ticket) => <article key={ticket.ticketId}
                                                                       className="rounded-xl border border-slate-200 bg-white p-5">
                 <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
@@ -231,11 +236,12 @@ export function TicketsModule({
                     {ticket.ticketIsResolved ?
                         <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Đã xử lý</span> :
                         !ownOnly && <button className={`${button} bg-blue-600 text-white`} disabled={saving}
-                                            onClick={() => void run(async () => setTickets((current) => current.map((item) => item.ticketId === ticket.ticketId ? {
-                                                ...item,
-                                                ticketIsResolved: true,
-                                                ticketUpdatedAt: new Date().toISOString()
-                                            } : item)), "Đã xử lý ticket.")}>Đánh dấu xử lý</button>}</div>
+                                            onClick={() => void run(async () => {
+                                                const updated = await ticketApi.updateTicket(ticket, true)
+                                                setTickets((current) => current.map((item) => item.ticketId === updated.ticketId
+                                                    ? {...updated, ticketMedias: item.ticketMedias}
+                                                    : item))
+                                            }, "Đã xử lý ticket.")}>Đánh dấu xử lý</button>}</div>
                 {ticket.ticketMedias.length > 0 &&
                     <div className="mt-3 flex flex-wrap gap-2">{ticket.ticketMedias.map((media, index) => <button
                         key={media.ticketMediaId} type="button" onClick={() => setImageToView({
@@ -245,10 +251,62 @@ export function TicketsModule({
                         className="h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-100"><img
                         src={media.ticketMediaImageUrl} alt={`Ảnh ${index + 1} đính kèm ticket`}
                         className="h-full w-full object-cover"/></button>)}</div>}
-            </article>)}{!loading && filteredTickets.length === 0 &&
+            </article>)}{!loadingTickets && !ticketLoadError && filteredTickets.length === 0 &&
                 <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không
                     có ticket.</p>}</div>
-        </> : <div className="space-y-3">{loading || loadingNotifications ?
+            {!loadingTickets && filteredTickets.length > ticketPageSize && <nav aria-label="Phân trang yêu cầu"
+                className="mt-4 flex justify-center border-t border-slate-100 px-3 py-3">
+                <div className="flex items-center justify-center gap-4 text-sm">
+                    <button type="button" aria-label="Trang trước" disabled={activeTicketPage <= 1}
+                            onClick={() => setTicketPage((current) => Math.max(1, current - 1))}
+                            className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                             className="h-4 w-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6"/>
+                        </svg>
+                    </button>
+                    <span aria-live="polite" className="min-w-20 text-center text-slate-600">
+                        {isEditingTicketPage ? <input
+                            aria-label="Chuyển đến trang"
+                            type="number"
+                            min={1}
+                            max={ticketPageCount}
+                            step={1}
+                            autoFocus
+                            value={ticketPageInput}
+                            onChange={(event) => setTicketPageInput(event.target.value)}
+                            onBlur={commitTicketPageInput}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter") commitTicketPageInput()
+                                if (event.key === "Escape") {
+                                    setTicketPageInput(String(activeTicketPage))
+                                    setIsEditingTicketPage(false)
+                                }
+                            }}
+                            className="w-12 rounded border border-blue-300 px-1 py-0.5 text-center font-semibold text-blue-600 outline-none focus:ring-2 focus:ring-blue-200"
+                        /> : <button
+                            type="button"
+                            aria-label={`Trang hiện tại ${activeTicketPage}, bấm để nhập số trang`}
+                            onClick={() => {
+                                setTicketPageInput(String(activeTicketPage))
+                                setIsEditingTicketPage(true)
+                            }}
+                            className="rounded px-1 font-semibold text-blue-600 hover:bg-blue-50"
+                        >{activeTicketPage}</button>}
+                        <span className="mx-1">/</span>
+                        {ticketPageCount}
+                    </span>
+                    <button type="button" aria-label="Trang sau" disabled={activeTicketPage >= ticketPageCount}
+                            onClick={() => setTicketPage((current) => Math.min(ticketPageCount, current + 1))}
+                            className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                             className="h-4 w-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </button>
+                </div>
+            </nav>}
+        </> : <div className="space-y-3">{loadingNotifications ?
             <p className="py-10 text-center text-sm text-slate-500">Đang tải...</p> : visibleNotifications.map((item) =>
                 <article key={item.notificationId}
                          className={`rounded-xl border bg-white p-5 ${item.notificationIsRead ? "border-slate-100" : "border-blue-200"}`}>
@@ -265,7 +323,7 @@ export function TicketsModule({
                         {item.notificationIsRead ? <span className="text-xs text-slate-400">Đã đọc</span> :
                             <button className={`${button} bg-slate-900 text-white`} disabled={saving}
                                     onClick={() => markRead(item)}>Đánh dấu đã đọc</button>}</div>
-                </article>)}{!loading && visibleNotifications.length === 0 &&
+                </article>)}{!loadingNotifications && visibleNotifications.length === 0 &&
             <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không
                 có thông báo.</p>}</div>}
 
@@ -300,41 +358,6 @@ export function TicketsModule({
             </ProcessingForm>
         </Modal>}
 
-        {modal === "notifications" && <Modal title="Tạo thông báo" onClose={() => setModal(null)}>
-            <ProcessingForm processing={saving} onSubmit={createNotification}>
-                <FormField label="Sender account ID"><input className={inputCls} required placeholder="GUID người gửi"
-                                                            value={notificationForm.senderAccountId}
-                                                            onChange={(event) => setNotificationForm({
-                                                                ...notificationForm,
-                                                                senderAccountId: event.target.value
-                                                            })}/></FormField>
-                <FormField label="Recipient account ID"><input className={inputCls} required
-                                                               placeholder="GUID người nhận"
-                                                               value={notificationForm.recipientAccountId}
-                                                               onChange={(event) => setNotificationForm({
-                                                                   ...notificationForm,
-                                                                   recipientAccountId: event.target.value
-                                                               })}/></FormField>
-                <FormField label="Loại thông báo"><select className={selectCls} value={notificationForm.type}
-                                                          onChange={(event) => setNotificationForm({
-                                                              ...notificationForm,
-                                                              type: event.target.value as NotificationType
-                                                          })}>{notificationTypes.map((type) => <option key={type}
-                                                                                                       value={type}>{notificationLabel[type]}</option>)}</select></FormField>
-                <FormField label="Nội dung"><textarea className={inputCls} required maxLength={255} rows={4}
-                                                      value={notificationForm.content}
-                                                      onChange={(event) => setNotificationForm({
-                                                          ...notificationForm,
-                                                          content: event.target.value
-                                                      })}/></FormField>
-                <div className="flex justify-end gap-2">
-                    <button type="button" className={`${button} border border-slate-200`}
-                            onClick={() => setModal(null)}>Hủy
-                    </button>
-                    <button className={`${button} bg-slate-900 text-white`} disabled={saving}>Tạo thông báo</button>
-                </div>
-            </ProcessingForm>
-        </Modal>}
         {imageToView && <div role="dialog" aria-modal="true"
                              aria-label={`Ảnh ${imageToView.index + 1} trong ${imageToView.urls.length} ảnh đính kèm`}
                              onClick={() => setImageToView(null)}

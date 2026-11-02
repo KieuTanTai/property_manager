@@ -21,9 +21,8 @@ import {LocationsTab} from "../premises/LocationsTab"
 import {PremisesSubTabs} from "../premises/PremisesSubTabs"
 import {PremisesTab} from "../premises/PremisesTab"
 import {ImageAttachments} from "./ImageAttachments"
-import {mediaApi} from "@/api/media"
 import {premiseApi, type PremiseRequest, type ProductRequest} from "@/api/premise"
-import {getImageDisplayUrl} from "@/utils/imageUrls"
+import {hasPermission, PERMISSIONS} from "@/utils/authorization"
 
 function toPremiseStatus(status: string): PremiseStatus {
     switch (status.toLowerCase()) {
@@ -74,7 +73,7 @@ function toPremiseMedia(model: PremiseMediaModel): PremiseMedia {
     return {
         premiseMediaId: model.imageId,
         premiseMediaPremiseId: model.premiseId,
-        premiseMediaImageUrl: getImageDisplayUrl(model.imageUrl),
+        premiseMediaImageUrl: model.imageUrl,
         premiseMediaCreatedAt: model.createdAt,
         premiseMediaUpdatedAt: model.updatedAt,
     }
@@ -151,7 +150,20 @@ function toPremiseRequest(form: {
     }
 }
 
-export function PremisesModule() {
+export function PremisesModule({
+    roleCodes = [],
+    permissionCodes = [],
+}: {
+    roleCodes?: string[]
+    permissionCodes?: string[]
+}) {
+    const can = (permission: string) => hasPermission(permissionCodes, permission, roleCodes)
+    const canCreatePremise = can(PERMISSIONS.premiseCreate)
+    const canUpdatePremise = can(PERMISSIONS.premiseUpdate)
+    const canCreateLocation = can(PERMISSIONS.premiseLocationCreate)
+    const canUpdateLocation = can(PERMISSIONS.premiseLocationUpdate)
+    const canDeleteLocation = can(PERMISSIONS.premiseLocationRevoke)
+    const canCreateBusinessType = can(PERMISSIONS.premiseBusinessCreate)
     const [premises, setPremises] = useState<Premise[]>([])
     const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>([])
     const [premiseImages, setPremiseImages] = useState<File[]>([])
@@ -177,6 +189,11 @@ export function PremisesModule() {
     const [activeProductSuggestionIndex, setActiveProductSuggestionIndex] = useState(-1)
     const productLoadSequence = useRef(0)
     const [activeSubTab, setActiveSubTab] = useState<PremisesSubTab>("locations")
+    const canAddInActiveTab = activeSubTab === "locations"
+        ? canCreateLocation
+        : activeSubTab === "business-types"
+            ? canCreateBusinessType
+            : canCreatePremise
     const [filter, setFilter] = useState<PremiseStatus | "all">("all")
     const [modal, setModal] = useState<"add" | "view" | null>(null)
     const [premiseIsEditing, setPremiseIsEditing] = useState(false)
@@ -366,6 +383,7 @@ export function PremisesModule() {
     }, [])
 
     const openAdd = () => {
+        if (!canCreatePremise) return
         if (!locations.length) {
             alert("Vui lòng tạo địa chỉ trước khi thêm mặt bằng.")
             setActiveSubTab("locations")
@@ -395,7 +413,7 @@ export function PremisesModule() {
     }
 
     const startEditingPremise = () => {
-        if (!selectedPremise) return
+        if (!canUpdatePremise || !selectedPremise) return
         setForm({
             name: selectedPremise.name,
             floor: String(selectedPremise.floor),
@@ -412,6 +430,7 @@ export function PremisesModule() {
     }
 
     const handleAdd = async () => {
+        if (!canCreatePremise) return
         const location = locations.find(
             (item) => item.locationId === form.locationId,
         )
@@ -421,20 +440,35 @@ export function PremisesModule() {
         }
         setPremiseError(null)
         setIsSavingPremise(true)
+        setIsUploadingPremiseImages(premiseImages.length > 0)
+        let createdPremise: Premise | null = null
         try {
             const created = await premiseApi.createPremise(toPremiseRequest(form))
             const newPremise = toPremise(created, locations)
+            createdPremise = newPremise
             setPremises((current) => [...current, newPremise])
             setSelectedPremise(newPremise)
+            for (const file of premiseImages) {
+                const image = await premiseApi.addImage(created.premiseId, file)
+                setPremiseMedia((current) => [...current, toPremiseMedia(image)])
+                setPremiseImages((current) => current.filter((item) => item !== file))
+            }
             setPremiseImages([])
             setModal(null)
-            setIsUploadingPremiseImages(premiseImages.length > 0)
-            for (const file of premiseImages) {
-                const imageUrl = await mediaApi.uploadImage(file, "premise")
-                const image = await premiseApi.addImage(created.premiseId, imageUrl)
-                setPremiseMedia((current) => [...current, toPremiseMedia(image)])
-            }
         } catch (error) {
+            if (createdPremise) {
+                setForm({
+                    name: createdPremise.name,
+                    floor: String(createdPremise.floor),
+                    position: String(createdPremise.position),
+                    area: createdPremise.area,
+                    status: createdPremise.status,
+                    locationId: createdPremise.locationId,
+                    description: createdPremise.description,
+                })
+                setModal("view")
+                setPremiseIsEditing(true)
+            }
             setPremiseError(error instanceof Error ? error.message : "Không lưu được mặt bằng.")
         } finally {
             setIsUploadingPremiseImages(false)
@@ -443,6 +477,7 @@ export function PremisesModule() {
     }
 
     const handleEdit = async () => {
+        if (!canUpdatePremise) return
         const location = locations.find(
             (item) => item.locationId === form.locationId,
         )
@@ -452,6 +487,7 @@ export function PremisesModule() {
         }
         setPremiseError(null)
         setIsSavingPremise(true)
+        setIsUploadingPremiseImages(pendingImageDeletionIds.length > 0 || premiseImages.length > 0)
         try {
             const updatedModel = await premiseApi.updatePremise(selectedPremise.id, toPremiseRequest(form))
             const updated = toPremise(updatedModel, locations)
@@ -464,14 +500,15 @@ export function PremisesModule() {
                 )
                 setPendingImageDeletionIds((current) => current.filter((id) => id !== imageId))
             }
-            setIsUploadingPremiseImages(premiseImages.length > 0)
             for (const file of premiseImages) {
-                const imageUrl = await mediaApi.uploadImage(file, "premise")
-                const image = await premiseApi.addImage(selectedPremise.id, imageUrl)
+                const image = await premiseApi.addImage(selectedPremise.id, file)
                 setPremiseMedia((current) => [...current, toPremiseMedia(image)])
                 setPremiseImages((current) => current.filter((item) => item !== file))
             }
+            setPremiseImages([])
+            setPendingImageDeletionIds([])
             setPremiseIsEditing(false)
+            setPremiseError(null)
         } catch (error) {
             setPremiseError(error instanceof Error ? error.message : "Không cập nhật được mặt bằng.")
         } finally {
@@ -481,7 +518,7 @@ export function PremisesModule() {
     }
 
     const handleDeletePremise = async () => {
-        if (!selectedPremise || !confirm(`Xác nhận xóa mặt bằng "${selectedPremise.name}"?`)) return
+        if (!canUpdatePremise || !selectedPremise || !confirm(`Xác nhận xóa mặt bằng "${selectedPremise.name}"?`)) return
         setPremiseError(null)
         setIsSavingPremise(true)
         try {
@@ -498,6 +535,10 @@ export function PremisesModule() {
     }
 
     const handleSaveLocation = async () => {
+        if (
+            (locationModal === "add" && !canCreateLocation) ||
+            (locationModal === "edit" && !canUpdateLocation)
+        ) return
         const address = locationAddress.trim()
         if (!address) return
         setPremiseError(null)
@@ -526,6 +567,7 @@ export function PremisesModule() {
     }
 
     const handleDeleteLocation = (location: Location) => {
+        if (!canDeleteLocation) return
         if (
             premises.some((premise) => premise.locationId === location.locationId)
         ) {
@@ -708,27 +750,29 @@ export function PremisesModule() {
                                 : `${premises.length} mặt bằng tổng cộng`}
                     </p>
                 </div>
-                <button
-                    onClick={
-                        activeSubTab === "locations"
-                            ? () => {
-                                setLocationAddress("")
-                                setSelectedLocation(null)
-                                setLocationModal("add")
-                            }
+                {canAddInActiveTab && (
+                    <button
+                        onClick={
+                            activeSubTab === "locations"
+                                ? () => {
+                                    setLocationAddress("")
+                                    setSelectedLocation(null)
+                                    setLocationModal("add")
+                                }
+                                : activeSubTab === "business-types"
+                                    ? openAddBusinessType
+                                    : openAdd
+                        }
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        <span className="text-base leading-none">+</span>
+                        {activeSubTab === "locations"
+                            ? "Thêm địa chỉ"
                             : activeSubTab === "business-types"
-                                ? openAddBusinessType
-                                : openAdd
-                    }
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                >
-                    <span className="text-base leading-none">+</span>
-                    {activeSubTab === "locations"
-                        ? "Thêm địa chỉ"
-                        : activeSubTab === "business-types"
-                            ? "Thêm loại mặt hàng"
-                            : "Thêm mặt bằng"}
-                </button>
+                                ? "Thêm loại mặt hàng"
+                                : "Thêm mặt bằng"}
+                    </button>
+                )}
             </div>
 
             {premiseError && (
@@ -775,6 +819,8 @@ export function PremisesModule() {
                         setLocationModal("edit")
                     }}
                     onDelete={handleDeleteLocation}
+                    canEdit={canUpdateLocation}
+                    canDelete={canDeleteLocation}
                 />
             ) : activeSubTab === "business-types" ? (
                 isLoadingBusinessTypes ? (
@@ -836,14 +882,14 @@ export function PremisesModule() {
                 ) : premises.length === 0 ? (
                     <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center">
                         <p className="text-sm text-gray-500">Chưa có mặt bằng nào.</p>
-                        <button
+                        {canCreatePremise && <button
                             type="button"
                             onClick={openAdd}
                             disabled={!locations.length}
                             className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             Thêm mặt bằng
-                        </button>
+                        </button>}
                     </div>
                 ) : (
                     <PremisesTab
@@ -1449,12 +1495,12 @@ export function PremisesModule() {
                 }
             />
                     </FormField>
-                    {modal === "add" && (
+                    {modal === "add" && canCreatePremise && (
                         <FormField label="Ảnh mặt bằng">
                             <ImageAttachments files={premiseImages} onChange={setPremiseImages}/>
                         </FormField>
                     )}
-                    {modal === "view" && selectedPremise && (
+                    {modal === "view" && selectedPremise && canUpdatePremise && (
                         <FormField label="Ảnh mặt bằng">
                             {selectedPremiseMedia.length > 0 && (
                                 <div className="mb-3 flex flex-wrap gap-3">
@@ -1529,7 +1575,7 @@ export function PremisesModule() {
                         </button>
                         <button
                             onClick={modal === "add" ? () => void handleAdd() : () => void handleEdit()}
-                            disabled={isSavingPremise}
+                            disabled={isSavingPremise || isUploadingPremiseImages}
                             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             {isSavingPremise
@@ -1676,26 +1722,26 @@ export function PremisesModule() {
                             <p className="text-sm text-gray-600">{selectedPremise.description}</p>
                         </div>
                         <div className="flex justify-end gap-2 pt-1">
-                            <button
+                            {canUpdatePremise && <button
                                 type="button"
                                 onClick={() => void handleDeletePremise()}
                                 disabled={isSavingPremise}
                                 className="mr-auto px-4 py-2 text-sm text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
                             >
                                 Xóa mặt bằng
-                            </button>
+                            </button>}
                             <button
                                 onClick={() => setModal(null)}
                                 className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                             >
                                 Đóng
                             </button>
-                            <button
+                            {canUpdatePremise && <button
                                 onClick={startEditingPremise}
                                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >
                                 Chỉnh sửa
-                            </button>
+                            </button>}
                         </div>
                     </div>
                 </Modal>

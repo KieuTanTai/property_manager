@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gateway.Presentation.Controller
 {
     [ApiController]
-    [Route("api/tickets")]
+    [Route("api/ticket")]
+    [Route("api/ticketmedia")]
     [Route("api/ticket-medias")]
     [Route("api/notifications")]
     [Route("api/notification-recipients")]

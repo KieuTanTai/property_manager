@@ -5,6 +5,7 @@ import {
     type PremiseModel,
     type ProductResponse,
 } from "@/components/premises/types"
+import {compressImageToDataUrl} from "@/utils/compressImage"
 
 const apiBase = (import.meta.env.VITE_IDENTITY_API_BASE_URL || "/api").replace(/\/$/, "")
 
@@ -86,12 +87,14 @@ export const premiseApi = {
             request<LocationModel[]>("/Location"),
         ])
         const locationById = new Map(locations.map((location) => [location.locationId, location.locationAddress]))
-        const mediaByPremise = await Promise.all(premises.map(async (premise) => {
+        const mediaByPremise = await Promise.all(premises.map(async (premise): Promise<
+            readonly [string, PublicPremise["media"]]
+        > => {
             try {
                 const images = await request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premise.premiseId)}/images`)
-                return [premise.premiseId, images.map((image) => ({id: image.imageId, url: image.imageUrl}))] as const
+                return [premise.premiseId, images.map((image) => ({id: image.imageId, url: image.imageUrl}))]
             } catch {
-                return [premise.premiseId, []] as const
+                return [premise.premiseId, []]
             }
         }))
         const mediaMap = new Map(mediaByPremise)
@@ -170,11 +173,19 @@ export const premiseApi = {
     deletePremise(premiseId: string) {
         return request<void>(`/Premise/${encodeURIComponent(premiseId)}`, {method: "DELETE"})
     },
-    addImage(premiseId: string, imageUrl: string) {
+    async addImage(premiseId: string, file: File) {
+        const imageUrl = await compressImageToDataUrl(file)
         return request<PremiseMediaModel>(`/Premise/${encodeURIComponent(premiseId)}/images`, {
             method: "POST",
             body: JSON.stringify({imageUrl}),
         })
+    },
+    async updateImage(premiseId: string, imageId: number, file: File) {
+        const imageUrl = await compressImageToDataUrl(file)
+        return request<PremiseMediaModel>(
+            `/Premise/${encodeURIComponent(premiseId)}/images/${imageId}`,
+            {method: "PUT", body: JSON.stringify({imageUrl})},
+        )
     },
     deleteImage(premiseId: string, imageId: number) {
         return request<void>(

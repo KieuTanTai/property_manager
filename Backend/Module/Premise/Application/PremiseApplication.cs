@@ -443,16 +443,6 @@ namespace Premise.Application
                 throw exception;
             }
 
-            if (imageUrl.Length > 255)
-            {
-                var exception = new ArgumentException(
-                    "Image URL cannot exceed 255 characters.", nameof(imageUrl));
-                _logger.LogLayerError(
-                    _logPool, Module, Layer, exception,
-                    "Premise image creation rejected because the image URL is too long.");
-                throw exception;
-            }
-
             _logger.LogLayerDebug(_logPool, Module, Layer, "Adding image to premise.");
             if (!await _premiseRepository.ExistsAsync(premiseId, cancellationToken))
             {
@@ -507,16 +497,6 @@ namespace Premise.Application
                 _logger.LogLayerError(
                     _logPool, Module, Layer, exception,
                     "Premise image update rejected because the image URL is missing.");
-                throw exception;
-            }
-
-            if (imageUrl.Length > 255)
-            {
-                var exception = new ArgumentException(
-                    "Image URL cannot exceed 255 characters.", nameof(imageUrl));
-                _logger.LogLayerError(
-                    _logPool, Module, Layer, exception,
-                    "Premise image update rejected because the image URL is too long.");
                 throw exception;
             }
 

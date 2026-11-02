@@ -52,18 +52,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const ticketApi = {
-    tickets: () => request<TicketModel[]>("/tickets"),
+    tickets: () => request<TicketModel[]>("/Ticket"),
     addTicketMedias: (ticketId: string, imageUrls: string[]) =>
-        request<number>("/ticket-medias/batch", {
+        request<number>("/TicketMedia/batch", {
             method: "POST",
             body: JSON.stringify(imageUrls.map((imageUrl) => ({ticketId, imageUrl}))),
         }),
-    ticketMedias: (ticketId: string) => request<TicketMediaModel[]>(`/ticket-medias/by-ticket/${ticketId}`),
+    ticketMedias: (ticketId: string) => request<TicketMediaModel[]>(`/TicketMedia/by-ticket/${ticketId}`),
     notifications: () => request<NotificationModel[]>("/notifications"),
     createTicket: (body: { accountId: string; content: string; type: TicketType }) =>
-        request<TicketModel>("/tickets", {method: "POST", body: JSON.stringify(body)}),
+        request<TicketModel>("/Ticket", {method: "POST", body: JSON.stringify(body)}),
     updateTicket: (ticket: TicketModel, isResolved: boolean) =>
-        request<TicketModel>("/tickets", {
+        request<TicketModel>("/Ticket", {
             method: "PUT",
             body: JSON.stringify({
                 ticketId: ticket.ticketId,

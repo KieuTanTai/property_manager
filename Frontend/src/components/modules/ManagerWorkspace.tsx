@@ -176,12 +176,10 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
                                           ownOnly={canViewOwnViolations && !can(PERMISSIONS.contractViolationRead)}/>}
                     {currentActive === "tickets" && <TicketsModule accountId={accountId} ownOnly={!canReadAllTickets}
                                                                    canCreateViolation={can(PERMISSIONS.ticketViolationCreate)}
-                                                                   canReadOwn={canReadOwnTickets}
-                                                                   canReadNotifications={can(PERMISSIONS.notificationReadOwn)}/>}
+                                                                   canReadOwn={canReadOwnTickets}/>}
                     {currentActive === "notifications" &&
                         <TicketsModule accountId={accountId} customerMode ownOnly={!isManagementRole}
-                                       canReadOwn={canReadOwnTickets}
-                                       canReadNotifications={can(PERMISSIONS.notificationReadOwn)}/>}
+                                       canReadOwn={canReadOwnTickets}/>}
                     {currentActive === "accounts" &&
                         <AccountsModule roleCodes={roleCodes} permissionCodes={permissionCodes}/>}
                     {currentActive === "contacts" && <ContactsModule/>}

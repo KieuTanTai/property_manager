@@ -111,7 +111,9 @@ namespace TicketAndNotification.Infrastructure.Repository.TicketRepository
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading all tickets.");
-            return await _db.Tickets.AsNoTracking().ToListAsync(cancellationToken);
+            return await _db.Tickets.AsNoTracking()
+                .Include(ticket => ticket.TicketMedias)
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<TicketModel?> GetByIdAsync(

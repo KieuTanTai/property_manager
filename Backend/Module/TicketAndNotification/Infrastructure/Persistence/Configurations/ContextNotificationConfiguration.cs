@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Shared.Enum;
 using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Infrastructure.Persistence.Configurations
@@ -23,7 +24,7 @@ namespace TicketAndNotification.Infrastructure.Persistence.Configurations
             entity.Property(notification => notification.NotificationType)
                 .HasColumnName("notification_type")
                 .HasConversion<string>()
-                .HasDefaultValue("other")
+                .HasDefaultValue(ENotificationType.Other)
                 .IsRequired();
 
             entity.Property(notification => notification.NotificationContent)
