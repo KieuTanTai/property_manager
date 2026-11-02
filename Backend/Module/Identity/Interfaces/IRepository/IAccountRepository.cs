@@ -1,5 +1,5 @@
 using Identity.Models.Account;
-using Identity.Utils.Enum;
+using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Persistence.Record;
 

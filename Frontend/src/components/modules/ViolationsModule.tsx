@@ -21,8 +21,8 @@ const emptyForm: ViolationForm = {
 
 const newMockId = createUuid
 
-export function ViolationsModule({accountId, readOnly = false}: ViolationsModuleProps) {
-    const initialMockViolations = filterViolationsForAccount(MOCK_VIOLATIONS, MOCK_CONTRACTS, accountId, readOnly)
+export function ViolationsModule({accountId, readOnly = false, canCreate = !readOnly, canUpdate = !readOnly, ownOnly = readOnly}: ViolationsModuleProps) {
+    const initialMockViolations = filterViolationsForAccount(MOCK_VIOLATIONS, MOCK_CONTRACTS, accountId, ownOnly)
     const [violations, setViolations] = useState<Violation[]>(initialMockViolations)
     const [modal, setModal] = useState<"add" | "view" | null>(null)
     const [selected, setSelected] = useState<Violation | null>(null)
@@ -80,7 +80,7 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
     }
 
     const hardDelete = (item: Violation) => {
-        if (item.resolved || readOnly) return
+        if (item.resolved || !canUpdate) return
         if (!window.confirm("Xóa mock vi phạm chưa xử lý này? Thao tác không thể hoàn tác.")) return
         setViolations((current) => current.filter((violation) => violation.id !== item.id))
         closeModal()
@@ -104,10 +104,10 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
     return <div>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div><h1 className="text-xl font-bold text-gray-900"
-                     style={{fontFamily: "DM Sans"}}>{readOnly ? "Vi phạm của tôi" : "Vi phạm hợp đồng"}</h1><p
+                     style={{fontFamily: "DM Sans"}}>{ownOnly ? "Vi phạm của tôi" : "Vi phạm hợp đồng"}</h1><p
                 className="mt-1 text-sm text-gray-400">{violations.filter((item) => !item.resolved).length} vi phạm chưa
                 xử lý · {violations.length} mock records</p></div>
-            {!readOnly && <button onClick={openAdd}
+            {canCreate && <button onClick={openAdd}
                                   className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700">+
                 Ghi nhận vi phạm</button>}
         </div>
@@ -195,9 +195,9 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
                         </button>
                         <button type="submit" disabled={saving || !form.contractId || !form.content.trim()}
                                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{saving ? "Đang lưu..." : "Ghi nhận"}</button>
-                    </> : readOnly ? <button type="button" onClick={closeModal}
+                    </> : !canUpdate ? <button type="button" onClick={closeModal}
                                              className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600">Đóng</button> : isEditing ? <>
-                        <button type="button" onClick={() => {
+                        <button type="button" disabled={!canUpdate} onClick={() => {
                             if (selected) setForm({...selected});
                             setIsEditing(false)
                         }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600">Hủy
@@ -208,12 +208,12 @@ export function ViolationsModule({accountId, readOnly = false}: ViolationsModule
                         <button type="button" onClick={closeModal}
                                 className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600">Đóng
                         </button>
-                        {selected && !selected.resolved &&
+                        {selected && !selected.resolved && canUpdate &&
                             <button type="button" disabled={saving} onClick={() => hardDelete(selected)}
                                     className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 disabled:opacity-50">Xóa</button>}
-                        <button type="button" onClick={() => setIsEditing(true)}
+                        {canUpdate && <button type="button" onClick={() => setIsEditing(true)}
                                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white">Chỉnh sửa
-                        </button>
+                        </button>}
                     </>}
                 </div>
             </ProcessingForm>

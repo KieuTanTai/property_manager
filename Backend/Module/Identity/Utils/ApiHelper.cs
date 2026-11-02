@@ -11,8 +11,13 @@ namespace Identity.Utils
         public RecordAuthResponse MappingAuthResult(AccountModel result)
         {
             var roleCodes = result.Roles.Select(role => role.RoleCode).ToList();
-            var additionalPermissionCodes = result.AdditionalPermissions.Select(permission => permission.PermissionCode).ToList();
-            return new RecordAuthResponse(result.AccountId, result.AccountEmail!, result.AccountIsActive, roleCodes, additionalPermissionCodes, result.AccountCreatedAt, result.AccountUpdatedAt);
+            var permissionCodes = result.Roles
+                .SelectMany(role => role.Permissions)
+                .Concat(result.AdditionalPermissions)
+                .Select(permission => permission.PermissionCode)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            return new RecordAuthResponse(result.AccountId, result.AccountEmail!, result.AccountIsActive, roleCodes, permissionCodes, result.AccountCreatedAt, result.AccountUpdatedAt);
         }
 
         public RecordProfileResponse MappingProfileResult(UserProfileModel model)

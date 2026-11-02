@@ -4,8 +4,8 @@ using Identity.Interfaces.IApplication;
 using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
 using Identity.Presentation.Record.Profile;
-using Identity.Utils.Enum;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record.Auth;
@@ -42,7 +42,7 @@ namespace Identity.Presentation.Controller
             var emailClaim = new Claim(ClaimTypes.Email, account.Email);
 
             var roleClaims = account.RoleCodes.Select(roleCode => new Claim(ClaimTypes.Role, roleCode));
-            var additionalPermissionClaims = account.PermissionCodes.Select(permissionCode => new Claim("AdditionalPermission", permissionCode));
+            var additionalPermissionClaims = account.PermissionCodes.Select(permissionCode => new Claim("Permissions", permissionCode));
             var claims = new List<Claim> { nameIdentifierClaim, emailClaim };
             claims.AddRange(roleClaims);
             claims.AddRange(additionalPermissionClaims);

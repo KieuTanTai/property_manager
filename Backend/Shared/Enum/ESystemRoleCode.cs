@@ -1,4 +1,4 @@
-namespace Identity.Utils.Enum
+namespace Shared.Enum
 {
     public enum ESystemRoleCode
     {

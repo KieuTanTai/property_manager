@@ -22,7 +22,7 @@ namespace TicketAndNotification.Infrastructure.Persistence.Configurations
 
             entity.Property(ticketMedia => ticketMedia.TicketMediaImageUrl)
                 .HasColumnName("ticket_media_image_url")
-                .HasMaxLength(255)
+                .HasColumnType("longtext")
                 .IsRequired();
 
             entity.HasOne<TicketModel>()

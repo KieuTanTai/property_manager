@@ -1,9 +1,10 @@
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Permission;
-using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
+using Shared.Enum;
 using Shared.Logging;
+using System.Text.RegularExpressions;
 
 namespace Identity.Infrastructure.Repository.PermissionRepository
 {
@@ -63,8 +64,10 @@ namespace Identity.Infrastructure.Repository.PermissionRepository
         public async Task<PermissionModel?> GetByCodeAsync(ESystemPermissionCode permissionCode, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading permission by code.");
-            var code = permissionCode.ToString().ToLower();
-            return await context.Permissions.AsNoTracking().FirstOrDefaultAsync(permission => permission.PermissionCode.Contains(code), cancellationToken);
+            // Database codes use uppercase snake case, e.g. PREMISE_READ_OWN_RENTED.
+            var code = Regex.Replace(permissionCode.ToString(), "(?<!^)([A-Z])", "_$1").ToUpperInvariant();
+            return await context.Permissions.AsNoTracking()
+                .FirstOrDefaultAsync(permission => permission.PermissionCode == code, cancellationToken);
         }
 
         public async Task<IReadOnlyList<PermissionModel>> GetByNameAsync(string name,

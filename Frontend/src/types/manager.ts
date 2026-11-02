@@ -15,5 +15,6 @@ export interface ManagerWorkspaceProps {
     accountId: string
     email: string
     roleCodes: string[]
+    permissionCodes: string[]
     onLogout: () => void
 }

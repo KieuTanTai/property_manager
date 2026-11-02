@@ -8,8 +8,8 @@ using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Identity.Models.Permission;
 using Identity.Models.Role;
-using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
+using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 

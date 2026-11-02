@@ -152,6 +152,8 @@ export interface LocationsTabProps {
     locations: Location[]
     onEdit: (location: Location) => void
     onDelete: (location: Location) => void
+    canEdit?: boolean
+    canDelete?: boolean
 }
 
 export interface BusinessTypesTabProps {
@@ -174,4 +176,5 @@ export interface PremisesSubTabsProps {
     businessTypeCount: number
     premiseCount: number
     onChange: (tab: PremisesSubTab) => void
+    visibleTabs?: PremisesSubTab[]
 }

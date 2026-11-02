@@ -2,7 +2,7 @@ import type {LocationsTabProps as Props} from "./types"
 import {formatDateTime} from "../../scripts/format"
 import {BaseTable} from "../modules/shared"
 
-export function LocationsTab({locations, onEdit, onDelete}: Props) {
+export function LocationsTab({locations, onEdit, onDelete, canEdit = true, canDelete = true}: Props) {
     return (
         <BaseTable
             rows={locations}
@@ -15,8 +15,8 @@ export function LocationsTab({locations, onEdit, onDelete}: Props) {
                 {key: "created", header: "Ngày tạo", cellClassName: "px-4 py-3 text-xs text-gray-500", render: (location) => formatDateTime(location.createdAt)},
                 {key: "updated", header: "Ngày cập nhật", cellClassName: "px-4 py-3 text-xs text-gray-500", render: (location) => formatDateTime(location.updatedAt)},
                 {key: "actions", header: "Thao tác", headerClassName: "px-4 py-3 text-right font-medium", cellClassName: "px-4 py-3 text-right", render: (location) => <>
-                    <button onClick={() => onEdit(location)} className="rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600">Sửa</button>
-                    <button onClick={() => onDelete(location)} className="rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600">Xóa</button>
+                    {canEdit && <button onClick={() => onEdit(location)} className="rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600">Sửa</button>}
+                    {canDelete && <button onClick={() => onDelete(location)} className="rounded px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600">Xóa</button>}
                 </>},
             ]}
         />

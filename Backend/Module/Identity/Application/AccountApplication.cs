@@ -2,7 +2,7 @@ using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Identity.Models.Profile;
-using Identity.Utils.Enum;
+using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;

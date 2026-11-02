@@ -1,4 +1,4 @@
-namespace Identity.Utils.Enum
+namespace Shared.Enum
 {
     // ! WARNING: Do not change the order of the enum values, as they are used in the database and changing the order will break existing data,
     // STRING TYPE IN DB IS USING '_' AS SEPARATOR, BECAREFUL WHEN CONVERTING TO STRING, ADD SEPARATOR '_' WHEN CONVERTING TO STRING, AND REMOVE '_' WHEN CONVERTING FROM STRING TO ENUM.
@@ -144,7 +144,20 @@ namespace Identity.Utils.Enum
 
         TicketReadList,
 
-        NotificationDeleteHard
+        NotificationDeleteHard,
+
+        // Các mã mới luôn nối cuối enum để giữ nguyên giá trị số đã lưu trong database.
+        IdentityReadOwn,
+
+        PremiseReadList,
+
+        PremiseWhitelistRead,
+
+        TicketReadOwn,
+
+        TicketViolationCreate,
+
+        NotificationReadOwn
 
         #endregion
     }

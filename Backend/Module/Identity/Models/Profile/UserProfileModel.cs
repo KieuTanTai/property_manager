@@ -55,7 +55,7 @@ namespace Identity.Models.Profile
         [MaxLength(255)]
         public string? UserProfileAddress { get; private set; } = "";
 
-        [MaxLength(255)]
+        [MaxLength(ImageDataUriGuard.AvatarMaxEncodedCharacters)]
         public string? UserProfileAvatarUrl { get; private set; } = "";
 
         public DateTime UserProfileCreatedAt { get; init; } = DateTime.Now;
@@ -96,7 +96,7 @@ namespace Identity.Models.Profile
 
         public void SetUserProfileAvatar(string avatar)
         {
-            UserProfileAvatarUrl = ModelFieldGuard.Required(avatar, 255, nameof(avatar));
+            UserProfileAvatarUrl = ImageDataUriGuard.Required(avatar, 200 * 1024, nameof(avatar));
         }
 
         public void SetUserProfileAddress(string address)

@@ -8,6 +8,6 @@ namespace TicketAndNotification.Presentation.Record.TicketMedia
         [Required]
         Guid TicketId,
         [Required]
-        [MaxLength(255)]
+        [MaxLength(410000)]
         string ImageUrl);
 }

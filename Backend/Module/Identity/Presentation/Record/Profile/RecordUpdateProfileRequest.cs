@@ -20,8 +20,7 @@ namespace Identity.Presentation.Record.Profile
         string? PhoneNumber,
         [MaxLength(255)]
         string? Address,
-        [MaxLength(255)]
-        [DataType(DataType.ImageUrl)]
+        [MaxLength(280000)]
         string? AvatarUrl,
         ESystemUserGender UserGender = ESystemUserGender.Unspecified
     );

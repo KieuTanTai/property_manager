@@ -1,8 +1,8 @@
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Role;
-using Identity.Utils.Enum;
 using Microsoft.EntityFrameworkCore;
+using Shared.Enum;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.Repository.RoleRepository

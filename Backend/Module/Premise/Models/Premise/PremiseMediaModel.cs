@@ -8,9 +8,9 @@ namespace Premise.Models.Premise
         public PremiseMediaModel(Guid premiseMediaPremiseId, string premiseMediaImageUrl)
         {
             PremiseMediaPremiseId = premiseMediaPremiseId;
-            PremiseMediaImageUrl = ModelFieldGuard.Required(
+            PremiseMediaImageUrl = ImageDataUriGuard.Required(
                 premiseMediaImageUrl,
-                255,
+                300 * 1024,
                 nameof(premiseMediaImageUrl));
         }
 
@@ -21,9 +21,9 @@ namespace Premise.Models.Premise
         {
             PremiseMediaId = premiseMediaId;
             PremiseMediaPremiseId = premiseMediaPremiseId;
-            PremiseMediaImageUrl = ModelFieldGuard.Required(
+            PremiseMediaImageUrl = ImageDataUriGuard.Required(
                 premiseMediaImageUrl,
-                255,
+                300 * 1024,
                 nameof(premiseMediaImageUrl));
         }
 
@@ -33,7 +33,8 @@ namespace Premise.Models.Premise
 
         public Guid PremiseMediaPremiseId { get; private set; }
 
-        [MaxLength(255)] public string PremiseMediaImageUrl { get; private set; } = string.Empty;
+        [MaxLength(ImageDataUriGuard.StandardMaxEncodedCharacters)]
+        public string PremiseMediaImageUrl { get; private set; } = string.Empty;
 
         public DateTime PremiseMediaCreatedAt { get; init; } = DateTime.Now;
 
@@ -48,7 +49,7 @@ namespace Premise.Models.Premise
 
         public void SetPremiseMediaImageUrl(string imageUrl)
         {
-            PremiseMediaImageUrl = ModelFieldGuard.Required(imageUrl, 255, nameof(imageUrl));
+            PremiseMediaImageUrl = ImageDataUriGuard.Required(imageUrl, 300 * 1024, nameof(imageUrl));
         }
 
         #endregion
