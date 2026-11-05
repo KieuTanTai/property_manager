@@ -231,12 +231,17 @@ namespace TicketAndNotification.Presentation.Controller
         {
             try
             {
-                var notification = new NotificationModel(
-                    request.NotificationId,
-                    request.SenderAccountId,
-                    request.Type,
-                    request.Content,
-                    request.IsRead);
+                var notification = await _notificationApplication.GetByIdAsync(
+                    request.NotificationId, cancellationToken);
+                if (notification is null)
+                {
+                    return NotFound("Notification was not found.");
+                }
+
+                notification.SetNotificationSenderAccountId(request.SenderAccountId);
+                notification.SetNotificationType(request.Type);
+                notification.SetNotificationContent(request.Content);
+                notification.SetNotificationIsRead(request.IsRead);
                 return Ok(await _notificationApplication.UpdateAsync(
                     notification, cancellationToken));
             }

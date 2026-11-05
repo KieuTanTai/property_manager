@@ -60,6 +60,8 @@ export const ticketApi = {
         }),
     ticketMedias: (ticketId: string) => request<TicketMediaModel[]>(`/TicketMedia/by-ticket/${ticketId}`),
     notifications: () => request<NotificationModel[]>("/notifications"),
+    notificationsByRecipient: (accountId: string) =>
+        request<NotificationModel[]>(`/notifications/by-recipient/${encodeURIComponent(accountId)}`),
     createTicket: (body: { accountId: string; content: string; type: TicketType }) =>
         request<TicketModel>("/Ticket", {method: "POST", body: JSON.stringify(body)}),
     updateTicket: (ticket: TicketModel, isResolved: boolean) =>

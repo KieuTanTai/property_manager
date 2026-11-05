@@ -26,5 +26,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseWebSockets();
+app.UseMiddleware<NotificationHubProxyMiddleware>();
 app.MapControllers();
 app.Run();

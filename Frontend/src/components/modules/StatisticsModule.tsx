@@ -1,13 +1,15 @@
-import {useState} from "react"
+import {useEffect, useState} from "react"
 import {
     MOCK_ACCOUNT_MONTHLY,
     MOCK_CONTRACT_MONTHLY,
     MOCK_MONTHLY_REVENUE,
     MOCK_VIOLATION_MONTHLY
 } from "../../mocks/statistics"
-import {ContractStatusBadge, InvoiceStatusBadge, PremiseStatusBadge} from "./shared"
-import {ACCOUNTS, CONTRACTS, INVOICES, PREMISES, VIOLATIONS} from "../../mocks/shared"
+import {BaseTable, ContractStatusBadge, InvoiceStatusBadge, PremiseStatusBadge} from "./shared"
+import {ACCOUNTS, CONTRACTS, INVOICES, VIOLATIONS} from "../../mocks/shared"
 import {fmt} from "../../scripts/format"
+import {premiseApi} from "@/api/premise"
+import type {LocationModel, PremiseModel, PremiseStatus} from "../premises/types"
 
 // ─── Statistics Module ────────────────────────────────────────────────────────
 
@@ -111,11 +113,54 @@ function DistributionList({
     )
 }
 
+function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseStatus {
+    switch (status) {
+        case "Available":
+            return "available"
+        case "Rented":
+            return "rented"
+        case "Reserved":
+            return "reserved"
+        case "Maintenance":
+            return "maintenance"
+    }
+}
+
 export function StatisticsModule() {
     const [activeTab, setActiveTab] =
         useState<"accounts" | "finance" | "premises" | "contracts" | "violations">(
             "finance",
         )
+    const [premises, setPremises] = useState<PremiseModel[]>([])
+    const [locations, setLocations] = useState<LocationModel[]>([])
+    const [premiseFilter, setPremiseFilter] = useState<PremiseStatus | "all">("all")
+    const [premisesLoading, setPremisesLoading] = useState(false)
+    const [premisesError, setPremisesError] = useState<string | null>(null)
+    const [premisesReload, setPremisesReload] = useState(0)
+
+    useEffect(() => {
+        if (activeTab !== "premises") return
+
+        let isCurrent = true
+        setPremisesLoading(true)
+        setPremisesError(null)
+        void Promise.all([premiseApi.getPremise(), premiseApi.getLocations()])
+            .then(([premiseItems, locationItems]) => {
+                if (!isCurrent) return
+                setPremises(premiseItems)
+                setLocations(locationItems)
+            })
+            .catch((cause: unknown) => {
+                if (!isCurrent) return
+                setPremisesError(cause instanceof Error ? cause.message : "Không thể tải thống kê mặt bằng.")
+            })
+            .finally(() => {
+                if (isCurrent) setPremisesLoading(false)
+            })
+        return () => {
+            isCurrent = false
+        }
+    }, [activeTab, premisesReload])
 
     const tabs = [
         {id: "finance" as const, label: "Tài chính"},
@@ -136,29 +181,6 @@ export function StatisticsModule() {
         (s, i) => s + i.totalAmount,
         0,
     )
-
-    const premisesByStatus = [
-        {
-            name: "Đang thuê",
-            value: PREMISES.filter((p) => p.status === "rented").length,
-            color: "bg-blue-500",
-        },
-        {
-            name: "Còn trống",
-            value: PREMISES.filter((p) => p.status === "available").length,
-            color: "bg-emerald-500",
-        },
-        {
-            name: "Đặt cọc",
-            value: PREMISES.filter((p) => p.status === "reserved").length,
-            color: "bg-amber-500",
-        },
-        {
-            name: "Bảo trì",
-            value: PREMISES.filter((p) => p.status === "maintenance").length,
-            color: "bg-red-500",
-        },
-    ]
 
     const contractsByStatus = [
         {
@@ -235,6 +257,44 @@ export function StatisticsModule() {
 
     const totalAccounts = ACCOUNTS.length
     const activeAccounts = ACCOUNTS.filter((a) => a.active).length
+    const premiseStatusCounts: Record<PremiseStatus, number> = {
+        rented: premises.filter((premise) => premise.premiseStatus === "Rented").length,
+        available: premises.filter((premise) => premise.premiseStatus === "Available").length,
+        reserved: premises.filter((premise) => premise.premiseStatus === "Reserved").length,
+        maintenance: premises.filter((premise) => premise.premiseStatus === "Maintenance").length,
+    }
+    const filteredPremises = premiseFilter === "all"
+        ? premises
+        : premises.filter((premise) => toPremiseStatus(premise.premiseStatus) === premiseFilter)
+    const premisesByStatus = [
+        {name: "Đang thuê", value: premiseStatusCounts.rented, color: "bg-blue-500"},
+        {name: "Còn trống", value: premiseStatusCounts.available, color: "bg-emerald-500"},
+        {name: "Đặt cọc", value: premiseStatusCounts.reserved, color: "bg-amber-500"},
+        {name: "Bảo trì", value: premiseStatusCounts.maintenance, color: "bg-red-500"},
+    ]
+    const premisesByLocation = [...premises.reduce((groups, premise) => {
+        const address = locations.find((location) => location.locationId === premise.premiseLocationId)
+            ?.locationAddress ?? premise.premiseLocation?.locationAddress ?? "Chưa xác định địa chỉ"
+        const group = groups.get(premise.premiseLocationId) ?? {
+            id: premise.premiseLocationId,
+            name: address,
+            total: 0,
+            rented: 0
+        }
+        group.total += 1
+        if (premise.premiseStatus === "Rented") group.rented += 1
+        groups.set(premise.premiseLocationId, group)
+        return groups
+    }, new Map<string, {id: string; name: string; total: number; rented: number}>()).values()]
+    const totalPremiseArea = premises.reduce((total, premise) => {
+        const area = Number.parseFloat(premise.premiseArea)
+        return Number.isFinite(area) ? total + area : total
+    }, 0)
+    const occupancyRate = premises.length
+        ? Math.round((premiseStatusCounts.rented / premises.length) * 100)
+        : 0
+    const formatArea = (area: number) =>
+        `${area.toLocaleString("vi-VN", {maximumFractionDigits: 2})} m²`
 
     return (
         <div>
@@ -495,56 +555,64 @@ export function StatisticsModule() {
             {/* ── Premises ── */}
             {activeTab === "premises" && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-4 gap-4">
+                    {premisesError && <div role="alert"
+                                           className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <span>{premisesError}</span>
+                        <button type="button"
+                                onClick={() => setPremisesReload((current) => current + 1)}
+                                className="rounded-lg border border-red-200 bg-white px-3 py-2 font-medium hover:bg-red-100">
+                            Thử tải lại
+                        </button>
+                    </div>}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <KPICard
                             label="Tổng mặt bằng"
-                            value={String(PREMISES.length)}
-                            sub="Tất cả tòa nhà"
+                            value={premisesLoading ? "…" : String(premises.length)}
+                            sub="Từ dữ liệu hệ thống"
                             color="bg-blue-500"
                         />
                         <KPICard
                             label="Đang cho thuê"
-                            value={String(
-                                PREMISES.filter((p) => p.status === "rented").length,
-                            )}
-                            sub={`${Math.round((PREMISES.filter((p) => p.status === "rented").length / PREMISES.length) * 100)}% lấp đầy`}
-                            trend={{val: "2 mới", up: true}}
+                            value={premisesLoading ? "…" : String(premiseStatusCounts.rented)}
+                            sub={`${occupancyRate}% lấp đầy`}
                             color="bg-emerald-500"
                         />
                         <KPICard
                             label="Còn trống"
-                            value={String(
-                                PREMISES.filter((p) => p.status === "available").length,
-                            )}
+                            value={premisesLoading ? "…" : String(premiseStatusCounts.available)}
                             sub="Sẵn sàng cho thuê"
                             color="bg-amber-400"
                         />
                         <KPICard
-                            label="Bảo trì"
-                            value={String(
-                                PREMISES.filter((p) => p.status === "maintenance").length,
-                            )}
-                            sub="Tạm ngưng hoạt động"
-                            color="bg-red-400"
+                            label="Tổng diện tích"
+                            value={premisesLoading ? "…" : formatArea(totalPremiseArea)}
+                            sub="Diện tích mặt bằng"
+                            color="bg-violet-500"
                         />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div
                             className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                             <SectionHeading title="Phân bổ trạng thái mặt bằng"/>
-                            <DistributionList items={premisesByStatus}/>
+                            {premisesLoading
+                                ? <p className="py-6 text-center text-sm text-gray-400">Đang tải thống kê...</p>
+                                : premisesError
+                                    ? <p className="py-6 text-center text-sm text-gray-400">Không thể tải dữ liệu mặt bằng.</p>
+                                    : <DistributionList items={premisesByStatus}/>}
                         </div>
                         <div
                             className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                            <SectionHeading title="Tỷ lệ lấp đầy theo tòa"/>
-                            <div className="space-y-4 mt-2">
-                                {[
-                                    {name: "123 Nguyễn Huệ, Q.1", total: 2, rented: 1},
-                                    {name: "45 Lê Lợi, Q.1", total: 2, rented: 0},
-                                    {name: "78 Đinh Tiên Hoàng, Q.BT", total: 2, rented: 2},
-                                ].map((b) => (
-                                    <div key={b.name}>
+                            <SectionHeading title="Tỷ lệ lấp đầy theo địa điểm"/>
+                            {premisesLoading
+                                ? <p className="py-6 text-center text-sm text-gray-400">Đang tải thống kê...</p>
+                                : premisesError
+                                    ? <p className="py-6 text-center text-sm text-gray-400">Không thể tải dữ liệu mặt bằng.</p>
+                                    : premisesByLocation.length === 0
+                                        ? <p className="py-6 text-center text-sm text-gray-400">Chưa có dữ liệu mặt bằng.</p>
+                                        : <div className="mt-2 max-h-80 space-y-4 overflow-y-auto">
+                                {premisesByLocation.map((b) => (
+                                    <div key={b.id}>
                                         <div className="flex justify-between items-center mb-1.5">
                       <span className="text-xs font-medium text-gray-700 truncate max-w-[200px]">
                         {b.name}
@@ -564,47 +632,89 @@ export function StatisticsModule() {
                                         </p>
                                     </div>
                                 ))}
-                            </div>
+                            </div>}
                         </div>
                     </div>
 
                     <div
                         className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                        <SectionHeading title="Danh sách mặt bằng" sub="Tất cả tòa nhà"/>
-                        <div className="overflow-hidden">
-                            <div
-                                className="grid grid-cols-6 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                                <span>ID</span>
-                                <span>Tên</span>
-                                <span>Tầng/Vị trí</span>
-                                <span>Diện tích</span>
-                                <span>Địa chỉ</span>
-                                <span>Trạng thái</span>
-                            </div>
-                            {PREMISES.map((p) => (
-                                <div
-                                    key={p.id}
-                                    className="grid grid-cols-6 px-4 py-3 border-b border-gray-50 hover:bg-gray-50/50 transition-colors items-center"
+                        <SectionHeading title="Danh sách mặt bằng" sub="Dữ liệu lấy từ hệ thống"/>
+                        <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+                            {([
+                                {status: "all" as const, label: "Tất cả", count: premises.length},
+                                {status: "available" as const, label: "Còn trống", count: premiseStatusCounts.available},
+                                {status: "rented" as const, label: "Đang thuê", count: premiseStatusCounts.rented},
+                                {status: "reserved" as const, label: "Đã đặt cọc", count: premiseStatusCounts.reserved},
+                                {status: "maintenance" as const, label: "Bảo trì", count: premiseStatusCounts.maintenance},
+                            ]).map(({status, label, count}) => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => setPremiseFilter(status)}
+                                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                                        premiseFilter === status
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                    }`}
                                 >
-                  <span className="text-xs font-mono text-gray-400">
-                    {p.id}
-                  </span>
-                                    <span className="text-xs font-semibold text-gray-900">
-                    {p.name}
-                  </span>
-                                    <span className="text-xs text-gray-500">
-                    T{p.floor} - {p.position}
-                  </span>
-                                    <span className="text-xs font-mono text-gray-700">
-                    {p.area}
-                  </span>
-                                    <span className="text-xs text-gray-400 truncate">
-                    {p.location.split(",")[0]}
-                  </span>
-                                    <PremiseStatusBadge status={p.status}/>
-                                </div>
+                                    {label}<span className="ml-1.5 text-gray-400">{count}</span>
+                                </button>
                             ))}
                         </div>
+                        <BaseTable
+                            rows={filteredPremises}
+                            getRowKey={(premise) => premise.premiseId}
+                            isHaveStt={false}
+                            paginationResetKey={premiseFilter}
+                            loading={premisesLoading}
+                            emptyMessage={premisesError
+                                ? "Không thể tải danh sách mặt bằng."
+                                : premiseFilter === "all"
+                                    ? "Chưa có mặt bằng nào."
+                                    : "Không có mặt bằng ở trạng thái này."}
+                            tableClassName="min-w-[760px] w-full text-sm"
+                            columns={[
+                                {
+                                    key: "id",
+                                    header: "ID",
+                                    cellClassName: "font-mono text-xs text-gray-400",
+                                    render: (premise) => premise.premiseId,
+                                },
+                                {
+                                    key: "name",
+                                    header: "Tên",
+                                    cellClassName: "text-xs font-semibold text-gray-900",
+                                    render: (premise) => premise.premiseName,
+                                },
+                                {
+                                    key: "position",
+                                    header: "Tầng/Vị trí",
+                                    cellClassName: "text-xs text-gray-500",
+                                    render: (premise) => `T${premise.premiseFloor} - ${premise.premisePosition}`,
+                                },
+                                {
+                                    key: "area",
+                                    header: "Diện tích",
+                                    cellClassName: "font-mono text-xs text-gray-700",
+                                    render: (premise) => `${premise.premiseArea} m²`,
+                                },
+                                {
+                                    key: "location",
+                                    header: "Địa chỉ",
+                                    cellClassName: "max-w-48 truncate text-xs text-gray-400",
+                                    render: (premise) => (locations.find((location) =>
+                                        location.locationId === premise.premiseLocationId
+                                    )?.locationAddress ?? premise.premiseLocation?.locationAddress
+                                        ?? "Chưa xác định địa chỉ").split(",")[0],
+                                },
+                                {
+                                    key: "status",
+                                    header: "Trạng thái",
+                                    render: (premise) =>
+                                        <PremiseStatusBadge status={toPremiseStatus(premise.premiseStatus)}/>,
+                                },
+                            ]}
+                        />
                     </div>
                 </div>
             )}
