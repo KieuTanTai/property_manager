@@ -45,6 +45,12 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 .Where(link => link.PremiseId == premise.PremiseId)
                 .ToListAsync(cancellationToken);
             _db.PremiseBusinessTypes.RemoveRange(businessTypeLinks);
+
+            var premiseMedia = await _db.PremiseMedias
+                .Where(media => media.PremiseMediaPremiseId == premise.PremiseId)
+                .ToListAsync(cancellationToken);
+            _db.PremiseMedias.RemoveRange(premiseMedia);
+
             _db.Premises.Remove(premise);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Premise staged for deletion.");
         }

@@ -2,7 +2,12 @@ import type {BusinessTypesTabProps as Props} from "./types"
 import {formatDateTime} from "../../scripts/format"
 import {BaseTable} from "../modules/shared"
 
-export function BusinessTypesTab({businessTypes, onView}: Props) {
+export function BusinessTypesTab({
+    businessTypes,
+    onView,
+    onToggleActive,
+    canToggleActive = true,
+}: Props) {
     return (
         <BaseTable
             rows={businessTypes}
@@ -48,6 +53,28 @@ export function BusinessTypesTab({businessTypes, onView}: Props) {
                     header: "Ngày cập nhật",
                     cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500",
                     render: (item) => formatDateTime(item.updatedAt)
+                },
+                {
+                    key: "actions",
+                    header: "Thao tác",
+                    headerClassName: "px-4 py-3 text-right font-medium",
+                    cellClassName: "px-4 py-3 text-right",
+                    render: (item) => canToggleActive && (
+                        <button
+                            type="button"
+                            onClick={(event) => {
+                                event.stopPropagation()
+                                onToggleActive(item)
+                            }}
+                            className={`rounded px-2 py-1 text-xs transition-colors ${
+                                item.active
+                                    ? "text-amber-600 hover:bg-amber-50 hover:text-amber-800"
+                                    : "text-emerald-600 hover:bg-emerald-50 hover:text-emerald-800"
+                            }`}
+                        >
+                            {item.active ? "Ẩn mặt hàng" : "Khôi phục"}
+                        </button>
+                    )
                 },
             ]}
         />

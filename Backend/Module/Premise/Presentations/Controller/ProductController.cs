@@ -35,7 +35,7 @@ namespace Premise.Presentations.Controller
             }
         }
 
-        [HttpGet("{id:guid}")]
+        [HttpGet("{id:guid}", Name = "GetProductById")]
         [ProducesResponseType(typeof(RecordProductResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -77,8 +77,8 @@ namespace Premise.Presentations.Controller
                     request.ProductDescription,
                     cancellationToken);
 
-                return CreatedAtAction(
-                    nameof(GetByIdAsync),
+                return CreatedAtRoute(
+                    "GetProductById",
                     new { id = product.WhitelistProductId },
                     ToResponse(product));
             }
@@ -113,8 +113,8 @@ namespace Premise.Presentations.Controller
                     request.BusinessTypeId,
                     cancellationToken);
 
-                return CreatedAtAction(
-                    nameof(GetByIdAsync),
+                return CreatedAtRoute(
+                    "GetProductById",
                     new { id = product.WhitelistProductId },
                     ToResponse(product));
             }
@@ -171,6 +171,33 @@ namespace Premise.Presentations.Controller
             catch (OperationCanceledException exception)
             {
                 return BadRequest(new ProblemDetails { Title = $"Request canceled. {exception.Message}" });
+            }
+        }
+
+        [HttpDelete("{id:guid}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteAsync(
+            [FromRoute] Guid id,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _productApplication.DeleteAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new ProblemDetails { Title = exception.Message });
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = exception.Message });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Conflict(new ProblemDetails { Title = exception.Message });
             }
         }
 

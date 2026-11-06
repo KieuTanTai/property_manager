@@ -35,6 +35,7 @@ builder.Services.AddScoped<IPremiseMediaRepository, PremiseMediaRepository>();
 builder.Services.AddScoped<IBusinessTypeRepository, BusinessTypeRepository>();
 builder.Services.AddScoped<IBusinessTypeApplication, BusinessTypeApplication>();
 builder.Services.AddScoped<IPremiseBusinessTypeRepository, PremiseBusinessTypeRepository>();
+builder.Services.AddScoped<IRentedPremiseRepository, RentedPremiseRepository>();
 builder.Services.AddScoped<IPremiseApplication, PremiseApplication>();
 builder.Services.AddScoped<IWhitelistProductRepository, WhitelistProductRepository>();
 builder.Services.AddScoped<IProductBusinessTypeRepository, ProductBusinessTypeRepository>();

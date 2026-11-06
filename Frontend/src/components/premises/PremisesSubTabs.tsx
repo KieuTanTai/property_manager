@@ -4,6 +4,7 @@ export function PremisesSubTabs({
                                     activeTab,
                                     locationCount,
                                     businessTypeCount,
+                                    productCount,
                                     premiseCount,
                                     onChange,
                                     visibleTabs,
@@ -15,6 +16,7 @@ export function PremisesSubTabs({
             label: "Quản lý mặt hàng",
             count: businessTypeCount,
         },
+        {id: "products" as const, label: "Sản phẩm", count: productCount},
         {id: "premises" as const, label: "Mặt bằng", count: premiseCount},
     ]
 

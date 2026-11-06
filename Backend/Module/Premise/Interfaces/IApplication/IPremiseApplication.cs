@@ -81,5 +81,9 @@ namespace Premise.Interfaces.IApplication
             Guid premiseId,
             Guid businessTypeId,
             CancellationToken cancellationToken = default);
+
+        Task ReleaseContractPremisesAsync(
+            Guid contractId,
+            CancellationToken cancellationToken = default);
     }
 }

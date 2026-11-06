@@ -19,6 +19,7 @@ namespace Premise.Application
         ILocationRepository locationRepository,
         IBusinessTypeRepository businessTypeRepository,
         IPremiseBusinessTypeRepository premiseBusinessTypeRepository,
+        IRentedPremiseRepository rentedPremiseRepository,
         IUnitOfWork unitOfWork) : IPremiseApplication
     {
         private const string Module = "Premise";
@@ -38,6 +39,8 @@ namespace Premise.Application
         private readonly IPremiseMediaRepository _premiseMediaRepository = premiseMediaRepository;
 
         private readonly IPremiseRepository _premiseRepository = premiseRepository;
+
+        private readonly IRentedPremiseRepository _rentedPremiseRepository = rentedPremiseRepository;
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
@@ -694,6 +697,39 @@ namespace Premise.Application
             }
 
             _logger.LogLayerInformation(_logPool, Module, Layer, "Business type removed from premise.");
+        }
+
+        public async Task ReleaseContractPremisesAsync(
+            Guid contractId,
+            CancellationToken cancellationToken = default)
+        {
+            if (contractId == Guid.Empty)
+            {
+                throw new ArgumentException("Contract id is required.", nameof(contractId));
+            }
+
+            var rentals = await _rentedPremiseRepository.GetByContractIdAsync(
+                contractId, cancellationToken);
+            foreach (var rental in rentals)
+            {
+                var premise = await _premiseRepository.GetTrackedByIdAsync(
+                    rental.PremiseId, cancellationToken)
+                    ?? throw new KeyNotFoundException(
+                        $"Premise linked to contract {contractId} was not found: {rental.PremiseId}.");
+
+                if (premise.PremiseStatus != EPremiseStatus.Maintenance)
+                {
+                    premise.SetPremiseStatus(EPremiseStatus.Available);
+                }
+
+                await _rentedPremiseRepository.DeleteAsync(
+                    contractId, rental.PremiseId, cancellationToken);
+            }
+
+            if (rentals.Count > 0)
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
         }
 
         private async Task EnsurePremiseExistsAsync(

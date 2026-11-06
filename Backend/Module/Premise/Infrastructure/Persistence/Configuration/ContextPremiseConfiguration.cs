@@ -86,13 +86,13 @@ namespace Premise.Infrastructure.Persistence.Configuration
                         });
 
                         join.Property(premiseBusinessType => premiseBusinessType.PremiseId)
-                            .HasColumnName("premise_id");
+                            .HasColumnName("pre_bt_premise_id");
 
                         join.Property(premiseBusinessType => premiseBusinessType.BusinessTypeId)
-                            .HasColumnName("business_type_id");
+                            .HasColumnName("pre_bt_business_type_id");
 
                         join.Property(premiseBusinessType => premiseBusinessType.AssignedAt)
-                            .HasColumnName("assigned_at")
+                            .HasColumnName("pre_bt_asigned_at")
                             .HasColumnType("timestamp")
                             .HasDefaultValueSql("CURRENT_TIMESTAMP")
                             .ValueGeneratedOnAdd();

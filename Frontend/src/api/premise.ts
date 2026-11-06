@@ -24,6 +24,12 @@ export type ProductRequest = {
     productDescription: string | null
 }
 
+export type BusinessTypeRequest = {
+    businessTypeName: string
+    businessTypeDescription: string | null
+    businessTypeIsActive: boolean
+}
+
 export type PublicPremise = {
     id: string
     name: string
@@ -120,6 +126,24 @@ export const premiseApi = {
     getBusinessTypes() {
         return request<BusinessTypeModel[]>("/BusinessType")
     },
+    createBusinessType(body: BusinessTypeRequest) {
+        return request<BusinessTypeModel>("/BusinessType", {
+            method: "POST",
+            body: JSON.stringify(body),
+        })
+    },
+    updateBusinessType(id: string, body: BusinessTypeRequest) {
+        return request<BusinessTypeModel>(`/BusinessType/${encodeURIComponent(id)}`, {
+            method: "PUT",
+            body: JSON.stringify(body),
+        })
+    },
+    setBusinessTypeActive(id: string, isActive: boolean) {
+        return request<BusinessTypeModel>(`/BusinessType/${encodeURIComponent(id)}/active`, {
+            method: "PATCH",
+            body: JSON.stringify(isActive),
+        })
+    },
     getProducts() {
         return request<ProductResponse[]>("/Product")
     },
@@ -144,6 +168,11 @@ export const premiseApi = {
         return request<ProductResponse>(`/Product/${encodeURIComponent(productId)}`, {
             method: "PUT",
             body: JSON.stringify(body),
+        })
+    },
+    deleteProduct(productId: string) {
+        return request<void>(`/Product/${encodeURIComponent(productId)}`, {
+            method: "DELETE",
         })
     },
     addProductBusinessType(productId: string, businessTypeId: string) {

@@ -1,5 +1,5 @@
 export type PremiseStatus = "available" | "reserved" | "rented" | "maintenance"
-export type PremisesSubTab = "locations" | "business-types" | "premises"
+export type PremisesSubTab = "locations" | "business-types" | "products" | "premises"
 
 // Backend Premise models are returned with ASP.NET's camel-cased property names.
 // Keep these wire types separate from the presentation types below until this
@@ -159,6 +159,8 @@ export interface LocationsTabProps {
 export interface BusinessTypesTabProps {
     businessTypes: BusinessType[]
     onView: (businessType: BusinessType) => void
+    onToggleActive: (businessType: BusinessType) => void
+    canToggleActive?: boolean
 }
 
 export interface PremisesTabProps {
@@ -174,7 +176,16 @@ export interface PremisesSubTabsProps {
     activeTab: PremisesSubTab
     locationCount: number
     businessTypeCount: number
+    productCount: number
     premiseCount: number
     onChange: (tab: PremisesSubTab) => void
     visibleTabs?: PremisesSubTab[]
+}
+
+export interface ProductsTabProps {
+    products: ProductResponse[]
+    onEdit: (product: ProductResponse) => void
+    onDelete: (product: ProductResponse) => void
+    canEdit?: boolean
+    canDelete?: boolean
 }

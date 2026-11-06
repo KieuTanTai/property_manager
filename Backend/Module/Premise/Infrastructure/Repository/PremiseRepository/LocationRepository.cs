@@ -148,27 +148,11 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Location staged for deletion.");
         }
 
-        public async Task SoftDeleteAsync(Guid id, CancellationToken cancellationToken = default)
+        public async Task<bool> HasPremisesAsync(Guid id, CancellationToken cancellationToken = default)
         {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing location soft deletion.");
-            if (id == Guid.Empty)
-            {
-                var exception = new ArgumentException("Location id is required.", nameof(id));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Location soft deletion rejected because the id is missing.");
-                throw exception;
-            }
-
-            var location = await _db.Locations.FirstOrDefaultAsync(
-                item => item.LocationId == id, cancellationToken);
-            if (location is null)
-            {
-                var exception = new InvalidOperationException($"Location not found: {id}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Location soft deletion rejected because it was not found.");
-                throw exception;
-            }
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Location soft deletion staged.");
+            return await _db.Premises.AnyAsync(
+                premise => premise.PremiseLocationId == id,
+                cancellationToken);
         }
 
         #endregion

@@ -28,5 +28,12 @@ namespace Contract.Interfaces.IRepository
             CancellationToken cancellationToken = default);
 
         Task SoftDeleteAsync(Guid contractId, DateTime deletionDate, CancellationToken cancellationToken = default);
+
+        Task<int> ExpireDueSignedContractsAsync(
+            DateTime utcNow,
+            CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<Guid>> GetEndedContractIdsAsync(
+            CancellationToken cancellationToken = default);
     }
 }

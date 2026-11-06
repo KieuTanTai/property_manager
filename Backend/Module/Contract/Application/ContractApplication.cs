@@ -1,5 +1,6 @@
 using Contract.Interfaces.IApplication;
 using Contract.Interfaces.IRepository;
+using Contract.Interfaces.Services;
 using Contract.Models.Contract;
 using Contract.Models.Regulation;
 using Contract.Utils.Enum;
@@ -14,6 +15,7 @@ namespace Contract.Application
         IContractRepository contractRepository,
         IContractRegulationRepository contractRegulationRepository,
         IRegulationRepository regulationRepository,
+        IContractPremiseSyncClient premiseSyncClient,
         ILogger<ContractApplication> logger,
         ILogPool logPool)
         : IContractApplication
@@ -25,6 +27,8 @@ namespace Contract.Application
         private readonly IContractRegulationRepository _contractRegulationRepository = contractRegulationRepository;
 
         private readonly IContractRepository _contractRepository = contractRepository;
+
+        private readonly IContractPremiseSyncClient _premiseSyncClient = premiseSyncClient;
 
         private readonly ILogPool _logPool = logPool;
 
@@ -116,7 +120,31 @@ namespace Contract.Application
             }
             _logger.LogLayerDebug(_logPool, Module, Layer, "Terminating contract.");
             await _contractRepository.SoftDeleteAsync(contractId, terminationDate, cancellationToken);
-            return await SaveChangesOrThrowAsync("terminate", cancellationToken);
+            var affectedRows = await SaveChangesOrThrowAsync("terminate", cancellationToken);
+            try
+            {
+                await _premiseSyncClient.ReleasePremisesAsync(contractId, cancellationToken);
+            }
+            catch (HttpRequestException exception)
+            {
+                _logger.LogError(exception,
+                    "Contract {ContractId} was terminated but its premises could not be released; reconciliation will retry.",
+                    contractId);
+                throw new InvalidOperationException(
+                    "Contract was terminated, but its premises could not be released. The lifecycle worker will retry.",
+                    exception);
+            }
+            catch (InvalidOperationException exception)
+            {
+                _logger.LogError(exception,
+                    "Contract {ContractId} was terminated but premise release is not configured; reconciliation will retry.",
+                    contractId);
+                throw new InvalidOperationException(
+                    "Contract was terminated, but premise release is not configured. The lifecycle worker will retry.",
+                    exception);
+            }
+
+            return affectedRows;
         }
 
         #endregion

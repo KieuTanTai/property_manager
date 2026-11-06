@@ -18,15 +18,15 @@ namespace Premise.Infrastructure.Persistence.Configuration
             });
 
             entity.Property(premiseBusinessType => premiseBusinessType.PremiseId)
-                .HasColumnName("premise_id")
+                .HasColumnName("pre_bt_premise_id")
                 .IsRequired();
 
             entity.Property(premiseBusinessType => premiseBusinessType.BusinessTypeId)
-                .HasColumnName("business_type_id")
+                .HasColumnName("pre_bt_business_type_id")
                 .IsRequired();
 
             entity.Property(premiseBusinessType => premiseBusinessType.AssignedAt)
-                .HasColumnName("assigned_at")
+                .HasColumnName("pre_bt_asigned_at")
                 .HasColumnType("timestamp")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 

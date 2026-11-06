@@ -34,7 +34,7 @@ namespace Premise.Presentations.Controller
             }
         }
 
-        [HttpGet("{id:guid}")]
+        [HttpGet("{id:guid}", Name = "GetLocationById")]
         [ProducesResponseType(typeof(RecordLocationResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -73,7 +73,10 @@ namespace Premise.Presentations.Controller
             {
                 var created = await _locationApplication.AddAsync(request.LocationAddress, cancellationToken);
                 var response = ToResponse(created);
-                return CreatedAtAction(nameof(GetByIdAsync), new { id = created.LocationId }, response);
+                return CreatedAtRoute(
+                    "GetLocationById",
+                    new { id = created.LocationId },
+                    response);
             }
             catch (ArgumentException exception)
             {

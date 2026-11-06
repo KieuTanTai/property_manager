@@ -211,6 +211,26 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 "Whitelist product staged for update.");
         }
 
+        public async Task DeleteAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException("Product id is required.", nameof(id));
+            }
+
+            var product = await _db.WhitelistProducts.FirstOrDefaultAsync(
+                item => item.WhitelistProductId == id,
+                cancellationToken);
+            if (product is null)
+            {
+                throw new KeyNotFoundException($"Product not found: {id}.");
+            }
+
+            _db.WhitelistProducts.Remove(product);
+        }
+
         public void UpdateRange(
             IEnumerable<WhitelistProductModel> entities,
             CancellationToken cancellationToken = default)

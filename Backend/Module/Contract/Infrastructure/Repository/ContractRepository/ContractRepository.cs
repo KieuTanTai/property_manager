@@ -56,6 +56,34 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Contract staged for deletion.");
         }
 
+        public async Task<int> ExpireDueSignedContractsAsync(
+            DateTime utcNow,
+            CancellationToken cancellationToken = default)
+        {
+            var dueContracts = await _db.Contracts
+                .Where(contract => contract.ContractStatus == EContractStatus.Signed &&
+                                   contract.ContractPremiseReturnDate <= utcNow)
+                .ToListAsync(cancellationToken);
+
+            foreach (var contract in dueContracts)
+            {
+                contract.SetContractStatus(EContractStatus.Expired);
+                contract.SetContractTerminationDate(contract.ContractPremiseReturnDate);
+            }
+
+            return dueContracts.Count;
+        }
+
+        public async Task<IReadOnlyList<Guid>> GetEndedContractIdsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return await _db.Contracts.AsNoTracking()
+                .Where(contract => contract.ContractStatus == EContractStatus.Expired ||
+                                   contract.ContractStatus == EContractStatus.Terminated)
+                .Select(contract => contract.ContractId)
+                .ToListAsync(cancellationToken);
+        }
+
         #endregion
 
         #region PRIVATE

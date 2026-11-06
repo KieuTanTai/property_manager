@@ -126,10 +126,16 @@ namespace Premise.Application
             }
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Deleting location.");
-            var existingLocation = await _locationRepository.GetTrackedByIdAsync(locationId, cancellationToken)
-                                   ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
+            _ = await _locationRepository.GetTrackedByIdAsync(locationId, cancellationToken)
+                ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
 
-            await _locationRepository.SoftDeleteAsync(locationId, cancellationToken);
+            if (await _locationRepository.HasPremisesAsync(locationId, cancellationToken))
+            {
+                throw new InvalidOperationException(
+                    "Cannot delete a location while it is assigned to a premise.");
+            }
+
+            await _locationRepository.DeleteAsync(locationId, cancellationToken);
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectedRows == 0)
             {

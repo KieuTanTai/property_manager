@@ -26,6 +26,10 @@ namespace Premise.Interfaces.IApplication
             string? productDescription,
             CancellationToken cancellationToken = default);
 
+        Task DeleteAsync(
+            Guid productId,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyList<BusinessTypeModel>> GetBusinessTypesAsync(
             Guid productId,
             CancellationToken cancellationToken = default);

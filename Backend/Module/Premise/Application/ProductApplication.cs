@@ -199,6 +199,29 @@ namespace Premise.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Product updated.");
             return product;
         }
+
+        public async Task DeleteAsync(
+            Guid productId,
+            CancellationToken cancellationToken = default)
+        {
+            await EnsureProductExistsAsync(productId, cancellationToken);
+
+            var associations = await _productBusinessTypeRepository.GetTrackedByProductIdAsync(
+                productId, cancellationToken);
+            foreach (var association in associations)
+            {
+                await _productBusinessTypeRepository.DeleteAsync(
+                    productId, association.BusinessTypeId, cancellationToken);
+            }
+
+            await _productRepository.DeleteAsync(productId, cancellationToken);
+            var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (affectedRows == 0)
+            {
+                throw new InvalidOperationException("Failed to delete product.");
+            }
+        }
+
         public async Task<IReadOnlyList<BusinessTypeModel>> GetBusinessTypesAsync(
             Guid productId,
             CancellationToken cancellationToken = default)

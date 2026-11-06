@@ -13,15 +13,20 @@ import type {
     ProductResponse,
 } from "../premises/types"
 
-import {createUuidV7} from "@/scripts/ids.ts"
 import {formatDateTime} from "@/scripts/format"
 
 import {BusinessTypesTab} from "../premises/BusinessTypesTab"
 import {LocationsTab} from "../premises/LocationsTab"
 import {PremisesSubTabs} from "../premises/PremisesSubTabs"
 import {PremisesTab} from "../premises/PremisesTab"
+import {ProductsTab} from "../premises/ProductsTab"
 import {ImageAttachments} from "./ImageAttachments"
-import {premiseApi, type PremiseRequest, type ProductRequest} from "@/api/premise"
+import {
+    premiseApi,
+    type BusinessTypeRequest,
+    type PremiseRequest,
+    type ProductRequest,
+} from "@/api/premise"
 import {hasPermission, PERMISSIONS} from "@/utils/authorization"
 
 function toPremiseStatus(status: string): PremiseStatus {
@@ -164,6 +169,9 @@ export function PremisesModule({
     const canUpdateLocation = can(PERMISSIONS.premiseLocationUpdate)
     const canDeleteLocation = can(PERMISSIONS.premiseLocationRevoke)
     const canCreateBusinessType = can(PERMISSIONS.premiseBusinessCreate)
+    const canToggleBusinessType = can(PERMISSIONS.premiseBusinessRevoke)
+    const canManageProducts = can(PERMISSIONS.premiseWhitelistCreate)
+    const canDeleteProducts = can(PERMISSIONS.premiseWhitelistRevoke)
     const [premises, setPremises] = useState<Premise[]>([])
     const [premiseMedia, setPremiseMedia] = useState<PremiseMedia[]>([])
     const [premiseImages, setPremiseImages] = useState<File[]>([])
@@ -183,6 +191,11 @@ export function PremisesModule({
     const [productCatalog, setProductCatalog] = useState<ProductResponse[]>([])
     const [isLoadingProductCatalog, setIsLoadingProductCatalog] = useState(true)
     const [productCatalogError, setProductCatalogError] = useState<string | null>(null)
+    const [productManagementError, setProductManagementError] = useState<string | null>(null)
+    const [productModal, setProductModal] = useState<"add" | "edit" | null>(null)
+    const [selectedCatalogProduct, setSelectedCatalogProduct] = useState<ProductResponse | null>(null)
+    const [catalogProductForm, setCatalogProductForm] = useState({name: "", description: ""})
+    const [isSavingCatalogProduct, setIsSavingCatalogProduct] = useState(false)
     const [editingProductId, setEditingProductId] = useState<string | null>(null)
     const [selectedCatalogProductId, setSelectedCatalogProductId] = useState<string | null>(null)
     const [isProductSuggestionsOpen, setIsProductSuggestionsOpen] = useState(false)
@@ -193,7 +206,9 @@ export function PremisesModule({
         ? canCreateLocation
         : activeSubTab === "business-types"
             ? canCreateBusinessType
-            : canCreatePremise
+            : activeSubTab === "products"
+                ? canManageProducts
+                : canCreatePremise
     const [filter, setFilter] = useState<PremiseStatus | "all">("all")
     const [modal, setModal] = useState<"add" | "view" | null>(null)
     const [premiseIsEditing, setPremiseIsEditing] = useState(false)
@@ -574,7 +589,7 @@ export function PremisesModule({
             alert("Không thể xóa địa chỉ đang được sử dụng bởi mặt bằng.")
             return
         }
-        if (!confirm("Xác nhận xóa địa chỉ này?")) return
+        if (!confirm(`Xóa vĩnh viễn địa chỉ "${location.address}"? Thao tác này không thể hoàn tác.`)) return
         void premiseApi.deleteLocation(location.locationId).then(() => {
             setLocations((current) => current.filter((item) => item.locationId !== location.locationId))
         }).catch((error: unknown) => {
@@ -598,37 +613,138 @@ export function PremisesModule({
         setBusinessIsEditing(true)
     }
 
-    const handleSaveBusinessType = () => {
+    const handleSaveBusinessType = async () => {
+        if (!canCreateBusinessType) return
         const name = businessForm.name.trim()
         if (!name) return
-        const now = new Date().toISOString()
-        if (businessModal === "view" && selectedBusinessType) {
-            const updated = {
-                ...selectedBusinessType,
-                ...businessForm,
-                name,
-                updatedAt: now,
-            }
-            setBusinessTypes(
-                businessTypes.map((item) =>
+        const body: BusinessTypeRequest = {
+            businessTypeName: name,
+            businessTypeDescription: businessForm.description.trim() || null,
+            businessTypeIsActive: businessForm.active,
+        }
+        setBusinessTypeError(null)
+        try {
+            if (businessModal === "view" && selectedBusinessType) {
+                const model = await premiseApi.updateBusinessType(selectedBusinessType.businessTypeId, body)
+                const updated = toBusinessType(model)
+                setBusinessTypes((current) => current.map((item) =>
                     item.businessTypeId === updated.businessTypeId ? updated : item,
-                ),
+                ))
+                setSelectedBusinessType(updated)
+                setBusinessIsEditing(false)
+            } else {
+                const model = await premiseApi.createBusinessType(body)
+                setBusinessTypes((current) => [...current, toBusinessType(model)])
+                setBusinessModal(null)
+            }
+        } catch (error) {
+            setBusinessTypeError(error instanceof Error ? error.message : "Không lưu được mặt hàng.")
+        }
+    }
+
+    const handleToggleBusinessTypeActive = async (businessType: BusinessType) => {
+        if (!canToggleBusinessType) return
+        const isActive = !businessType.active
+        if (!isActive && !confirm(`Ẩn mặt hàng "${businessType.name}"? Bạn có thể khôi phục lại sau.`)) {
+            return
+        }
+
+        setBusinessTypeError(null)
+        try {
+            const model = await premiseApi.setBusinessTypeActive(businessType.businessTypeId, isActive)
+            const updated = toBusinessType(model)
+            setBusinessTypes((current) => current.map((item) =>
+                item.businessTypeId === updated.businessTypeId ? updated : item,
+            ))
+            setSelectedBusinessType((current) =>
+                current?.businessTypeId === updated.businessTypeId ? updated : current,
             )
-            setSelectedBusinessType(updated)
-            setBusinessIsEditing(false)
-        } else {
-            setBusinessTypes([
-                ...businessTypes,
-                {
-                    businessTypeId: createUuidV7(),
-                    name,
-                    description: businessForm.description.trim(),
-                    active: businessForm.active,
-                    createdAt: now,
-                    updatedAt: now,
-                },
-            ])
-            setBusinessModal(null)
+        } catch (error) {
+            setBusinessTypeError(error instanceof Error ? error.message : "Không cập nhật được mặt hàng.")
+        }
+    }
+
+    const openAddCatalogProduct = () => {
+        if (!canManageProducts) return
+        setSelectedCatalogProduct(null)
+        setCatalogProductForm({name: "", description: ""})
+        setProductManagementError(null)
+        setProductModal("add")
+    }
+
+    const openEditCatalogProduct = (product: ProductResponse) => {
+        if (!canManageProducts) return
+        setSelectedCatalogProduct(product)
+        setCatalogProductForm({
+            name: product.productName,
+            description: product.productDescription ?? "",
+        })
+        setProductManagementError(null)
+        setProductModal("edit")
+    }
+
+    const handleSaveCatalogProduct = async () => {
+        if (!canManageProducts) return
+        const name = catalogProductForm.name.trim()
+        const description = catalogProductForm.description.trim()
+        if (!name) {
+            setProductManagementError("Tên sản phẩm là bắt buộc.")
+            return
+        }
+        if (name.length > 100 || description.length > 255) {
+            setProductManagementError("Tên sản phẩm tối đa 100 ký tự; mô tả tối đa 255 ký tự.")
+            return
+        }
+
+        setIsSavingCatalogProduct(true)
+        setProductManagementError(null)
+        try {
+            const body: ProductRequest = {
+                productName: name,
+                productDescription: description || null,
+            }
+            if (productModal === "edit" && selectedCatalogProduct) {
+                const updated = await premiseApi.updateProduct(selectedCatalogProduct.productId, body)
+                setProductCatalog((current) => current.map((product) =>
+                    product.productId === updated.productId ? updated : product,
+                ))
+                setWhitelistProducts((current) => current.map((product) =>
+                    product.productId === updated.productId
+                        ? {...product, name: updated.productName, description: updated.productDescription}
+                        : product,
+                ))
+            } else {
+                const created = await premiseApi.createProduct(body)
+                setProductCatalog((current) => [...current, created])
+            }
+            setProductModal(null)
+            setSelectedCatalogProduct(null)
+        } catch (error) {
+            setProductManagementError(error instanceof Error ? error.message : "Không lưu được sản phẩm.")
+        } finally {
+            setIsSavingCatalogProduct(false)
+        }
+    }
+
+    const handleDeleteCatalogProduct = async (product: ProductResponse) => {
+        if (!canDeleteProducts) return
+        if (!confirm(
+            `Xóa sản phẩm "${product.productName}" khỏi danh mục và tất cả ngành hàng? Thao tác này không thể hoàn tác.`,
+        )) return
+
+        setProductManagementError(null)
+        try {
+            await premiseApi.deleteProduct(product.productId)
+            setProductCatalog((current) => current.filter((item) => item.productId !== product.productId))
+            setWhitelistProducts((current) =>
+                current.filter((item) => item.productId !== product.productId),
+            )
+            if (selectedCatalogProduct?.productId === product.productId) {
+                setProductModal(null)
+                setSelectedCatalogProduct(null)
+            }
+        } catch (error) {
+            setProductManagementError(error instanceof Error ? error.message : "Không xóa được sản phẩm.")
         }
     }
 
@@ -747,7 +863,9 @@ export function PremisesModule({
                             ? `${locations.length} địa chỉ đã tạo`
                             : activeSubTab === "business-types"
                                 ? `${businessTypes.length} loại mặt hàng`
-                                : `${premises.length} mặt bằng tổng cộng`}
+                                : activeSubTab === "products"
+                                    ? `${productCatalog.length} sản phẩm trong danh mục`
+                                    : `${premises.length} mặt bằng tổng cộng`}
                     </p>
                 </div>
                 {canAddInActiveTab && (
@@ -761,7 +879,9 @@ export function PremisesModule({
                                 }
                                 : activeSubTab === "business-types"
                                     ? openAddBusinessType
-                                    : openAdd
+                                    : activeSubTab === "products"
+                                        ? openAddCatalogProduct
+                                        : openAdd
                         }
                         className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
                     >
@@ -770,7 +890,9 @@ export function PremisesModule({
                             ? "Thêm địa chỉ"
                             : activeSubTab === "business-types"
                                 ? "Thêm loại mặt hàng"
-                                : "Thêm mặt bằng"}
+                                : activeSubTab === "products"
+                                    ? "Thêm sản phẩm"
+                                    : "Thêm mặt bằng"}
                     </button>
                 )}
             </div>
@@ -806,6 +928,7 @@ export function PremisesModule({
                 activeTab={activeSubTab}
                 locationCount={locations.length}
                 businessTypeCount={businessTypes.length}
+                productCount={productCatalog.length}
                 premiseCount={premises.length}
                 onChange={setActiveSubTab}
             />
@@ -822,6 +945,32 @@ export function PremisesModule({
                     canEdit={canUpdateLocation}
                     canDelete={canDeleteLocation}
                 />
+            ) : activeSubTab === "products" ? (
+                <>
+                    {productCatalogError && (
+                        <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                            {productCatalogError}
+                        </p>
+                    )}
+                    {productManagementError && (
+                        <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                            {productManagementError}
+                        </p>
+                    )}
+                    {isLoadingProductCatalog ? (
+                        <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-500">
+                            Đang tải danh mục sản phẩm...
+                        </div>
+                    ) : (
+                        <ProductsTab
+                            products={productCatalog}
+                            onEdit={openEditCatalogProduct}
+                            onDelete={(product) => void handleDeleteCatalogProduct(product)}
+                            canEdit={canManageProducts}
+                            canDelete={canDeleteProducts}
+                        />
+                    )}
+                </>
             ) : activeSubTab === "business-types" ? (
                 isLoadingBusinessTypes ? (
                     <div
@@ -836,6 +985,8 @@ export function PremisesModule({
                 ) : (
                     <BusinessTypesTab
                         businessTypes={businessTypes}
+                        onToggleActive={handleToggleBusinessTypeActive}
+                        canToggleActive={canToggleBusinessType}
                         onView={(businessType) => {
                             const loadSequence = ++productLoadSequence.current
                             setSelectedBusinessType(businessType)
@@ -901,6 +1052,74 @@ export function PremisesModule({
                         onView={openView}
                     />
                 )
+            )}
+
+            {productModal && (
+                <Modal
+                    title={productModal === "add" ? "Thêm sản phẩm" : "Chỉnh sửa sản phẩm"}
+                    onClose={() => {
+                        if (isSavingCatalogProduct) return
+                        setProductModal(null)
+                        setSelectedCatalogProduct(null)
+                    }}
+                >
+                    <FormField label="Tên sản phẩm">
+                        <input
+                            className={inputCls}
+                            value={catalogProductForm.name}
+                            maxLength={100}
+                            onChange={(event) => setCatalogProductForm((current) => ({
+                                ...current,
+                                name: event.target.value,
+                            }))}
+                            placeholder="Nhập tên sản phẩm"
+                            autoFocus
+                        />
+                    </FormField>
+                    <FormField label="Mô tả">
+                        <textarea
+                            className={inputCls}
+                            rows={3}
+                            value={catalogProductForm.description}
+                            maxLength={255}
+                            onChange={(event) => setCatalogProductForm((current) => ({
+                                ...current,
+                                description: event.target.value,
+                            }))}
+                            placeholder="Mô tả sản phẩm (không bắt buộc)"
+                        />
+                    </FormField>
+                    {productManagementError && (
+                        <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                            {productManagementError}
+                        </p>
+                    )}
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setProductModal(null)
+                                setSelectedCatalogProduct(null)
+                            }}
+                            disabled={isSavingCatalogProduct}
+                            className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void handleSaveCatalogProduct()}
+                            disabled={!catalogProductForm.name.trim() || isSavingCatalogProduct}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                            {isSavingCatalogProduct
+                                ? "Đang lưu..."
+                                : productModal === "add"
+                                    ? "Thêm sản phẩm"
+                                    : "Lưu thay đổi"}
+                        </button>
+                    </div>
+                </Modal>
             )}
 
             {locationModal && (
@@ -1389,12 +1608,14 @@ export function PremisesModule({
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    void handleDeleteWhitelistProduct(product.productId)
-                                                }
+                                                onClick={() => {
+                                                    if (confirm(`Gỡ "${product.name}" khỏi ngành hàng này?`)) {
+                                                        void handleDeleteWhitelistProduct(product.productId)
+                                                    }
+                                                }}
                                                 className="text-xs text-gray-300 hover:text-red-500 transition-colors"
                                             >
-                                                Xóa
+                                                Gỡ ngành hàng
                                             </button>
                                         </div>
                                     ))}

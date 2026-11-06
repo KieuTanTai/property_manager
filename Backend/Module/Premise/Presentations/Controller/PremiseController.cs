@@ -12,9 +12,38 @@ namespace Premise.Presentations.Controller
     [ApiController]
     [Route("api/[controller]")]
     public sealed class PremiseController(
-        IPremiseApplication premiseApplication) : ControllerBase
+        IPremiseApplication premiseApplication,
+        IConfiguration configuration) : ControllerBase
     {
         private readonly IPremiseApplication _premiseApplication = premiseApplication;
+
+        [HttpDelete("rental-sync/{contractId:guid}")]
+        public async Task<IActionResult> ReleaseContractPremisesAsync(
+            [FromRoute] Guid contractId,
+            [FromHeader(Name = "X-Internal-Api-Key")] string? apiKey,
+            CancellationToken cancellationToken)
+        {
+            var configuredKey = configuration["InternalApi:Key"];
+            if (string.IsNullOrWhiteSpace(configuredKey) ||
+                !string.Equals(apiKey, configuredKey, StringComparison.Ordinal))
+            {
+                return Unauthorized(new ProblemDetails { Title = "Internal API key is invalid." });
+            }
+
+            try
+            {
+                await _premiseApplication.ReleaseContractPremisesAsync(contractId, cancellationToken);
+                return NoContent();
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(new ProblemDetails { Title = exception.Message });
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(new ProblemDetails { Title = exception.Message });
+            }
+        }
 
         [HttpGet]
         [ProducesResponseType(typeof(IReadOnlyList<RecordPremiseResponse>), StatusCodes.Status200OK)]
@@ -38,7 +67,7 @@ namespace Premise.Presentations.Controller
             }
         }
 
-        [HttpGet("{id:guid}")]
+        [HttpGet("{id:guid}", Name = "GetPremiseById")]
         [ProducesResponseType(typeof(RecordPremiseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -279,7 +308,10 @@ namespace Premise.Presentations.Controller
                     request.PremiseDescription);
 
                 var created = await _premiseApplication.AddAsync(premise, cancellationToken);
-                return CreatedAtAction(nameof(GetByIdAsync), new { id = created.PremiseId }, ToResponse(created));
+                return CreatedAtRoute(
+                    "GetPremiseById",
+                    new { id = created.PremiseId },
+                    ToResponse(created));
             }
             catch (KeyNotFoundException exception)
             {
