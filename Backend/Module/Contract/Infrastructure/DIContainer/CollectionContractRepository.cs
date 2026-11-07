@@ -9,6 +9,8 @@ using Contract.Interfaces.IRepository;
 using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces;
 using Shared.Logging;
+using Shared.Caching;
+using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Contract.Infrastructure.DIContainer
 {
@@ -36,6 +38,18 @@ namespace Contract.Infrastructure.DIContainer
                         .LogTo(Console.WriteLine, LogLevel.Information);
                 }
             });
+
+            #endregion
+
+            #region CACHE
+
+            services.AddHybridCache();
+            var redisConnection = configuration.GetConnectionString("Redis");
+            if (!string.IsNullOrWhiteSpace(redisConnection))
+            {
+                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+            }
+            services.AddScoped(typeof(IBaseCacheService<>), typeof(BaseCacheService<>));
 
             #endregion
 

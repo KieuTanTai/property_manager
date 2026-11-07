@@ -131,7 +131,7 @@ export const identityApi = {
     },
     async loginAccount(email: string, password: string): Promise<RecordLoginResponse> {
         const result = await request<RecordLoginResponse & { profile: ApiProfile | null }>("/account/login", {
-            method: "POST", body: JSON.stringify({email, password}),
+            method: "POST", body: JSON.stringify({email, password}), credentials: "include"
         })
         return {...result, profile: result.profile ? toProfileModel(result.profile) : null}
     },

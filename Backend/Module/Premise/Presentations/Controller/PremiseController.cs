@@ -241,8 +241,8 @@ namespace Premise.Presentations.Controller
                 return Ok(new RecordPremiseDetailsResponse(
                     ToResponse(premise),
                     premise.PremiseLocation is null ? null : ToLocationResponse(premise.PremiseLocation),
-                    premise.PremiseMedia.Select(ToImageResponse).ToList(),
-                    premise.PremiseBusinessTypes.Select(ToBusinessTypeResponse).ToList()));
+                    [.. premise.PremiseMedia.Select(ToImageResponse)],
+                    [.. premise.PremiseBusinessTypes.Select(ToBusinessTypeResponse)]));
             }
             catch (KeyNotFoundException exception)
             {
@@ -611,7 +611,7 @@ namespace Premise.Presentations.Controller
             RecordBaseCursorPage<PremiseModel> page)
         {
             return new RecordBaseCursorPage<RecordPremiseResponse>(
-                page.Items.Select(ToResponse).ToList(),
+                [.. page.Items.Select(ToResponse)],
                 page.NextCursor,
                 page.IsHasMore);
         }

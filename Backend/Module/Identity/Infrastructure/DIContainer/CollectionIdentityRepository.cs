@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
+using Shared.Caching;
 
 namespace Identity.Infrastructure.DIContainer
 {
@@ -39,6 +40,18 @@ namespace Identity.Infrastructure.DIContainer
                         .LogTo(Console.WriteLine, LogLevel.Information);
                 }
             });
+
+            #endregion
+
+            #region CACHE
+
+            services.AddHybridCache();
+            var redisConnection = configuration.GetConnectionString("Redis");
+            if (!string.IsNullOrWhiteSpace(redisConnection))
+            {
+                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+            }
+            services.AddScoped(typeof(IBaseCacheService<>), typeof(BaseCacheService<>));
 
             #endregion
 

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces;
 using Shared.Logging;
+using Shared.Caching;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;
 using TicketAndNotification.Infrastructure.Repository;
 using TicketAndNotification.Infrastructure.Repository.NotificationRepository;
@@ -34,6 +35,19 @@ namespace TicketAndNotification.Infrastructure.DIContainer
             });
 
             services.AddSignalR();
+
+            #region CACHE
+
+            services.AddHybridCache();
+            var redisConnection = configuration.GetConnectionString("Redis");
+            if (!string.IsNullOrWhiteSpace(redisConnection))
+            {
+                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+            }
+            services.AddScoped(typeof(IBaseCacheService<>), typeof(BaseCacheService<>));
+
+            #endregion
+
             services.AddSingleton<ILogPool, LogPool>();
             services.AddScoped<IUnitOfWork, EfTicketAndNotificationUnitOfWork>();
             services.AddScoped<ITicketRepository, TicketRepository>();

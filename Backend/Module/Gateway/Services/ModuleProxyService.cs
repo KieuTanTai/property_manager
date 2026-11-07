@@ -42,9 +42,9 @@ namespace Gateway.Services
                 {
                     continue;
                 }
-                if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+                if (!request.Headers.TryAddWithoutValidation(header.Key, [.. header.Value]))
                 {
-                    request.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    request.Content?.Headers.TryAddWithoutValidation(header.Key, [.. header.Value]);
                 }
             }
 
@@ -55,12 +55,12 @@ namespace Gateway.Services
             foreach (var header in response.Headers)
                 if (!HopByHopHeaders.Contains(header.Key))
                 {
-                    context.Response.Headers[header.Key] = new StringValues(header.Value.ToArray());
+                    context.Response.Headers[header.Key] = new StringValues([.. header.Value]);
                 }
             foreach (var header in response.Content.Headers)
                 if (!HopByHopHeaders.Contains(header.Key))
                 {
-                    context.Response.Headers[header.Key] = new StringValues(header.Value.ToArray());
+                    context.Response.Headers[header.Key] = new StringValues([.. header.Value]);
                 }
 
             await response.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
