@@ -38,7 +38,7 @@ namespace Shared.Enum
             ESystemPermissionCode.TicketReadOwn,
             ESystemPermissionCode.NotificationReadOwn
         };
-        
+
         public static IReadOnlySet<ESystemPermissionCode> Inspector { get; } = new HashSet<ESystemPermissionCode>
         {
             ESystemPermissionCode.PremiseReadList,

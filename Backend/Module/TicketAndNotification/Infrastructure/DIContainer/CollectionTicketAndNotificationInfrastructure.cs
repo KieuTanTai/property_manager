@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Shared.Caching;
 using Shared.Interfaces;
 using Shared.Logging;
-using Shared.Caching;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;
 using TicketAndNotification.Infrastructure.Repository;
 using TicketAndNotification.Infrastructure.Repository.NotificationRepository;
@@ -11,9 +11,9 @@ using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Infrastructure.DIContainer
 {
-    public static class CollectionTicketAndNotificationRepository
+    public static class CollectionTicketAndNotificationInfrastructure
     {
-        public static IServiceCollection AddTicketAndNotificationRepositoryCollection(
+        public static IServiceCollection AddTicketAndNotificationInfrastructureCollection(
             this IServiceCollection services,
             IConfiguration configuration,
             IHostEnvironment environment)

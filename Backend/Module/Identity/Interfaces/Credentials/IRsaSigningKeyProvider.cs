@@ -1,4 +1,4 @@
-using Identity.Infrastructure.Credentials;
+using Identity.Infrastructure.Credentials.Models;
 
 namespace Identity.Interfaces.Credentials
 {

@@ -151,9 +151,9 @@ function toPremiseRequest(form: {
 }
 
 export function PremisesModule({
-    roleCodes = [],
-    permissionCodes = [],
-}: {
+                                   roleCodes = [],
+                                   permissionCodes = [],
+                               }: {
     roleCodes?: string[]
     permissionCodes?: string[]
 }) {

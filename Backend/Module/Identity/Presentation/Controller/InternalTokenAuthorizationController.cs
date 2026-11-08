@@ -1,31 +1,29 @@
 using System.Security.Cryptography;
 using System.Text;
 using Identity.Interfaces.Credentials;
-using Identity.Presentation.Record.Account;
+using Identity.Presentation.Record.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Persistence.Record.Auth;
 
 namespace Identity.Presentation.Controller
 {
     [ApiController]
-    [Route("internal/auth/keys")]
-    public sealed class InternalSigningKeyController(
-        IRsaSigningKeyProvider signingKeyProvider,
+    [Route("internal/auth/authorize")]
+    public sealed class InternalTokenAuthorizationController(
+        IJwtAccessTokenValidator tokenValidator,
         IConfiguration configuration) : ControllerBase
     {
         private const string GatewayKeyHeader = "X-Internal-Gateway-Key";
 
-        [HttpGet("{kid}")]
-        public IActionResult GetPublicKey(string kid)
+        [HttpPost]
+        public IActionResult AuthorizeToken([FromBody] RecordInternalTokenAuthorizationRequest request)
         {
             if (!IsAuthorizedGateway())
             {
                 return Unauthorized();
             }
 
-            var publicKeyPem = signingKeyProvider.GetPublicKeyPem(kid);
-            return publicKeyPem is null
-                ? NotFound()
-                : Ok(new RecordPublicSigningKeyResponse(kid, publicKeyPem));
+            return tokenValidator.IsValid(request.AccessToken) ? NoContent() : Unauthorized();
         }
 
         private bool IsAuthorizedGateway()

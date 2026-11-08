@@ -6,15 +6,15 @@ using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Interfaces.IRepository.Location;
 using Premise.Interfaces.IRepository.Premise;
 using Premise.Interfaces.IRepository.Product;
+using Shared.Caching;
 using Shared.Interfaces;
 using Shared.Logging;
-using Shared.Caching;
 
 namespace Premise.Infrastructure.DIContainer
 {
-    public static class CollectionPremiseRepository
+    public static class CollectionPremiseInfrastructure
     {
-        public static IServiceCollection AddPremiseRepositoryCollection(this IServiceCollection services,
+        public static IServiceCollection AddPremiseInfrastructureCollection(this IServiceCollection services,
             IConfiguration configuration, IHostEnvironment environment)
         {
             #region CONFIG

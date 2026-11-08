@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
-builder.Services.AddPremiseRepositoryCollection(builder.Configuration, builder.Environment);
+builder.Services.AddPremiseInfrastructureCollection(builder.Configuration, builder.Environment);
 builder.Services.AddPremiseApplicationCollection();
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 

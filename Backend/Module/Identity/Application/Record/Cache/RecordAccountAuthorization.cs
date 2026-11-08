@@ -4,5 +4,5 @@ namespace Identity.Application.Record.Cache
         Guid[] RoleIds,
         Guid[] RolePermissionIds,
         Guid[] AdditionalPermissionIds
-        );
+    );
 }

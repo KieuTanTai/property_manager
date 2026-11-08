@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Identity.Infrastructure.Credentials
+namespace Identity.Infrastructure.Credentials.Models
 {
     public sealed class RsaSigningKey : IDisposable
     {
@@ -24,6 +24,9 @@ namespace Identity.Infrastructure.Credentials
         public RsaSecurityKey SecurityKey { get; }
         public SigningCredentials SigningCredentials { get; }
 
-        public void Dispose() => Rsa.Dispose();
+        public void Dispose()
+        {
+            Rsa.Dispose();
+        }
     }
 }

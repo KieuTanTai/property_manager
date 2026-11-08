@@ -1,9 +1,6 @@
 using System.Text.Json.Serialization;
 using Gateway.Infrastructure.DIContainer;
 using Gateway.Middleware;
-using Gateway.Services;
-using Shared.Logging;
-using Shared.Caching;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +23,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<RequestDeadlineMiddleware>();
 app.UseHttpsRedirection();
-app.UseMiddleware<JwtWhitelistValidationMiddleware>();
+app.UseMiddleware<IdentityTokenAuthorizationMiddleware>();
 app.MapControllers();
 app.Run();

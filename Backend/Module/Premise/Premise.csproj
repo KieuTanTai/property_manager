@@ -23,7 +23,6 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9"/>
 
 
-
         <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.9"/>
 
         <PackageReference Include="RabbitMQ.Client" Version="7.2.2"/>

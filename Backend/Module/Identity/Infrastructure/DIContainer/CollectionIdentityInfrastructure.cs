@@ -9,16 +9,16 @@ using Identity.Models.Account;
 using Identity.Models.Permission;
 using Identity.Models.Role;
 using Microsoft.EntityFrameworkCore;
+using Shared.Caching;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
-using Shared.Caching;
 
 namespace Identity.Infrastructure.DIContainer
 {
-    public static class CollectionIdentityRepository
+    public static class CollectionIdentityInfrastructure
     {
-        public static IServiceCollection AddIdentityRepositoryCollection(this IServiceCollection services,
+        public static IServiceCollection AddIdentityInfrastructureCollection(this IServiceCollection services,
             IConfiguration configuration, IHostEnvironment environment)
         {
             #region CONFIG

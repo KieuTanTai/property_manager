@@ -1,3 +1,4 @@
+using Gateway.Interfaces.Authorization;
 using Gateway.Services;
 using Shared.Caching;
 using Shared.Logging;
@@ -17,8 +18,7 @@ namespace Gateway.Infrastructure.DIContainer
 
             services.AddSingleton<ILogPool, LogPool>();
             services.AddScoped<ModuleProxyService>();
-            services.AddMemoryCache();
-            services.AddSingleton<IIdentitySigningKeyResolver, IdentitySigningKeyResolver>();
+            services.AddSingleton<IIdentityTokenAuthorizationService, IdentityTokenAuthorizationService>();
 
             return services;
         }

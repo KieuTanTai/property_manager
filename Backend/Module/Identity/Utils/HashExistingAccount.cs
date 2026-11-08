@@ -19,7 +19,7 @@ namespace Identity.Utils
                 var services = new ServiceCollection();
 
                 // Register toàn bộ Identity dependencies thật
-                services.AddIdentityRepositoryCollection(configuration, environment);
+                services.AddIdentityInfrastructureCollection(configuration, environment);
 
                 await using var provider = services.BuildServiceProvider();
                 using var scope = provider.CreateScope();

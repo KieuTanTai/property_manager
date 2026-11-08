@@ -66,7 +66,8 @@ export function LoginModal({onClose, onLogin}: Props) {
                         không gian làm việc.</p>
                 </div>
 
-                <ProcessingForm processing={isSubmitting} onSubmit={handleSubmit} autoComplete="on" className="space-y-4">
+                <ProcessingForm processing={isSubmitting} onSubmit={handleSubmit} autoComplete="on"
+                                className="space-y-4">
                     <div className="space-y-4">
                         <label className="block">
                             <span className="mb-1.5 block text-sm font-medium text-slate-700">Email</span>

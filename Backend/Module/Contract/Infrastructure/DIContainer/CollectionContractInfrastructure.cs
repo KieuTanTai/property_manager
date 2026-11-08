@@ -7,15 +7,15 @@ using Contract.Infrastructure.Repository.ReceiptRepository;
 using Contract.Infrastructure.Repository.RegulationRepository;
 using Contract.Interfaces.IRepository;
 using Microsoft.EntityFrameworkCore;
+using Shared.Caching;
 using Shared.Interfaces;
 using Shared.Logging;
-using Shared.Caching;
 
 namespace Contract.Infrastructure.DIContainer
 {
-    public static class CollectionContractRepository
+    public static class CollectionContractInfrastructure
     {
-        public static IServiceCollection AddContractRepositoryCollection(this IServiceCollection services,
+        public static IServiceCollection AddContractInfrastructureCollection(this IServiceCollection services,
             IConfiguration configuration, IHostEnvironment environment)
         {
             #region CONFIG

@@ -1,5 +1,6 @@
 using Identity.Application;
 using Identity.Infrastructure.Credentials;
+using Identity.Infrastructure.Credentials.Models;
 using Identity.Interfaces;
 using Identity.Interfaces.Credentials;
 using Identity.Interfaces.IApplication;
@@ -22,6 +23,7 @@ namespace Identity.Infrastructure.DIContainer
             services.AddSingleton<RsaSigningKeyRotationService>();
             services.AddSingleton<IRsaSigningKeyProvider>(provider => provider.GetRequiredService<RsaSigningKeyRotationService>());
             services.AddHostedService(provider => provider.GetRequiredService<RsaSigningKeyRotationService>());
+            services.AddSingleton<IJwtAccessTokenValidator, JwtAccessTokenValidator>();
 
             services.Configure<PasswordHasherOptions>(options => {
                 options.CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3;

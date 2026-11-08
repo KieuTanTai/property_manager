@@ -22,7 +22,7 @@ builder.Services.AddRateLimiter(options => options.AddPolicy("consultation-email
             AutoReplenishment = true
         })));
 
-builder.Services.AddContractRepositoryCollection(builder.Configuration, builder.Environment);
+builder.Services.AddContractInfrastructureCollection(builder.Configuration, builder.Environment);
 builder.Services.AddContractApplicationCollection(builder.Configuration);
 
 if (builder.Environment.IsDevelopment())

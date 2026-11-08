@@ -28,17 +28,14 @@ namespace Identity.Presentation.Controller
         private readonly IAccountApplication _accountApplication = accountApplication;
 
         private readonly IApiHelper _apiHelper = apiHelper;
-        private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
 
         private readonly IIdentityHelper<AccountModel> _helper = helper;
+
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
 
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<AccountController> _logger = logger;
-
-        #region PRIVATE
-
-        #endregion
 
         #region GET
 
