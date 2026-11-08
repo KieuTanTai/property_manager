@@ -1,7 +1,5 @@
 using TicketAndNotification.Application;
-using TicketAndNotification.Infrastructure.SignalR;
 using TicketAndNotification.Interfaces.Application;
-using TicketAndNotification.Interfaces.Services;
 
 namespace TicketAndNotification.Infrastructure.DIContainer
 {
@@ -14,7 +12,6 @@ namespace TicketAndNotification.Infrastructure.DIContainer
             services.AddScoped<ITicketMediaApplication, TicketMediaApplication>();
             services.AddScoped<INotificationApplication, NotificationApplication>();
             services.AddScoped<INotificationRecipientApplication, NotificationRecipientApplication>();
-            services.AddScoped<INotificationRealtimePublisher, SignalRNotificationPublisher>();
 
             return services;
         }

@@ -16,9 +16,23 @@ namespace Gateway.Infrastructure.DIContainer
 
             #endregion
 
+            #region LOGGING
+
             services.AddSingleton<ILogPool, LogPool>();
+
+            #endregion
+
+            #region PROXY
+
             services.AddScoped<ModuleProxyService>();
+
+            #endregion
+
+            #region AUTHORIZATION
+
             services.AddSingleton<IIdentityTokenAuthorizationService, IdentityTokenAuthorizationService>();
+
+            #endregion
 
             return services;
         }

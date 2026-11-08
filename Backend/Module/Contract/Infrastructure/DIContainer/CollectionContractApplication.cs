@@ -1,7 +1,5 @@
 using Contract.Application;
-using Contract.Infrastructure.Services;
 using Contract.Interfaces.IApplication;
-using Contract.Interfaces.Services;
 using Contract.Presentation.Record.Contact;
 using Shared.DIContainer;
 
@@ -19,7 +17,6 @@ namespace Contract.Infrastructure.DIContainer
             services.AddScoped<IReceiptApplication, ReceiptApplication>();
             services.AddScoped<IViolationApplication, ViolationApplication>();
             services.AddScoped<IContactInfoApplication, ContactInfoApplication>();
-            services.AddScoped<IEmailSender, SmtpEmailSender>();
             return services;
         }
     }

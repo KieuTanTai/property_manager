@@ -45,9 +45,14 @@ namespace Premise.Infrastructure.DIContainer
 
             #endregion
 
-            #region REPOSITORY
+            #region LOGGING
 
             services.AddSingleton<ILogPool, LogPool>();
+
+            #endregion
+
+            #region REPOSITORY
+
             services.AddScoped<IUnitOfWork, EfPremiseUnitOfWork>();
             services.AddScoped<ILocationRepository, LocationRepository>();
             services.AddScoped<IPremiseRepository, PremiseRepository>();

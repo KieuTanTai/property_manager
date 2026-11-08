@@ -1,10 +1,13 @@
 using Identity.Infrastructure.Persistence.DbContext;
+using Identity.Infrastructure.Credentials;
+using Identity.Infrastructure.Credentials.Models;
 using Identity.Infrastructure.Repository;
 using Identity.Infrastructure.Repository.AccountRepository;
 using Identity.Infrastructure.Repository.PermissionRepository;
 using Identity.Infrastructure.Repository.RoleRepository;
 using Identity.Infrastructure.Repository.UserProfileRepository;
 using Identity.Interfaces.IRepository;
+using Identity.Interfaces.Credentials;
 using Identity.Models.Account;
 using Identity.Models.Permission;
 using Identity.Models.Role;
@@ -49,9 +52,27 @@ namespace Identity.Infrastructure.DIContainer
 
             #endregion
 
-            #region REPOSITORY
+            #region JWT
+
+            services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+            services.AddSingleton<IJwtTokenService, JwtTokenService>();
+            services.AddSingleton<RsaSigningKeyRotationService>();
+            services.AddSingleton<IRsaSigningKeyProvider>(provider =>
+                provider.GetRequiredService<RsaSigningKeyRotationService>());
+            services.AddHostedService(provider =>
+                provider.GetRequiredService<RsaSigningKeyRotationService>());
+            services.AddSingleton<IJwtAccessTokenValidator, JwtAccessTokenValidator>();
+
+            #endregion
+
+            #region LOGGING
 
             services.AddSingleton<ILogPool, LogPool>();
+
+            #endregion
+
+            #region REPOSITORY
+
             services.AddScoped<IUnitOfWork, EfIdentityUnitOfWork>();
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid>, RoleRepository>();
