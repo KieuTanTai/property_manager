@@ -181,7 +181,7 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
                         <TicketsModule accountId={accountId} customerMode ownOnly={!isManagementRole}
                                        canReadOwn={canReadOwnTickets}/>}
                     {currentActive === "accounts" &&
-                        <AccountsModule roleCodes={roleCodes} permissionCodes={permissionCodes}/>}
+                        <AccountsModule currentAccountId={accountId} roleCodes={roleCodes} permissionCodes={permissionCodes}/>}
                     {currentActive === "contacts" && <ContactsModule/>}
                 </div>
             </main>

@@ -41,15 +41,15 @@ function AvatarUploader({file, currentUrl, disabled, onChange}: {
         setPreviewUrl(url)
         return () => URL.revokeObjectURL(url)
     }, [file])
-    return <div className="mb-5 flex flex-col items-center gap-3">
+    return <div className="flex flex-col items-start gap-3">
         <img src={previewUrl || avatarDisplayUrl(currentUrl)} onError={(event) => {
             event.currentTarget.onerror = null;
             event.currentTarget.src = avatarDisplayUrl(fallbackAvatarUrl)
         }} alt="Ảnh đại diện"
              className="h-28 w-28 rounded-full border border-slate-200 object-cover shadow-sm"/>
         <label
-            className={`${buttonCls} cursor-pointer border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100`}>
-            Chọn ảnh đại diện
+            className={`${buttonCls} cursor-pointer w-full text-center border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100`}>
+            Chọn ảnh
             <input type="file" accept="image/*" className="sr-only" disabled={disabled}
                    onChange={(event) => onChange(event.target.files?.[0] ?? null)}/>
         </label>
@@ -94,7 +94,8 @@ function toProfileDraft(profile: UserProfileModel | null): ProfileDraft {
     } : emptyProfileDraft
 }
 
-export function AccountsModule({roleCodes = [], permissionCodes = []}: {
+export function AccountsModule({currentAccountId, roleCodes = [], permissionCodes = []}: {
+    currentAccountId: string;
     roleCodes?: string[];
     permissionCodes?: string[]
 }) {
@@ -117,6 +118,7 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
     useEffect(() => () => updateDebouncedSearch.cancel(), [updateDebouncedSearch])
     const [roleFilter, setRoleFilter] = useState("all")
     const [selectedAccount, setSelectedAccount] = useState<AccountModel | null>(null)
+    const selectedAccountIsCurrent = !!selectedAccount && selectedAccount.accountId.toLowerCase() === currentAccountId.toLowerCase()
     const assignableRoles = isManager && !isAdmin
         ? roles.filter((role) => ["employee", "inspector"].includes(role.roleCode.toLowerCase()))
         : roles
@@ -197,6 +199,17 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
     }, [loadPage])
 
     const selectedRole = roles.find((role) => role.roleId === selectedRoleId) ?? null
+    const rolePermissions = selectedAccount?.roles.flatMap((role) => role.permissions) ?? []
+    const rolePermissionIds = new Set(rolePermissions.map((permission) => permission.permissionId))
+    const rolePermissionCodes = new Set(rolePermissions.map((permission) => permission.permissionCode.toUpperCase()))
+    const directPermissionCodes = new Set(selectedAccount?.additionalPermissions.map((permission) => permission.permissionCode.toUpperCase()) ?? [])
+    const editablePermissions = permissions.filter((permission) =>
+        !rolePermissionIds.has(permission.permissionId) &&
+        !rolePermissionCodes.has(permission.permissionCode.toUpperCase()))
+    const effectivePermissions = [...new Map(
+        [...rolePermissions, ...(selectedAccount?.additionalPermissions ?? [])]
+            .map((permission) => [permission.permissionCode.toUpperCase(), permission] as const),
+    ).values()].sort((left, right) => left.permissionName.localeCompare(right.permissionName))
     useEffect(() => {
         if (!selectedRole) {
             setPermissionIds([])
@@ -240,7 +253,7 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
     }
 
     const saveAccountRoles = async () => {
-        if (!selectedAccount) return
+        if (!selectedAccount || selectedAccountIsCurrent) return
         const additions = assignedRoleIds.filter((id) => !selectedAccount.roles.some((role) => role.roleId === id))
         if (!additions.length) {
             setIsEditingAccountRoles(false);
@@ -259,15 +272,20 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
     }
 
     const saveAccountPermissions = async () => {
-        if (!selectedAccount) return
-        const additions = assignedPermissionIds.filter((id) => !selectedAccount.additionalPermissions.some((permission) => permission.permissionId === id))
-        if (!additions.length) {
+        if (!selectedAccount || selectedAccountIsCurrent) return
+        const nextPermissionIds = [...new Set(assignedPermissionIds)]
+        const currentPermissionIds = selectedAccount.additionalPermissions.map((permission) => permission.permissionId)
+        if (nextPermissionIds.length === currentPermissionIds.length &&
+            nextPermissionIds.every((id) => currentPermissionIds.includes(id))) {
             setIsEditingAccountPermissions(false);
             return
         }
-        const succeeded = await runAction(() => identityApi.addPermissionsToAccount(selectedAccount.accountId, additions), "Đã thêm quyền bổ sung cho tài khoản.")
+        const succeeded = await runAction(
+            () => identityApi.updateAccountAdditionalPermissions(selectedAccount.accountId, nextPermissionIds),
+            "Đã cập nhật quyền bổ sung cho tài khoản.",
+        )
         if (succeeded) {
-            const nextPermissions = permissions.filter((permission) => assignedPermissionIds.includes(permission.permissionId))
+            const nextPermissions = permissions.filter((permission) => nextPermissionIds.includes(permission.permissionId))
             setSelectedAccount((current) => current ? {...current, additionalPermissions: nextPermissions} : current)
             setAccounts((current) => current.map((account) => account.accountId === selectedAccount.accountId ? {
                 ...account,
@@ -560,13 +578,13 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
 
             {selectedAccount &&
                 <Modal title="Chi tiết tài khoản" onClose={() => setSelectedAccount(null)} wide>
-                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                        <div className="space-y-3">
-                            <div className="rounded-lg border border-slate-100 p-3">
+                    <div className="grid gap-4 xl:auto-rows-fr xl:grid-cols-2">
+                        <div className="contents">
+                            <div className="order-3 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-1 xl:row-start-2">
                                 <div className="mb-2 flex items-center justify-between"><p
                                     className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò tài
                                     khoản</p>
-                                    {!isEditingAccountRoles && canAssignRoles && selectedAccountIsAssignable &&
+                                    {!isEditingAccountRoles && !selectedAccountIsCurrent && canAssignRoles && selectedAccountIsAssignable &&
                                         <button type="button"
                                                 className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`}
                                                 onClick={() => {
@@ -574,6 +592,7 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                                     setIsEditingAccountRoles(true)
                                                 }}>Chỉnh sửa</button>}
                                 </div>
+                                {selectedAccountIsCurrent && <p className="mt-2 text-xs text-amber-700">Không thể sửa vai trò của tài khoản đang đăng nhập.</p>}
                                 <div className="mb-2 flex items-center justify-between gap-2">
                                     <p className="text-xs text-slate-500">Chọn thêm vai trò cho tài khoản.</p>
                                     {isEditingAccountRoles && <button type="button"
@@ -586,11 +605,11 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                     </button>}
                                 </div>
                                 <div
-                                    className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
+                                    className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
                                     {assignableRoles.map((role) => <label key={role.roleId}
                                                                           className={`flex items-center gap-2 rounded-md p-2 ${isEditingAccountRoles && !selectedAccount.roles.some((item) => item.roleId === role.roleId) ? "cursor-pointer hover:bg-slate-50" : "cursor-default opacity-70"}`}><input
                                         type="checkbox" className="accent-blue-600"
-                                        disabled={saving || !isEditingAccountRoles || selectedAccount.roles.some((item) => item.roleId === role.roleId)}
+                                                                            disabled={saving || selectedAccountIsCurrent || !isEditingAccountRoles || selectedAccount.roles.some((item) => item.roleId === role.roleId)}
                                         checked={assignedRoleIds.includes(role.roleId)}
                                         onChange={(event) => setAssignedRoleIds((ids) => event.target.checked ? [...ids, role.roleId] : ids.filter((id) => id !== role.roleId))}/><span
                                         className="text-sm text-slate-800">{role.roleName}</span><span
@@ -608,73 +627,11 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                     </button>
                                 </div>}
                             </div>
-                            <div className="rounded-lg border border-slate-100 p-3">
-                                <div className="mb-2 flex items-center justify-between"><p
-                                    className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quyền bổ
-                                    sung</p>
-                                    {!isEditingAccountPermissions && canAssignPermissions && selectedAccountIsAssignable &&
-                                        <button type="button"
-                                                className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`}
-                                                onClick={() => {
-                                                    setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId));
-                                                    setIsEditingAccountPermissions(true)
-                                                }}>Chỉnh sửa</button>}
-                                </div>
-                                <div className="mb-2 flex items-center justify-between gap-2">
-                                    <p className="text-xs text-slate-500">Gán permission trực tiếp cho tài khoản, ngoài
-                                        quyền từ vai trò.</p>
-                                    {isEditingAccountPermissions && <button type="button"
-                                                                            className="shrink-0 text-xs font-medium text-blue-700 hover:text-blue-800"
-                                                                            disabled={saving || permissions.length === 0}
-                                                                            onClick={() => setAssignedPermissionIds(permissions.every((permission) => assignedPermissionIds.includes(permission.permissionId))
-                                                                                ? selectedAccount.additionalPermissions.map((permission) => permission.permissionId)
-                                                                                : permissions.map((permission) => permission.permissionId))}>
-                                        {permissions.length > 0 && permissions.every((permission) => assignedPermissionIds.includes(permission.permissionId)) ? "Bỏ chọn tất cả" : "Chọn tất cả"}
-                                    </button>}
-                                </div>
-                                <div
-                                    className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
-                                    {permissions.map((permission) => <label key={permission.permissionId}
-                                                                            className={`flex items-start gap-2 rounded-md p-2 ${isEditingAccountPermissions && !selectedAccount.additionalPermissions.some((item) => item.permissionId === permission.permissionId) ? "cursor-pointer hover:bg-slate-50" : "cursor-default opacity-70"}`}><input
-                                        type="checkbox" className="mt-0.5 accent-blue-600"
-                                        disabled={saving || !isEditingAccountPermissions || selectedAccount.additionalPermissions.some((item) => item.permissionId === permission.permissionId)}
-                                        checked={assignedPermissionIds.includes(permission.permissionId)}
-                                        onChange={(event) => setAssignedPermissionIds((ids) => event.target.checked ? [...ids, permission.permissionId] : ids.filter((id) => id !== permission.permissionId))}/><span><span
-                                        className="block text-xs font-medium text-slate-800">{permission.permissionName}</span><span
-                                        className="text-[11px] text-slate-500">{permission.permissionCode}</span></span></label>)}
-                                    {!permissions.length &&
-                                        <p className="p-2 text-xs text-slate-500">Chưa có permission.</p>}
-                                </div>
-                                {isEditingAccountPermissions && <div className="mt-3 flex gap-2">
-                                    <button className={`${buttonCls} flex-1 bg-blue-600 text-white hover:bg-blue-700`}
-                                            disabled={saving} onClick={() => void saveAccountPermissions()}>Lưu quyền bổ
-                                        sung
-                                    </button>
-                                    <button className={`${buttonCls} border border-slate-200 text-slate-700`}
-                                            disabled={saving} onClick={() => {
-                                        setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId));
-                                        setIsEditingAccountPermissions(false)
-                                    }}>Hủy
-                                    </button>
-                                </div>}
-                            </div>
                         </div>
-                        <div className="space-y-3">
-                            <section className="rounded-lg border border-slate-100 p-4">
+                        <div className="contents">
+                            <section className="order-1 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-1 xl:row-start-1">
                                 <h2 className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Hồ
                                     sơ người dùng</h2>
-                                {selectedAccount.userProfile && isEditingProfile
-                                    ? <AvatarUploader file={avatarFile} currentUrl={profileDraft.avatarUrl}
-                                                      disabled={profileSaving} onChange={setAvatarFile}/>
-                                    : <div className="mb-5 flex justify-center"><img
-                                        key={avatarDisplayUrl(selectedAccount.userProfile?.userProfileAvatarUrl)}
-                                        src={avatarDisplayUrl(selectedAccount.userProfile?.userProfileAvatarUrl)}
-                                        onError={(event) => {
-                                            event.currentTarget.onerror = null;
-                                            event.currentTarget.src = avatarDisplayUrl(fallbackAvatarUrl)
-                                        }} alt="Ảnh đại diện"
-                                        className="h-28 w-28 rounded-full border border-slate-200 object-cover shadow-sm"/>
-                                    </div>}
                                 {profileError && <p role="alert"
                                                     className="mb-3 rounded-md bg-red-50 p-2 text-xs text-red-700">{profileError}</p>}
                                 {!selectedAccount.userProfile ?
@@ -697,7 +654,12 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                         </button>
                                     </ProcessingForm> : isEditingProfile ?
                                         <ProcessingForm processing={profileSaving} onSubmit={updateAccountProfile}>
-                                            <div className="grid gap-x-3 sm:grid-cols-2">
+                                            <div className="grid min-w-0 gap-x-4 gap-y-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
+                                                <div className="sm:row-span-2 flex justify-center align-middle">
+                                                    <AvatarUploader file={avatarFile} currentUrl={profileDraft.avatarUrl}
+                                                                    disabled={profileSaving} onChange={setAvatarFile}/>
+                                                </div>
+                                                <div className="grid min-w-0 gap-x-3 sm:grid-cols-2">
                                                 <FormField label="Mã định danh"><input className={inputCls}
                                                                                        value={profileDraft.identityCode}
                                                                                        readOnly/></FormField>
@@ -735,14 +697,17 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                                                                          ...current,
                                                                                          phoneNumber: event.target.value
                                                                                      }))}/></FormField>
+                                                </div>
+                                                <div className="min-w-0 sm:col-span-2">
                                                 <FormField label="Địa chỉ"><input className={inputCls} maxLength={255}
                                                                                   value={profileDraft.address}
                                                                                   onChange={(event) => setProfileDraft((current) => ({
                                                                                       ...current,
                                                                                       address: event.target.value
-                                                                                  }))}/></FormField>
+                                                                                   }))}/></FormField>
+                                                </div>
                                             </div>
-                                            <div className="flex justify-end gap-2">
+                                            <div className="flex justify-end gap-2 sm:col-span-2">
                                                 <button type="button"
                                                         className={`${buttonCls} border border-slate-200 text-slate-700`}
                                                         disabled={profileSaving} onClick={() => {
@@ -755,7 +720,17 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                                         disabled={profileSaving}>{profileSaving ? "Đang lưu..." : "Lưu hồ sơ"}</button>
                                             </div>
                                         </ProcessingForm> : <>
-                                            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm">
+                                            <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
+                                            <div className="flex justify-start"><img
+                                                key={avatarDisplayUrl(selectedAccount.userProfile.userProfileAvatarUrl)}
+                                                src={avatarDisplayUrl(selectedAccount.userProfile.userProfileAvatarUrl)}
+                                                onError={(event) => {
+                                                    event.currentTarget.onerror = null;
+                                                    event.currentTarget.src = avatarDisplayUrl(fallbackAvatarUrl)
+                                                }} alt="Ảnh đại diện"
+                                                className="h-28 w-28 rounded-full border border-slate-200 object-cover shadow-sm"/>
+                                            </div>
+                                            <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-3 text-sm">
                                                 <dt className="text-slate-500">Mã định danh</dt>
                                                 <dd className="break-all">{selectedAccount.userProfile.userProfileId}</dd>
                                                 <dt className="text-slate-500">Họ và tên</dt>
@@ -766,9 +741,12 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                                 <dd>{selectedAccount.userProfile.userProfileGender === "Male" ? "Nam" : selectedAccount.userProfile.userProfileGender === "Female" ? "Nữ" : "Chưa xác định"}</dd>
                                                 <dt className="text-slate-500">Điện thoại</dt>
                                                 <dd>{selectedAccount.userProfile.userProfilePhoneNumber || "—"}</dd>
-                                                <dt className="text-slate-500">Địa chỉ</dt>
-                                                <dd>{selectedAccount.userProfile.userProfileAddress || "—"}</dd>
                                             </dl>
+                                            </div>
+                                            <div className="mt-4 border-t border-slate-100 pt-3 text-sm sm:col-span-2">
+                                                <p className="mb-1 text-slate-500">Địa chỉ</p>
+                                                <p className="wrap-break-word">{selectedAccount.userProfile.userProfileAddress || "—"}</p>
+                                            </div>
                                         </>}
                                 {selectedAccount.userProfile && !isEditingProfile && <button type="button"
                                                                                              className={`${buttonCls} mt-5 w-full bg-blue-600 text-white hover:bg-blue-700`}
@@ -780,7 +758,53 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                     Chỉnh sửa hồ sơ
                                 </button>}
                             </section>
-                            <div className="space-y-3">
+                            <section className="order-4 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-2 xl:row-start-2">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tổng quyền tài khoản</h2>
+                                    {!isEditingAccountPermissions && !selectedAccountIsCurrent && canAssignPermissions && selectedAccountIsAssignable && <button type="button"
+                                        className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`}
+                                        onClick={() => {
+                                            setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId))
+                                            setIsEditingAccountPermissions(true)
+                                        }}>Chỉnh sửa</button>}
+                                    {selectedAccountIsCurrent && <span className="text-[11px] text-amber-700">Quyền của tài khoản hiện tại bị khóa</span>}
+                                </div>
+                                <p className="mb-2 text-xs text-slate-500">Quyền từ roles được giữ nguyên. Bỏ tích quyền bổ sung để xóa; tích quyền khác để thêm.</p>
+                                {isEditingAccountPermissions ? <>
+                                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
+                                        {editablePermissions.map((permission) => <label key={permission.permissionId}
+                                            className={`flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-slate-50 ${saving ? "opacity-60" : ""}`}>
+                                            <input type="checkbox" className="mt-0.5 accent-blue-600" disabled={saving || selectedAccountIsCurrent}
+                                                checked={assignedPermissionIds.includes(permission.permissionId)}
+                                                onChange={(event) => setAssignedPermissionIds((ids) => event.target.checked
+                                                    ? [...ids, permission.permissionId]
+                                                    : ids.filter((id) => id !== permission.permissionId))}/>
+                                            <span><span className="block text-xs font-medium text-slate-800">{permission.permissionName}</span>
+                                                <span className="text-[11px] text-slate-500">{permission.permissionCode}</span></span>
+                                        </label>)}
+                                        {editablePermissions.length === 0 && <p className="p-2 text-xs text-slate-500">Các quyền đều đã được cấp qua roles.</p>}
+                                    </div>
+                                    <div className="mt-3 flex gap-2">
+                                        <button className={`${buttonCls} flex-1 bg-blue-600 text-white hover:bg-blue-700`}
+                                            disabled={saving || selectedAccountIsCurrent} onClick={() => void saveAccountPermissions()}>
+                                            Lưu quyền
+                                        </button>
+                                        <button className={`${buttonCls} border border-slate-200 text-slate-700`}
+                                            disabled={saving} onClick={() => {
+                                                setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId))
+                                                setIsEditingAccountPermissions(false)
+                                            }}>Hủy</button>
+                                    </div>
+                                </> : <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
+                                    {effectivePermissions.map((permission) => <div key={permission.permissionCode} className="flex items-start justify-between gap-3 rounded-md p-2 hover:bg-slate-50">
+                                        <span><span className="block text-xs font-medium text-slate-800">{permission.permissionName}</span><span className="text-[11px] text-slate-500">{permission.permissionCode}</span></span>
+                                        <span className="shrink-0 text-[10px] text-slate-500">{rolePermissionCodes.has(permission.permissionCode.toUpperCase()) && directPermissionCodes.has(permission.permissionCode.toUpperCase()) ? "Role + bổ sung" : rolePermissionCodes.has(permission.permissionCode.toUpperCase()) ? "Role" : "Bổ sung"}</span>
+                                    </div>)}
+                                    {effectivePermissions.length === 0 && <p className="p-2 text-xs text-slate-500">Tài khoản chưa có quyền nào.</p>}
+                                </div>}
+                            </section>
+                            <section className="order-2 h-full min-h-0 space-y-3 rounded-lg border border-slate-100 p-3 xl:col-start-2 xl:row-start-1">
+                                <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Thông tin tài khoản</h2>
                                 <div className="rounded-lg bg-slate-50 p-3"><p
                                     className="text-xs text-slate-500">AccountId</p><p
                                     className="mt-1 break-all font-mono text-xs text-slate-800">{selectedAccount.accountId}</p>
@@ -818,7 +842,7 @@ export function AccountsModule({roleCodes = [], permissionCodes = []}: {
                                         onClick={() => setSelectedAccount(null)}>Đóng
                                     </button>
                                 </div>
-                            </div>
+                            </section>
                         </div>
                     </div>
                 </Modal>}

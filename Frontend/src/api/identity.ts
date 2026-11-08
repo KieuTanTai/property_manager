@@ -8,6 +8,7 @@ import type {
     RoleModel,
     UserProfileModel,
 } from "@/types/identity"
+import {createApiHeaders} from "@/api/authHeaders"
 
 export type {
     AccountModel,
@@ -38,7 +39,7 @@ const apiBase = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let response: Response
     try {
-        const headers = new Headers(init?.headers)
+        const headers = createApiHeaders(init?.headers)
         if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
         response = await fetch(`${apiBase}${path}`, {...init, headers})
     } catch {
@@ -168,6 +169,11 @@ export const identityApi = {
     addPermissionsToAccount(accountId: string, permissionIds: string[]) {
         return request<number>(`/authorization/accounts/${encodeURIComponent(accountId)}/permissions`, {
             method: "POST", body: JSON.stringify({ids: permissionIds}),
+        })
+    },
+    updateAccountAdditionalPermissions(accountId: string, permissionIds: string[]) {
+        return request<number>(`/authorization/accounts/${encodeURIComponent(accountId)}/permissions`, {
+            method: "PUT", body: JSON.stringify({ids: permissionIds}),
         })
     },
     updateRolePermissions(role: RoleModel, permissionIds: string[]) {

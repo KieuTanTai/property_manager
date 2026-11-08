@@ -52,12 +52,13 @@ export type RecordAuthResponse = {
     email: string
     isActive: boolean
     roleCodes: string[]
-    permissionCodes: string[]
+    rolePermissionCodes: string[]
+    additionalPermissionCodes: string[]
     accountCreatedAt: string
     accountUpdatedAt: string
 }
 export type RecordLoginResponse = {
     account: RecordAuthResponse
     profile: UserProfileModel | null
-    claims: { type: string; value: string }[]
+    accessToken: string
 }

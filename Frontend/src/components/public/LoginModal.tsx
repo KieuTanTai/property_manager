@@ -18,10 +18,14 @@ export function LoginModal({onClose, onLogin}: Props) {
             const result = await identityApi.loginAccount(email.trim(), password)
             const {sessionInstanceId} = await identityApi.getSessionInstanceId()
             const roleCodes = result.account.roleCodes ?? []
-            const permissionCodes = result.account.permissionCodes ?? []
+            const permissionCodes = [...new Set([
+                ...(result.account.rolePermissionCodes ?? []),
+                ...(result.account.additionalPermissionCodes ?? []),
+            ])]
             onLogin({
                 accountId: result.account.accountId,
                 email: result.account.email,
+                accessToken: result.accessToken,
                 roleCodes,
                 permissionCodes,
                 sessionInstanceId,
