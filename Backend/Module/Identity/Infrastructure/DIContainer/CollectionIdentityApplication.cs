@@ -23,7 +23,7 @@ namespace Identity.Infrastructure.DIContainer
             #endregion
 
 
-            services.AddSingleton<IApiHelper, ApiHelper>();
+            services.AddSingleton<IMappingHelper, MappingHelper>();
             services.AddSingleton<IPasswordHasher<AccountModel>, PasswordHasher<AccountModel>>();
 
             services.AddScoped<IAuthorizationApplication, AuthorizationApplication>();

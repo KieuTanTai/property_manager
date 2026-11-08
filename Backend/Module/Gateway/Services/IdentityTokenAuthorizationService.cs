@@ -22,13 +22,19 @@ namespace Gateway.Services
         public async Task<HttpStatusCode?> AuthorizeAsync(string accessToken, CancellationToken cancellationToken)
         {
             var identityUrl = _configuration["ModuleUrls:Identity"];
-            var gatewayApiKey = _configuration["InternalGateway:ApiKey"];
+            var gatewayApiKey = _configuration["INTERNAL_GATEWAY_API_KEY"];
             if (!Uri.TryCreate(identityUrl, UriKind.Absolute, out var baseUri) ||
-                !string.Equals(baseUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrWhiteSpace(gatewayApiKey))
+                !string.Equals(baseUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer,
-                    "Identity token authorization requires an HTTPS module URL and an internal gateway API key.");
+                    $"Identity token authorization requires a valid HTTPS ModuleUrls:Identity value. Configured value: '{identityUrl ?? "<missing>"}'.");
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(gatewayApiKey))
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer,
+                    "Identity token authorization requires INTERNAL_GATEWAY_API_KEY to be configured.");
                 return null;
             }
 

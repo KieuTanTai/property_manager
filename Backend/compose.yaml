@@ -21,19 +21,22 @@ services:
       - ./:/workspace:ro
       - artifacts:/artifacts:ro
       - dev-certs:/certs:ro
+      - ../docs:/docs
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       SSL_CERT_FILE: /certs/localhost.pem
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
       InternalGateway__ApiKey: ${INTERNAL_GATEWAY_API_KEY:?Set INTERNAL_GATEWAY_API_KEY}
       REDIS_CACHE: redis:6379
     ports:
       - "7048:8443"
     depends_on:
       redis:
+        condition: service_healthy
+      mariadb:
         condition: service_healthy
       dev-certs:
         condition: service_completed_successfully
@@ -52,18 +55,21 @@ services:
       - ./:/workspace:ro
       - artifacts:/artifacts:ro
       - dev-certs:/certs:ro
+      - ../docs:/docs
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       SSL_CERT_FILE: /certs/localhost.pem
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
       REDIS_CACHE: redis:6379
     ports:
       - "7255:8443"
     depends_on:
       redis:
+        condition: service_healthy
+      mariadb:
         condition: service_healthy
       dev-certs:
         condition: service_completed_successfully
@@ -82,18 +88,21 @@ services:
       - ./:/workspace:ro
       - artifacts:/artifacts:ro
       - dev-certs:/certs:ro
+      - ../docs:/docs
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       SSL_CERT_FILE: /certs/localhost.pem
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
       REDIS_CACHE: redis:6379
     ports:
       - "7081:8443"
     depends_on:
       redis:
+        condition: service_healthy
+      mariadb:
         condition: service_healthy
       dev-certs:
         condition: service_completed_successfully
@@ -112,18 +121,21 @@ services:
       - ./:/workspace:ro
       - artifacts:/artifacts:ro
       - dev-certs:/certs:ro
+      - ../docs:/docs
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       SSL_CERT_FILE: /certs/localhost.pem
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
       REDIS_CACHE: redis:6379
     ports:
       - "7092:8443"
     depends_on:
       redis:
+        condition: service_healthy
+      mariadb:
         condition: service_healthy
       dev-certs:
         condition: service_completed_successfully
@@ -142,6 +154,7 @@ services:
       - ./:/workspace:ro
       - artifacts:/artifacts:ro
       - dev-certs:/certs:ro
+      - ../docs:/docs
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       SSL_CERT_FILE: /certs/localhost.pem
@@ -172,6 +185,31 @@ services:
       ticket-and-notification:
         condition: service_started
 
+  frontend:
+    image: node:22-alpine
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - '[ -d node_modules/vite ] || npm ci; npm run dev -- --host 0.0.0.0'
+    volumes:
+      - ../Frontend:/workspace
+      - frontend-node-modules:/workspace/node_modules
+      - dev-certs:/certs:ro
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8443
+      HTTPS_CERT_FILE: /certs/localhost.pem
+      HTTPS_KEY_FILE: /certs/localhost-key.pem
+      GATEWAY_API_PROXY_TARGET: https://gateway:8443
+    ports:
+      - "8443:8443"
+    depends_on:
+      dev-certs:
+        condition: service_completed_successfully
+      gateway:
+        condition: service_started
+
   dev-certs:
     image: alpine:3.22
     command:
@@ -199,7 +237,25 @@ services:
       timeout: 3s
       retries: 5
 
+  mariadb:
+    image: mariadb:latest
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-ms_identity_test}
+      MARIADB_USER: ${DB_USERNAME:-root}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -u root -p\"$${MARIADB_ROOT_PASSWORD}\" --silent" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   artifacts:
   redis-data:
+  mariadb-data:
   dev-certs:
+  frontend-node-modules:
+

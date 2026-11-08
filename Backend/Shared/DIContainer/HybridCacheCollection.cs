@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Shared.Caching;
 using Shared.Interfaces.Caching;
 
-namespace Shared.Caching
+namespace Shared.DIContainer
 {
     public static class HybridCacheCollection
     {

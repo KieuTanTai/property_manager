@@ -130,7 +130,7 @@ namespace Identity.Infrastructure.Repository.PermissionRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing permission range creation.");
             var permissionModels = entities.ToList();
-            if (!permissionModels.Any())
+            if (permissionModels.Count == 0)
             {
                 var exception = new ArgumentException("PermissionModel collection is required.", nameof(entities));
                 _logger.LogLayerError(_logPool, Module, Layer, exception,
@@ -139,8 +139,7 @@ namespace Identity.Infrastructure.Repository.PermissionRepository
             }
 
             await context.Permissions.AddRangeAsync(permissionModels, cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Permission range staged for creation.");
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Permission range staged for creation.");
         }
 
         public async Task UpdateAsync(PermissionModel entity,
@@ -175,7 +174,7 @@ namespace Identity.Infrastructure.Repository.PermissionRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing permission range update.");
             var permissionModels = entities.ToList();
-            if (!permissionModels.Any())
+            if (permissionModels.Count == 0)
             {
                 var exception = new ArgumentException("PermissionModel collection is required.", nameof(entities));
                 _logger.LogLayerError(_logPool, Module, Layer, exception,

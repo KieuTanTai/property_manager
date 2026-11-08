@@ -40,7 +40,6 @@ namespace Contract.Application
             IReadOnlyCollection<Guid>? regulationIds = null,
             CancellationToken cancellationToken = default)
         {
-            ThrowIfInvalidContractModel(contract);
             _logger.LogLayerDebug(_logPool, Module, Layer, "Creating contract.");
 
             var regulations = await ResolveRegulationsAsync(regulationIds, true, cancellationToken);
@@ -69,7 +68,6 @@ namespace Contract.Application
             IReadOnlyCollection<Guid>? regulationIds = null,
             CancellationToken cancellationToken = default)
         {
-            ThrowIfInvalidContractModel(contract);
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating contract.");
             await _contractRepository.UpdateAsync(contract, cancellationToken);
 
@@ -106,14 +104,6 @@ namespace Contract.Application
         public async Task<int> TerminateContractAsync(Guid contractId, DateTime terminationDate,
             CancellationToken cancellationToken = default)
         {
-            if (contractId == Guid.Empty)
-            {
-                throw new ArgumentException("Contract id is required.", nameof(contractId));
-            }
-            if (terminationDate < DateTime.UtcNow)
-            {
-                throw new ArgumentException("Termination date cannot be in the past.", nameof(terminationDate));
-            }
             _logger.LogLayerDebug(_logPool, Module, Layer, "Terminating contract.");
             await _contractRepository.SoftDeleteAsync(contractId, terminationDate, cancellationToken);
             return await SaveChangesOrThrowAsync("terminate", cancellationToken);
@@ -150,11 +140,6 @@ namespace Contract.Application
         public async Task<ContractModel?> GetByContractIdAsync(Guid contractId, bool isGetViolations = false,
             bool isGetInvoices = false, CancellationToken cancellationToken = default)
         {
-            if (contractId == Guid.Empty)
-            {
-                throw new ArgumentException("Contract id is required.", nameof(contractId));
-            }
-
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading contract by id with navigation properties.");
             var result = await _contractRepository.GetContractAndNavigationByIdAsync(contractId,
                 isGetViolations, isGetInvoices, true, cancellationToken);
@@ -204,30 +189,6 @@ namespace Contract.Application
             var exception = new InvalidOperationException($"Failed to {operation} contract.");
             _logger.LogLayerError(_logPool, Module, Layer, exception, $"Contract {operation} failed.");
             throw exception;
-        }
-
-        private static void ThrowIfInvalidContractModel(ContractModel contract)
-        {
-            ArgumentNullException.ThrowIfNull(contract);
-            if (contract.ContractAccountId == Guid.Empty)
-            {
-                throw new ArgumentException("Contract account id is required.", nameof(contract));
-            }
-
-            if (contract.ContractDeposit <= 0)
-            {
-                throw new ArgumentException("Contract deposit must be non-negative and larger than 0.", nameof(contract));
-            }
-
-            if (contract.ContractRentalPrice <= 0)
-            {
-                throw new ArgumentException("Contract rental price must be non-negative and larger than 0.", nameof(contract));
-            }
-
-            if (contract.ContractPremiseReturnDate <= contract.ContractCreatedAt)
-            {
-                throw new ArgumentException("Contract premise return date must be after the contract creation date.", nameof(contract));
-            }
         }
 
         #endregion

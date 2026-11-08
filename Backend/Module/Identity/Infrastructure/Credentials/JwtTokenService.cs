@@ -28,7 +28,10 @@ namespace Identity.Infrastructure.Credentials
                 new("version", _options.Version.ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer32)
             };
             claims.AddRange(account.RoleCodes.Select(role => new Claim("roles", role)));
-            claims.AddRange(account.PermissionCodes.Select(permission => new Claim("permissions", permission)));
+            claims.AddRange(account.RolePermissionCodes
+                .Concat(account.AdditionalPermissionCodes)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(permission => new Claim("permissions", permission)));
 
             var token = new JwtSecurityToken(
                 _options.Issuer,

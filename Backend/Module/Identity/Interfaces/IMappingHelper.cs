@@ -5,7 +5,7 @@ using Shared.Persistence.Record.Auth;
 
 namespace Identity.Interfaces
 {
-    public interface IApiHelper
+    public interface IMappingHelper
     {
         public RecordAuthResponse MappingAuthResult(AccountModel result);
         public RecordProfileResponse MappingProfileResult(UserProfileModel model);

@@ -233,24 +233,6 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile staged for creation.");
         }
 
-        public async Task AddRangeAsync(IEnumerable<UserProfileModel> entities,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing profile range creation.");
-            var profileModels = entities.ToList();
-            if (!profileModels.Any())
-            {
-                var exception = new ArgumentException("UserProfileModel collection is required.", nameof(entities));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Profile range creation rejected because the collection is empty.");
-                throw exception;
-            }
-
-            await _db.UserProfiles.AddRangeAsync(profileModels, cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Profile range staged for creation.");
-        }
-
         public async Task UpdateAsync(UserProfileModel entity, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating profile.");
@@ -280,7 +262,7 @@ namespace Identity.Infrastructure.Repository.UserProfileRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing profile range update.");
             var profileModels = entities.ToList();
-            if (!profileModels.Any())
+            if (profileModels.Count == 0)
             {
                 var exception = new ArgumentException("UserProfileModel collection is required.", nameof(entities));
                 _logger.LogLayerError(_logPool, Module, Layer, exception,

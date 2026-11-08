@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using Identity.Interfaces.Credentials;
-using Identity.Presentation.Record.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Logging;
 using Shared.Persistence.Record.Auth;
 
 namespace Identity.Presentation.Controller
@@ -11,24 +11,40 @@ namespace Identity.Presentation.Controller
     [Route("internal/auth/authorize")]
     public sealed class InternalTokenAuthorizationController(
         IJwtAccessTokenValidator tokenValidator,
-        IConfiguration configuration) : ControllerBase
+        IConfiguration configuration,
+        ILogger<InternalTokenAuthorizationController> logger,
+        ILogPool logPool) : ControllerBase
     {
+        private const string Module = "Identity";
+        private const string Layer = "Presentation/Controller";
         private const string GatewayKeyHeader = "X-Internal-Gateway-Key";
+
+        private readonly ILogger<InternalTokenAuthorizationController> _logger = logger;
+        private readonly ILogPool _logPool = logPool;
 
         [HttpPost]
         public IActionResult AuthorizeToken([FromBody] RecordInternalTokenAuthorizationRequest request)
         {
             if (!IsAuthorizedGateway())
             {
-                return Unauthorized();
+                _logger.LogLayerWarning(_logPool, Module, Layer,
+                    "Internal token authorization rejected because the Gateway API key did not match.");
+                return StatusCode(StatusCodes.Status403Forbidden);
             }
 
-            return tokenValidator.IsValid(request.AccessToken) ? NoContent() : Unauthorized();
+            if (tokenValidator.IsValid(request.AccessToken))
+            {
+                return NoContent();
+            }
+            _logger.LogLayerWarning(_logPool, Module, Layer,
+                "Internal token authorization rejected an invalid or expired access token.");
+            return Unauthorized();
+
         }
 
         private bool IsAuthorizedGateway()
         {
-            var expectedKey = configuration["InternalGateway:ApiKey"];
+            var expectedKey = configuration["INTERNAL_GATEWAY_API_KEY"];
             var providedKey = Request.Headers[GatewayKeyHeader].ToString();
             if (string.IsNullOrWhiteSpace(expectedKey) || string.IsNullOrWhiteSpace(providedKey))
             {

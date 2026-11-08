@@ -1,7 +1,7 @@
 using Identity.Presentation.Record.Profile;
 using Shared.Persistence.Record.Auth;
 
-namespace Identity.Presentation.Record.Account
+namespace Identity.Application.Record
 {
     public record RecordLoginResponse(
         RecordAuthResponse Account,

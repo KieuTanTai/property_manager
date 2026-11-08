@@ -20,6 +20,9 @@ namespace Identity.Infrastructure.Credentials
         private readonly JwtOptions _options = options.Value;
 
         private readonly Lock _sync = new();
+        
+        private readonly ILogger<RsaSigningKeyRotationService> _logger = logger;
+        private readonly ILogPool _logPool = logPool;
 
         public override void Dispose()
         {
@@ -82,9 +85,8 @@ namespace Identity.Infrastructure.Credentials
                 TimeSpan.FromHours(_options.ExpirationHours),
                 TimeSpan.FromHours(_options.RetiredKeyGraceHours));
             _keys.Add(key);
-            logger.LogLayerInformation(logPool, Module, Layer,
+            _logger.LogLayerInformation(_logPool, Module, Layer,
                 $"Generated JWT signing key {key.KeyId}; signing ends at {key.SigningEndsAt:O}.");
-
             var expiredKeys = _keys.Where(existing => existing != key && existing.VerificationEndsAt <= now).ToList();
             foreach (var expiredKey in expiredKeys)
             {

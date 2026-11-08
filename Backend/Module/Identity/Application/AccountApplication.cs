@@ -1,11 +1,16 @@
+using Identity.Application.Record;
+using Identity.Interfaces;
+using Identity.Interfaces.Credentials;
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
-using Identity.Models.Profile;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
+using Identity.Presentation.Record.Account;
+using Identity.Presentation.Record.Profile;
+using Shared.Persistence.Record.Auth;
 
 namespace Identity.Application
 {
@@ -15,8 +20,8 @@ namespace Identity.Application
         IBaseAssociativeRepository<AccountRoleModel, Guid> accountRoleRepository,
         IAuthorizationApplication roleApplication,
         IIdentityHelper<AccountModel> accountHelper,
-        IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> accountAdditionalPermissionRepository,
-        IUserProfileRepository userProfileRepository,
+        IMappingHelper apiHelper,
+        IJwtTokenService jwtTokenService,
         ILogger<AccountApplication> logger,
         ILogPool logPool)
         : IAccountApplication
@@ -25,16 +30,18 @@ namespace Identity.Application
 
         private const string Layer = "Application";
 
-        private readonly IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> _accountAdditionalPermissionRepository = accountAdditionalPermissionRepository;
-
         private readonly IIdentityHelper<AccountModel> _accountHelper = accountHelper;
 
 
         private readonly IAccountRepository _accountRepository = accountRepository;
 
+        private readonly IMappingHelper _apiHelper = apiHelper;
+
         private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
 
         private readonly ILogPool _logPool = logPool;
+
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
 
         private readonly ILogger<AccountApplication> _logger = logger;
 
@@ -42,15 +49,12 @@ namespace Identity.Application
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-        private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
-
-
         #region USER
 
         public async Task<AccountModel> RegisterAsync(string email, string password, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Register account operation started.");
-            await IsValidForRegisterAsync(email, password, cancellationToken);
+            await EnsureEmailAvailableAsync(email, cancellationToken);
 
             var accountModel = new AccountModel(email, password, true, true);
             var hashedPassword = _accountHelper.GetHashPassword(accountModel, password);
@@ -71,21 +75,24 @@ namespace Identity.Application
             return accountModel;
         }
 
-        public async Task<AccountModel> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
+        public async Task<RecordLoginResponse> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Login account operation started.");
-            CheckValidEmailAndPassword(email, password); // throw exception if email or password is invalid
             var accountModel = await GetAccountByEmailAsync(email, true, true, true, cancellationToken);
             if (!accountModel.AccountIsActive)
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Login rejected because the account is inactive.");
                 throw new InvalidOperationException("Account is not active.");
             }
-            var result = !_accountHelper.VerifyPassword(accountModel, password, accountModel.AccountPassword!)
-                ? throw InvalidPassword()
-                : accountModel;
+            var verifyResult = !_accountHelper.VerifyPassword(accountModel, password, accountModel.AccountPassword!);
+            if (verifyResult)
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Login rejected because the password is invalid.");
+                throw new InvalidOperationException("Account password is invalid.");
+            }
+            var loginResponse = CreateLoginResponse(accountModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account login completed.");
-            return result;
+            return loginResponse;
         }
 
         public async Task<bool> LogoutAsync(string email, CancellationToken cancellationToken = default)
@@ -97,19 +104,6 @@ namespace Identity.Application
         public async Task<int> ChangePasswordAsync(string email, string oldPassword, string newPassword, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Change password operation started.");
-            if (string.CompareOrdinal(oldPassword, newPassword) == 0)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Password change rejected because passwords are equal.");
-                throw new ArgumentException("New password must be different from old password.", nameof(newPassword));
-            }
-
-            CheckValidEmailAndPassword(email, oldPassword);
-            if (!_accountHelper.IsPasswordValid(newPassword))
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Password change rejected because the new password is invalid.");
-                throw new ArgumentException("Account password is invalid.", nameof(newPassword));
-            }
-
             var accountModel = await GetAccountByEmailAsync(email, true, cancellationToken);
             if (!accountModel.AccountIsActive)
             {
@@ -139,7 +133,6 @@ namespace Identity.Application
         public async Task<int> InactiveAccountAsync(string email, string password, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Self-deactivate account operation started.");
-            CheckValidEmailAndPassword(email, password);
             var accountModel = await GetAccountByEmailAsync(email, true, cancellationToken);
             if (!_accountHelper.VerifyPassword(accountModel, password, accountModel.AccountPassword!))
             {
@@ -241,10 +234,6 @@ namespace Identity.Application
         public async Task<AccountModel?> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account lookup operation started.");
-            if (!_accountHelper.IsEmailValid(email))
-            {
-                throw new InvalidOperationException("Invalid email format.");
-            }
             var accountModel = await _accountRepository.GetAccountAndNavigationByEmailAsync(email, true, true, true, cancellationToken);
             return accountModel;
         }
@@ -256,58 +245,10 @@ namespace Identity.Application
             return result;
         }
 
-        public async Task<int> ImportAsync(IEnumerable<AccountModel> entities, IEnumerable<AccountRoleModel> accountRoleModels,
-            IEnumerable<AccountAdditionalPermissionModel>? accountAdditionalPermissionModels, IEnumerable<UserProfileModel>? userProfiles, CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Account import operation started.");
-            var accountModels = entities.ToList();
-            if (!accountModels.Any())
-            {
-                throw new ArgumentException("AccountModel collection is required.", nameof(entities));
-            }
-            accountModels.ForEach(account => ThrowIfInvalidAccountModel(account));
-
-            await _accountRepository.AddRangeAsync(accountModels, cancellationToken);
-            await _accountRoleRepository.AddRangeAsync([.. accountRoleModels], cancellationToken);
-            if (userProfiles != null)
-            {
-                var userProfileModels = userProfiles.ToList();
-                if (userProfileModels.Count != accountModels.Count)
-                {
-                    _logger.LogLayerWarning(_logPool, Module, Layer, "UserProfileModel collection count does not match AccountModel collection count.");
-                    throw new ArgumentException("UserProfileModel collection must have the same count as AccountModel collection.", nameof(userProfiles));
-                }
-                userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, true));
-                if (userProfileModels.Count == 0)
-                {
-                    await _userProfileRepository.AddRangeAsync([.. userProfileModels], cancellationToken);
-                }
-            }
-
-            if (accountAdditionalPermissionModels != null)
-            {
-                await _accountAdditionalPermissionRepository.AddRangeAsync([.. accountAdditionalPermissionModels], cancellationToken);
-            }
-
-            var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            if (affectRows == 0)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Account import saved no rows."), "Account import failed.");
-                throw new InvalidOperationException("Failed to import accounts.");
-            }
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Account import completed.");
-            return affectRows;
-        }
-
         public async Task<int> UpdateRange(IEnumerable<AccountModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account update range operation started.");
             var accountModels = entities.ToList();
-            if (!accountModels.Any())
-            {
-                throw new ArgumentException("AccountModel collection is required.", nameof(entities));
-            }
-            accountModels.ForEach(account => ThrowIfInvalidAccountModel(account, true));
             _accountRepository.UpdateRange(accountModels, cancellationToken);
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectRows == 0)
@@ -323,13 +264,25 @@ namespace Identity.Application
 
         #region Private
 
-        private async Task IsValidForRegisterAsync(string email, string password, CancellationToken cancellationToken = default)
+        private RecordLoginResponse CreateLoginResponse(AccountModel account)
         {
-            if (!CheckValidEmailAndPassword(email, password))
-            {
-                return;
-            }
+            var authResponse = MapLoginAccount(account);
+            var profileResponse = MapLoginProfile(account);
+            var accessToken = CreateAccessToken(authResponse);
+            return new RecordLoginResponse(authResponse, profileResponse, accessToken);
+        }
 
+        private RecordAuthResponse MapLoginAccount(AccountModel account) =>
+            _apiHelper.MappingAuthResult(account);
+
+        private RecordProfileResponse? MapLoginProfile(AccountModel account) =>
+            account.UserProfile is null ? null : _apiHelper.MappingProfileResult(account.UserProfile);
+
+        private string CreateAccessToken(RecordAuthResponse account) =>
+            _jwtTokenService.GenerateAccessToken(account);
+
+        private async Task EnsureEmailAvailableAsync(string email, CancellationToken cancellationToken = default)
+        {
             try
             {
                 var existedAccount = await _accountRepository.GetAccountByEmailAsync(email, cancellationToken);
@@ -352,8 +305,6 @@ namespace Identity.Application
 
         private async Task<AccountModel> GetAccountByEmailAsync(string email, bool isTracked = false, CancellationToken cancellationToken = default)
         {
-            //! not check email and password, call IsValidEmailAndPassword method before calling this method
-
             if (isTracked)
             {
                 return await _accountRepository.GetTrackedAccountByEmailAsync(email, cancellationToken);
@@ -363,56 +314,7 @@ namespace Identity.Application
             return existedAccount;
         }
 
-        private bool CheckValidEmailAndPassword(string email, string password)
-        {
-            if (!_accountHelper.IsPasswordValid(password))
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account operation rejected because the password is invalid.");
-                throw new ArgumentException("Account password is invalid.", nameof(password));
-            }
-            if (!_accountHelper.IsEmailValid(email))
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account operation rejected because the account identifier is invalid.");
-                throw new ArgumentException("Account email is invalid.", nameof(email));
-            }
-            return true;
-        }
 
-        private void ThrowIfInvalidAccountModel(AccountModel account, bool requireId = false)
-        {
-            ArgumentNullException.ThrowIfNull(account);
-            if (requireId && account.AccountId == Guid.Empty)
-            {
-                throw new ArgumentException("Account id is required.", nameof(account));
-            }
-            if (!_accountHelper.IsEmailValid(account.AccountEmail))
-            {
-                throw new ArgumentException("Account email is invalid.", nameof(account));
-            }
-            if (string.IsNullOrWhiteSpace(account.AccountPassword) || account.AccountPassword.Length > 255)
-            {
-                throw new ArgumentException("Account password is required and must not exceed 255 characters.", nameof(account));
-            }
-        }
-
-        private static void ThrowIfInvalidUserProfileModel(UserProfileModel profile, bool requireAccountId = false)
-        {
-            ArgumentNullException.ThrowIfNull(profile);
-            if (string.IsNullOrWhiteSpace(profile.UserProfileId) || profile.UserProfileId.Length != 12)
-            {
-                throw new ArgumentException("User profile id is required and must be 12 characters.", nameof(profile));
-            }
-            if (requireAccountId && profile.UserProfileAccountId == Guid.Empty)
-            {
-                throw new ArgumentException("User profile account id is required.", nameof(profile));
-            }
-        }
-
-        private InvalidOperationException InvalidPassword()
-        {
-            _logger.LogLayerWarning(_logPool, Module, Layer, "Login rejected because the password is invalid.");
-            return new InvalidOperationException("Account password is invalid.");
-        }
 
         #endregion
     }

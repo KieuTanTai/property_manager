@@ -58,7 +58,7 @@ namespace Identity.Presentation.Controller
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Role lookup request received.");
-            if (!Enum.IsDefined(roleCode))
+            if (!IsValidRoleCode(roleCode))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Role lookup request rejected because role code is invalid.");
                 return BadRequest("Role code is invalid.");
@@ -112,7 +112,7 @@ namespace Identity.Presentation.Controller
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Permission lookup request received.");
-            if (!Enum.IsDefined(permissionCode))
+            if (!IsValidPermissionCode(permissionCode))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Permission lookup request rejected because permission code is invalid.");
                 return BadRequest("Permission code is invalid.");
@@ -172,7 +172,7 @@ namespace Identity.Presentation.Controller
             [FromBody] IdListRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (!ModelFieldGuard.ValidateIds(accountId, request.Ids))
+            if (!IsValidAssociationRequest(accountId, request.Ids))
             {
                 return BadRequest("Account id and at least one valid role id are required.");
             }
@@ -228,7 +228,7 @@ namespace Identity.Presentation.Controller
             [FromBody] IdListRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (!ModelFieldGuard.ValidateIds(accountId, request.Ids))
+            if (!IsValidAssociationRequest(accountId, request.Ids))
             {
                 return BadRequest("Account id and at least one valid permission id are required.");
             }
@@ -261,7 +261,7 @@ namespace Identity.Presentation.Controller
             [FromBody] RoleChangeRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (roleId == Guid.Empty)
+            if (!IsValidId(roleId))
             {
                 return BadRequest("Role id is required.");
             }
@@ -296,7 +296,7 @@ namespace Identity.Presentation.Controller
             [FromBody] IdListRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (!ModelFieldGuard.ValidateIds(accountId, request.Ids))
+            if (!IsValidAssociationRequest(accountId, request.Ids))
             {
                 return BadRequest("Account id and at least one valid role id are required.");
             }
@@ -325,7 +325,7 @@ namespace Identity.Presentation.Controller
             [FromBody] PermissionChangeRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (permissionId == Guid.Empty)
+            if (!IsValidId(permissionId))
             {
                 return BadRequest("Permission id is required.");
             }
@@ -359,9 +359,9 @@ namespace Identity.Presentation.Controller
             [FromBody] IdListRequest request,
             CancellationToken cancellationToken = default)
         {
-            if (!ModelFieldGuard.ValidateIds(accountId, request.Ids))
+            if (!IsValidId(accountId) || request.Ids.Any(id => id == Guid.Empty))
             {
-                return BadRequest("Account id and at least one valid permission id are required.");
+                return BadRequest("Account id and valid permission ids are required.");
             }
 
             try
@@ -385,6 +385,15 @@ namespace Identity.Presentation.Controller
 
         #region PRIVATE
 
+        private static bool IsValidId(Guid id) => id != Guid.Empty;
+
+        private static bool IsValidAssociationRequest(Guid id, IReadOnlyList<Guid>? ids) =>
+            ModelFieldGuard.ValidateIds(id, ids);
+
+        private static bool IsValidRoleCode(ESystemRoleCode roleCode) => Enum.IsDefined(roleCode);
+
+        private static bool IsValidPermissionCode(ESystemPermissionCode permissionCode) => Enum.IsDefined(permissionCode);
+
         private static bool TryCreateRole(
             RoleChangeRequest request,
             out RoleModel role,
@@ -392,9 +401,15 @@ namespace Identity.Presentation.Controller
         {
             role = null!;
             error = string.Empty;
-            if (string.IsNullOrWhiteSpace(request.Name))
+            if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 150)
             {
-                error = "Role name is required.";
+                error = "Role name is required and must not exceed 150 characters.";
+                return false;
+            }
+
+            if (request.Description?.Length > 300)
+            {
+                error = "Role description must not exceed 300 characters.";
                 return false;
             }
 
@@ -416,9 +431,15 @@ namespace Identity.Presentation.Controller
         {
             permission = null!;
             error = string.Empty;
-            if (string.IsNullOrWhiteSpace(request.Name))
+            if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length > 150)
             {
-                error = "Permission name is required.";
+                error = "Permission name is required and must not exceed 150 characters.";
+                return false;
+            }
+
+            if (request.Description?.Length > 300)
+            {
+                error = "Permission description must not exceed 300 characters.";
                 return false;
             }
 

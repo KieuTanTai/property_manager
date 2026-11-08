@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Caching;
+using Shared.DIContainer;
 using Shared.Interfaces;
 using Shared.Logging;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;

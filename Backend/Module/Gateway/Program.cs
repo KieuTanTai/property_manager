@@ -4,12 +4,8 @@ using Gateway.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration["ModuleUrls:Identity"] ??= "https://localhost:7048";
-builder.Configuration["ModuleUrls:Contract"] ??= "https://localhost:7255";
-builder.Configuration["ModuleUrls:Premise"] ??= "https://localhost:7081";
-builder.Configuration["ModuleUrls:TicketAndNotification"] ??= "https://localhost:7092";
-
 builder.Services.AddOpenApi();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddProxyMapping(builder.Environment);
 builder.Services.AddGatewayCollection(builder.Configuration, builder.Environment);
 builder.Services.AddControllers()

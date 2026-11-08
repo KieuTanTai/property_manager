@@ -25,7 +25,7 @@ namespace Gateway.Middleware
 
         private async Task ProcessRequestAsync(HttpContext context)
         {
-            if (IsPublicEndpoint(context.Request.Path))
+            if (IsPublicEndpoint(context.Request.Method, context.Request.Path))
             {
                 await _next(context);
                 return;
@@ -50,6 +50,16 @@ namespace Gateway.Middleware
 
             if (statusCode != HttpStatusCode.NoContent)
             {
+                if (statusCode == HttpStatusCode.Forbidden)
+                {
+                    _logger.LogLayerError(_logPool, Module, Layer,
+                        new InvalidOperationException("Identity rejected the Gateway API key."),
+                        "Request rejected because Gateway and Identity internal API keys do not match.");
+                    await RejectAsync(context, StatusCodes.Status503ServiceUnavailable,
+                        "Gateway and Identity internal API keys do not match.");
+                    return;
+                }
+
                 _logger.LogLayerWarning(_logPool, Module, Layer, $"Request rejected because the access token is invalid. Identity module returned {statusCode}.");
                 await RejectAsync(context, StatusCodes.Status401Unauthorized, "Access token is invalid.");
                 return;
@@ -58,10 +68,24 @@ namespace Gateway.Middleware
             await _next(context);
         }
 
-        private static bool IsPublicEndpoint(PathString path) =>
-            path.Equals("/api/account/login", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/account/register", StringComparison.OrdinalIgnoreCase) ||
-            path.Equals("/api/account/session-instance", StringComparison.OrdinalIgnoreCase);
+        private static bool IsPublicEndpoint(string method, PathString path)
+        {
+            if (path.Equals("/api/account/login", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/api/account/register", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/api/account/session-instance", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (!HttpMethods.IsGet(method))
+            {
+                return false;
+            }
+
+            return path.Equals("/api/contact", StringComparison.OrdinalIgnoreCase) ||
+                   path.StartsWithSegments("/api/premise", StringComparison.OrdinalIgnoreCase) ||
+                   path.StartsWithSegments("/api/location", StringComparison.OrdinalIgnoreCase);
+        }
 
         private static async Task RejectAsync(HttpContext context, int statusCode, string message)
         {

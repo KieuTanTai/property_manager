@@ -13,6 +13,7 @@ using Identity.Models.Permission;
 using Identity.Models.Role;
 using Microsoft.EntityFrameworkCore;
 using Shared.Caching;
+using Shared.DIContainer;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;

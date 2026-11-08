@@ -57,7 +57,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 .Where(pbt => pbt.PremiseId == premiseId)
                 .ToListAsync(cancellationToken);
 
-            if (!premiseBusinessTypes.Any())
+            if (premiseBusinessTypes.Count == 0)
             {
                 var exception = new InvalidOperationException($"PremiseBusinessTypes not found! \n {premiseId}");
                 _logger.LogLayerError(_logPool, Module, Layer, exception,

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Primitives;
 
 namespace Gateway.Services
 {
-    public sealed class ModuleProxyService(IHttpClientFactory httpClientFactory, IConfiguration configuration, IHttpRequestBodyDetectionFeature httpRequestBodyDetectionFeature)
+    public sealed class ModuleProxyService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         private static readonly HashSet<string> HopByHopHeaders = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -41,7 +41,8 @@ namespace Gateway.Services
         private HttpRequestMessage CreateProxyRequest(HttpContext context, Uri targetUri)
         {
             var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), targetUri);
-            if (httpRequestBodyDetectionFeature.CanHaveBody)
+            var httpRequestBodyDetectionFeature = context.Features.Get<IHttpRequestBodyDetectionFeature>();
+            if (httpRequestBodyDetectionFeature?.CanHaveBody == true)
             {
                 request.Content = new StreamContent(context.Request.Body);
             }

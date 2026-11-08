@@ -10,6 +10,7 @@ using Contract.Interfaces.IRepository;
 using Contract.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
 using Shared.Caching;
+using Shared.DIContainer;
 using Shared.Interfaces;
 using Shared.Logging;
 

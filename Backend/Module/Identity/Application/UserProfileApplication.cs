@@ -1,14 +1,12 @@
-using System.Text.RegularExpressions;
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Profile;
 using Shared.Interfaces;
 using Shared.Logging;
-using Shared.ModelHelper;
 
 namespace Identity.Application
 {
-    public partial class UserProfileApplication(
+    public class UserProfileApplication(
         IUnitOfWork unitOfWork,
         IUserProfileRepository userProfileRepository,
         ILogger<UserProfileApplication> logger,
@@ -29,21 +27,18 @@ namespace Identity.Application
 
         #region GET
 
-        public async Task<UserProfileModel> GetProfileInfoAsync<T>(T id, CancellationToken cancellationToken = default)
+        public async Task<UserProfileModel> GetProfileInfoAsync(Guid accountId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup operation started.");
-            var result = id switch
-            {
-                string identityCode => await _userProfileRepository.GetByIdAsync(identityCode, cancellationToken),
-                Guid accountId => await _userProfileRepository.GetUserProfileAsync(accountId, cancellationToken),
-                _ => throw InvalidIdType()
-            };
-            if (result is null)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup returned no profile.");
-                throw new InvalidOperationException("Profile was not found.");
-            }
-            return result;
+            var result = await _userProfileRepository.GetUserProfileAsync(accountId, cancellationToken);
+            return EnsureProfileFound(result);
+        }
+
+        public async Task<UserProfileModel> GetProfileInfoAsync(string identityCode, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup operation started.");
+            var result = await _userProfileRepository.GetByIdAsync(identityCode, cancellationToken);
+            return EnsureProfileFound(result);
         }
 
         #endregion
@@ -53,21 +48,6 @@ namespace Identity.Application
         public async Task<UserProfileModel> UpdateProfileInfoAsync(UserProfileModel userProfile, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update operation started.");
-            ThrowIfInvalidUserProfileModel(userProfile, true);
-            if (!string.IsNullOrWhiteSpace(userProfile.UserProfilePhoneNumber))
-            {
-                var resultFormated = TryProcessPhoneNumber(userProfile.UserProfilePhoneNumber, out var phoneNumber);
-                if (resultFormated)
-                {
-                    userProfile.SetUserProfilePhoneNumber(phoneNumber);
-                }
-                else
-                {
-                    _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update rejected because the phone number is invalid.");
-                    throw new ArgumentException("Invalid phone number format.");
-                }
-            }
-
             try
             {
                 await _userProfileRepository.UpdateAsync(userProfile, cancellationToken);
@@ -85,11 +65,6 @@ namespace Identity.Application
                 _logger.LogLayerDebug(_logPool, Module, Layer, "Profile update operation was canceled.");
                 throw new OperationCanceledException("Profile update was canceled.", canceledException);
             }
-            catch (ArgumentException argumentException)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update operation rejected by validation.");
-                throw new ArgumentException("Profile update request is invalid.", argumentException);
-            }
             catch (Exception ex)
             {
                 _logger.LogLayerError(_logPool, Module, Layer, ex, "Profile update operation failed.");
@@ -102,7 +77,6 @@ namespace Identity.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation operation started.");
             // method will raise an argument exception or argument null exception if failed to create a user profile. (check on constructor)
             var baseProfile = new UserProfileModel(identityCode, accountId);
-            ThrowIfInvalidUserProfileModel(baseProfile, true);
             await _userProfileRepository.AddAsync(baseProfile, cancellationToken);
 
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -119,28 +93,8 @@ namespace Identity.Application
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation started.");
             var userProfileModels = userProfiles.ToList();
-            if (userProfileModels.Count == 0)
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile update range operation rejected because the input collection is null or empty.");
-                throw new ArgumentException("User profiles collection cannot be null or empty.", nameof(userProfiles));
-            }
-            userProfileModels.ForEach(profile => ThrowIfInvalidUserProfileModel(profile, true));
             _userProfileRepository.UpdateRange(userProfileModels, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation completed.");
-            return await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-
-        public async Task<int> ImportAsync(IEnumerable<UserProfileModel> userProfiles, CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile import operation started.");
-            var userProfileModels = userProfiles.ToList();
-            if (!userProfileModels.Any())
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile import operation rejected because the input collection is null or empty.");
-                throw new ArgumentException("User profiles collection cannot be null or empty.", nameof(userProfiles));
-            }
-            await _userProfileRepository.AddRangeAsync(userProfileModels, cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Profile import operation completed.");
             return await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
@@ -148,69 +102,16 @@ namespace Identity.Application
 
         #region PRIVATE
 
-        private ArgumentException InvalidIdType()
+        private UserProfileModel EnsureProfileFound(UserProfileModel? result)
         {
-            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup rejected because the identifier type is invalid.");
-            return new ArgumentException("Invalid id type");
+            if (result is not null)
+            {
+                return result;
+            }
+            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup returned no profile.");
+            throw new InvalidOperationException("Profile was not found.");
+
         }
-
-        private static void ThrowIfInvalidUserProfileModel(UserProfileModel profile, bool requireAccountId = false)
-        {
-            ArgumentNullException.ThrowIfNull(profile);
-            if (string.IsNullOrWhiteSpace(profile.UserProfileId) || profile.UserProfileId.Length != 12)
-            {
-                throw new ArgumentException("Identity code is required and must be 12 characters.", nameof(profile));
-            }
-            if (requireAccountId && profile.UserProfileAccountId == Guid.Empty)
-            {
-                throw new ArgumentException("User profile account id is required.", nameof(profile));
-            }
-            if (profile.UserProfileFirstName?.Length > 30
-                || profile.UserProfileLastName?.Length > 30
-                || profile.UserProfilePhoneNumber?.Length > 10
-                || profile.UserProfileAddress?.Length > 255)
-            {
-                throw new ArgumentException("One or more profile fields exceed their maximum length.", nameof(profile));
-            }
-
-            ImageDataUriGuard.OptionalAvatar(profile.UserProfileAvatarUrl, nameof(profile.UserProfileAvatarUrl));
-        }
-
-        private static bool TryProcessPhoneNumber(string input, out string stringPhoneNumber)
-        {
-            stringPhoneNumber = string.Empty;
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                return false;
-            }
-
-            // 1. Remove all non-digit characters except a leading '+' sign (if present)
-            var cleaned = MyRegex().Replace(input, "");
-
-            // 2. Normalize an international format (+84 or 84) to local '0'
-            if (cleaned.StartsWith("+84"))
-            {
-                cleaned = string.Concat("0", cleaned.AsSpan(3));
-            }
-            else if (cleaned.StartsWith("84") && cleaned.Length == 11)
-            {
-                cleaned = string.Concat("0", cleaned.AsSpan(2));
-            }
-
-            // 3. Regex validation for Vietnamese mobile prefixes (10 digits total)
-            // Matches prefixes: 03, 05, 07, 08, 09 followed by exactly 8 digits
-            const string pattern = @"^(03|05|07|08|09)\d{8}$";
-
-            if (!Regex.IsMatch(cleaned, pattern))
-            {
-                return false;
-            }
-            stringPhoneNumber = cleaned;
-            return true;
-        }
-
-        [GeneratedRegex(@"[^\d+]")]
-        private static partial Regex MyRegex();
 
         #endregion
     }

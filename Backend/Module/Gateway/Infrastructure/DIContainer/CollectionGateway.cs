@@ -1,6 +1,7 @@
 using Gateway.Interfaces.Authorization;
 using Gateway.Services;
 using Shared.Caching;
+using Shared.DIContainer;
 using Shared.Logging;
 
 namespace Gateway.Infrastructure.DIContainer
@@ -29,7 +30,6 @@ namespace Gateway.Infrastructure.DIContainer
             #endregion
 
             #region AUTHORIZATION
-
             services.AddSingleton<IIdentityTokenAuthorizationService, IdentityTokenAuthorizationService>();
 
             #endregion

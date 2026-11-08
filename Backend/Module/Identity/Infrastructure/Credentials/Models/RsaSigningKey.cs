@@ -21,7 +21,7 @@ namespace Identity.Infrastructure.Credentials.Models
         public DateTimeOffset SigningEndsAt { get; }
         public DateTimeOffset VerificationEndsAt { get; }
         public RSA Rsa { get; }
-        public RsaSecurityKey SecurityKey { get; }
+        private RsaSecurityKey SecurityKey { get; }
         public SigningCredentials SigningCredentials { get; }
 
         public void Dispose()

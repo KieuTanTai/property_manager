@@ -1,5 +1,5 @@
+using Identity.Application.Record;
 using Identity.Models.Account;
-using Identity.Models.Profile;
 using Shared.Enum;
 using Shared.Persistence.Record;
 
@@ -8,7 +8,7 @@ namespace Identity.Interfaces.IApplication
     public interface IAccountApplication
     {
         Task<AccountModel> RegisterAsync(string email, string password, CancellationToken cancellationToken = default);
-        Task<AccountModel> LoginAsync(string email, string password, CancellationToken cancellationToken = default);
+        Task<RecordLoginResponse> LoginAsync(string email, string password, CancellationToken cancellationToken = default);
         Task<bool> LogoutAsync(string email, CancellationToken cancellationToken = default);
         Task<int> ChangePasswordAsync(string email, string oldPassword, string newPassword, CancellationToken cancellationToken = default);
         Task<int> InactiveAccountAsync(string email, string password, CancellationToken cancellationToken = default);
@@ -23,8 +23,6 @@ namespace Identity.Interfaces.IApplication
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingByStatusAsync(Guid? cursor, int pageSize, bool isActive, CancellationToken cancellationToken = default);
         Task<AccountModel?> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default);
 
-        Task<int> ImportAsync(IEnumerable<AccountModel> entities, IEnumerable<AccountRoleModel> accountRoleModels,
-            IEnumerable<AccountAdditionalPermissionModel>? accountAdditionalPermissionModels, IEnumerable<UserProfileModel>? userProfiles, CancellationToken cancellationToken = default);
         Task<int> UpdateRange(IEnumerable<AccountModel> entities, CancellationToken cancellationToken = default);
     }
 }
