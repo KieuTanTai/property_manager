@@ -6,5 +6,5 @@ namespace Identity.Presentation.Record.Account
     public record RecordLoginResponse(
         RecordAuthResponse Account,
         RecordProfileResponse? Profile,
-        List<RecordClaimResponse> Claims);
+        string AccessToken);
 }

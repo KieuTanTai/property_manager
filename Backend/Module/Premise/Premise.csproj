@@ -22,9 +22,7 @@
 
         <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9"/>
 
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.1.0"/>
 
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0-rc.1.26425.128"/>
 
         <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.9"/>
 
@@ -34,7 +32,6 @@
 
         <PackageReference Include="Serilog.Sinks.File" Version="8.0.0-nblumhardt-02322"/>
 
-        <PackageReference Include="StackExchange.Redis" Version="3.2.0"/>
 
         <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3"/>
 

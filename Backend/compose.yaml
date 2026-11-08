@@ -27,8 +27,9 @@ services:
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      ConnectionStrings__IdentityTest: ${IdentityTest:?Set IdentityTest}
-      ConnectionStrings__Redis: redis:6379
+      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      InternalGateway__ApiKey: ${INTERNAL_GATEWAY_API_KEY:?Set INTERNAL_GATEWAY_API_KEY}
+      REDIS_CACHE: redis:6379
     ports:
       - "7048:8443"
     depends_on:
@@ -57,8 +58,8 @@ services:
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      ConnectionStrings__IdentityTest: ${IdentityTest:?Set IdentityTest}
-      ConnectionStrings__Redis: redis:6379
+      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      REDIS_CACHE: redis:6379
     ports:
       - "7255:8443"
     depends_on:
@@ -87,8 +88,8 @@ services:
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      ConnectionStrings__IdentityTest: ${IdentityTest:?Set IdentityTest}
-      ConnectionStrings__Redis: redis:6379
+      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      REDIS_CACHE: redis:6379
     ports:
       - "7081:8443"
     depends_on:
@@ -117,8 +118,8 @@ services:
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      ConnectionStrings__IdentityTest: ${IdentityTest:?Set IdentityTest}
-      ConnectionStrings__Redis: redis:6379
+      IdentityTest: ${IdentityTest:?Set IdentityTest}
+      REDIS_CACHE: redis:6379
     ports:
       - "7092:8443"
     depends_on:
@@ -147,7 +148,8 @@ services:
       ASPNETCORE_URLS: https://+:8443
       ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
       ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
-      ConnectionStrings__Redis: redis:6379
+      REDIS_CACHE: redis:6379
+      InternalGateway__ApiKey: ${INTERNAL_GATEWAY_API_KEY:?Set INTERNAL_GATEWAY_API_KEY}
       ModuleUrls__Identity: https://identity:8443
       ModuleUrls__Contract: https://contract:8443
       ModuleUrls__Premise: https://premise:8443

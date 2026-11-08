@@ -8,6 +8,7 @@ using Premise.Interfaces.IRepository.Premise;
 using Premise.Interfaces.IRepository.Product;
 using Shared.Interfaces;
 using Shared.Logging;
+using Shared.Caching;
 
 namespace Premise.Infrastructure.DIContainer
 {
@@ -18,7 +19,7 @@ namespace Premise.Infrastructure.DIContainer
         {
             #region CONFIG
 
-            var connectionString = configuration.GetConnectionString("IdentityTest")
+            var connectionString = configuration["IdentityTest"]
                                    ?? throw new InvalidOperationException(
                                        "Connection string 'IdentityTest' was not found.");
 
@@ -40,12 +41,7 @@ namespace Premise.Infrastructure.DIContainer
 
             #region CACHE
 
-            services.AddHybridCache();
-            var redisConnection = configuration.GetConnectionString("Redis");
-            if (!string.IsNullOrWhiteSpace(redisConnection))
-            {
-                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
-            }
+            services.AddSharedHybridCache(configuration);
 
             #endregion
 

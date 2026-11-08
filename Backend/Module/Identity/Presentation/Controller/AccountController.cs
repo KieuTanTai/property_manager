@@ -1,5 +1,5 @@
-using System.Security.Claims;
 using Identity.Interfaces;
+using Identity.Interfaces.Credentials;
 using Identity.Interfaces.IApplication;
 using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
@@ -19,6 +19,7 @@ namespace Identity.Presentation.Controller
         IAccountApplication accountApplication,
         IIdentityHelper<AccountModel> helper,
         IApiHelper apiHelper,
+        IJwtTokenService jwtTokenService,
         ILogger<AccountController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
@@ -27,6 +28,7 @@ namespace Identity.Presentation.Controller
         private readonly IAccountApplication _accountApplication = accountApplication;
 
         private readonly IApiHelper _apiHelper = apiHelper;
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
 
         private readonly IIdentityHelper<AccountModel> _helper = helper;
 
@@ -35,19 +37,6 @@ namespace Identity.Presentation.Controller
         private readonly ILogger<AccountController> _logger = logger;
 
         #region PRIVATE
-
-        private static List<RecordClaimResponse> CreateClaims(RecordAuthResponse account)
-        {
-            var nameIdentifierClaim = new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString());
-            var emailClaim = new Claim(ClaimTypes.Email, account.Email);
-
-            var roleClaims = account.RoleCodes.Select(roleCode => new Claim(ClaimTypes.Role, roleCode));
-            var additionalPermissionClaims = account.PermissionCodes.Select(permissionCode => new Claim("Permissions", permissionCode));
-            var claims = new List<Claim> { nameIdentifierClaim, emailClaim };
-            claims.AddRange(roleClaims);
-            claims.AddRange(additionalPermissionClaims);
-            return [.. claims.Select(claim => new RecordClaimResponse(claim.Type, claim.Value))];
-        }
 
         #endregion
 
@@ -234,8 +223,9 @@ namespace Identity.Presentation.Controller
                 threadMappingAccount.Join();
                 threadMappingProfile.Join();
 
-                var claims = CreateClaims(account ?? throw new InvalidOperationException("Account mapping failed."));
-                return Ok(new RecordLoginResponse(account, profile, claims));
+                var mappedAccount = account ?? throw new InvalidOperationException("Account mapping failed.");
+                var accessToken = _jwtTokenService.GenerateAccessToken(mappedAccount);
+                return Ok(new RecordLoginResponse(mappedAccount, profile, accessToken));
             }
             catch (OperationCanceledException ex)
             {

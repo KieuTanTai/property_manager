@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Caching.Hybrid;
 
-namespace Shared.Caching
+namespace Shared.Interfaces.Caching
 {
     public interface IBaseCacheService<TModel>
     {

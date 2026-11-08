@@ -18,7 +18,7 @@ namespace TicketAndNotification.Infrastructure.DIContainer
             IConfiguration configuration,
             IHostEnvironment environment)
         {
-            var connectionString = configuration.GetConnectionString("IdentityTest")
+            var connectionString = configuration["IdentityTest"]
                                    ?? throw new InvalidOperationException(
                                        "Connection string 'IdentityTest' was not found.");
 
@@ -38,13 +38,7 @@ namespace TicketAndNotification.Infrastructure.DIContainer
 
             #region CACHE
 
-            services.AddHybridCache();
-            var redisConnection = configuration.GetConnectionString("Redis");
-            if (!string.IsNullOrWhiteSpace(redisConnection))
-            {
-                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
-            }
-            services.AddScoped(typeof(IBaseCacheService<>), typeof(BaseCacheService<>));
+            services.AddSharedHybridCache(configuration);
 
             #endregion
 

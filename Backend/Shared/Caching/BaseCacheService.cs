@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Hybrid;
+using Shared.Interfaces.Caching;
 
 namespace Shared.Caching
 {

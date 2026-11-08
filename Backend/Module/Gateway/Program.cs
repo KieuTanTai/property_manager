@@ -27,5 +27,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<JwtWhitelistValidationMiddleware>();
 app.MapControllers();
 app.Run();

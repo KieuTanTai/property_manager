@@ -1,5 +1,7 @@
 using Identity.Application;
+using Identity.Infrastructure.Credentials;
 using Identity.Interfaces;
+using Identity.Interfaces.Credentials;
 using Identity.Interfaces.IApplication;
 using Identity.Models.Account;
 using Identity.Utils;
@@ -15,6 +17,11 @@ namespace Identity.Infrastructure.DIContainer
             #region CONFIG
 
             services.AddSharedIdentityHelper<AccountModel>(configuration);
+            services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+            services.AddSingleton<IJwtTokenService, JwtTokenService>();
+            services.AddSingleton<RsaSigningKeyRotationService>();
+            services.AddSingleton<IRsaSigningKeyProvider>(provider => provider.GetRequiredService<RsaSigningKeyRotationService>());
+            services.AddHostedService(provider => provider.GetRequiredService<RsaSigningKeyRotationService>());
 
             services.Configure<PasswordHasherOptions>(options => {
                 options.CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3;

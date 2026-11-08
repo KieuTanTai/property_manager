@@ -1,4 +1,4 @@
-namespace Identity.Infrastructure.Cache.CacheRecord
+namespace Identity.Application.Record.Cache
 {
     public record RecordAccountAuthorization(
         Guid[] RoleIds,

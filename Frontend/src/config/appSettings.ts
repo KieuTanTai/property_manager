@@ -1,8 +1,8 @@
 export const APP_SETTINGS = {
     debounceDelayMs: 300,
     pagination: {
-        defaultPageSize: 5,
-        defaultPageLoaded: 4,
+        defaultPageSize: 6,
+        defaultPageLoaded: 5,
         maxPageLoaded: 20
     },
 } as const

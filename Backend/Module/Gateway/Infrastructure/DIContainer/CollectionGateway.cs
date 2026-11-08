@@ -11,18 +11,14 @@ namespace Gateway.Infrastructure.DIContainer
         {
             #region CACHE
 
-            services.AddHybridCache();
-            var redisConnection = configuration.GetConnectionString("Redis");
-            if (!string.IsNullOrWhiteSpace(redisConnection))
-            {
-                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
-            }
-            services.AddScoped(typeof(IBaseCacheService<>), typeof(BaseCacheService<>));
+            services.AddSharedHybridCache(configuration);
 
             #endregion
 
             services.AddSingleton<ILogPool, LogPool>();
             services.AddScoped<ModuleProxyService>();
+            services.AddMemoryCache();
+            services.AddSingleton<IIdentitySigningKeyResolver, IdentitySigningKeyResolver>();
 
             return services;
         }

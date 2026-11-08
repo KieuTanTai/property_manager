@@ -23,7 +23,7 @@ namespace Identity.Infrastructure.DIContainer
         {
             #region CONFIG
 
-            var connectionString = configuration.GetConnectionString("IdentityTest")
+            var connectionString = configuration["IdentityTest"]
                                    ?? throw new InvalidOperationException(
                                        "Connection string 'IdentityTest' was not found.");
 
@@ -45,13 +45,7 @@ namespace Identity.Infrastructure.DIContainer
 
             #region CACHE
 
-            services.AddHybridCache();
-            var redisConnection = configuration.GetConnectionString("Redis");
-            if (!string.IsNullOrWhiteSpace(redisConnection))
-            {
-                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
-            }
-            services.AddScoped(typeof(IBaseCacheService<>), typeof(BaseCacheService<>));
+            services.AddSharedHybridCache(configuration);
 
             #endregion
 

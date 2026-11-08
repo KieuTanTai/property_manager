@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Caching;
-using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Contract.Infrastructure.DIContainer
 {
@@ -21,7 +20,7 @@ namespace Contract.Infrastructure.DIContainer
         {
             #region CONFIG
 
-            var connectionString = configuration.GetConnectionString("IdentityTest")
+            var connectionString = configuration["IdentityTest"]
                                    ?? throw new InvalidOperationException(
                                        "Connection string 'IdentityTest' was not found.");
 
@@ -43,13 +42,7 @@ namespace Contract.Infrastructure.DIContainer
 
             #region CACHE
 
-            services.AddHybridCache();
-            var redisConnection = configuration.GetConnectionString("Redis");
-            if (!string.IsNullOrWhiteSpace(redisConnection))
-            {
-                services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
-            }
-            services.AddScoped(typeof(IBaseCacheService<>), typeof(BaseCacheService<>));
+            services.AddSharedHybridCache(configuration);
 
             #endregion
 
