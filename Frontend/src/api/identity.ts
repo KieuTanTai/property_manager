@@ -106,6 +106,11 @@ export const identityApi = {
         const profile = await request<ApiProfile>(`/profile/profile?${query}`)
         return toProfileModel(profile)
     },
+    async getProfileByIdentityCode(identityCode: string) {
+        const query = new URLSearchParams({identityCode})
+        const profile = await request<ApiProfile>(`/profile/profile?${query}`)
+        return toProfileModel(profile)
+    },
     async createProfile(accountId: string, identityCode: string) {
         const profile = await request<ApiProfile>("/profile/profile/create", {
             method: "POST",

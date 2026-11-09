@@ -22,16 +22,16 @@ namespace Gateway.Services
                 return;
             }
 
-            var targetUri = BuildTargetUri(context, moduleUrl);
+            var targetUri = BuildTargetUri(context, moduleUrl, moduleUrlKey);
             using var request = CreateProxyRequest(context, targetUri);
             using var response = await SendRequestAsync(request, context.RequestAborted);
             await WriteResponseAsync(context, response, context.RequestAborted);
         }
 
-        private static Uri BuildTargetUri(HttpContext context, string moduleUrl)
+        private static Uri BuildTargetUri(HttpContext context, string moduleUrl, string moduleUrlKey)
         {
             // Keep the incoming API path when forwarding (for example /api/contact -> /api/contact).
-            var path = context.Request.Path.Value ?? string.Empty;
+            var path = MapModulePath(context.Request.Path.Value ?? string.Empty, moduleUrlKey);
             return new UriBuilder(moduleUrl)
             {
                 Path = $"{new Uri(moduleUrl).AbsolutePath.TrimEnd('/')}{path}",

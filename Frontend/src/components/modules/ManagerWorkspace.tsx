@@ -1,4 +1,7 @@
-import {useState} from "react"
+import {useEffect, useState} from "react"
+import {identityApi} from "@/api/identity"
+import type {PermissionModel, RoleModel, UserProfileModel} from "@/types/identity"
+import {dateLabel} from "@/scripts/identity"
 import type {ManagerModule as Module, ManagerWorkspaceProps as Props} from "../../types/manager"
 import {AccountsModule} from "./AccountsModule"
 import {ContractsModule} from "./ContractsModule"
@@ -10,6 +13,7 @@ import {RegulationsModule} from "./RegulationsModule"
 import {StatisticsModule} from "./StatisticsModule"
 import {TicketsModule} from "./TicketsModule"
 import {ViolationsModule} from "./ViolationsModule"
+import {Modal} from "./shared"
 import {hasAnyPermissionForRole, hasPermission, hasRole, PERMISSIONS} from "@/utils/authorization"
 
 const NAV: {
@@ -83,6 +87,12 @@ const NAV: {
 
 export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, onLogout}: Props) {
     const [active, setActive] = useState<Module>("dashboard")
+    const [isAccountDetailsOpen, setIsAccountDetailsOpen] = useState(false)
+    const [profile, setProfile] = useState<UserProfileModel | null>(null)
+    const [roles, setRoles] = useState<RoleModel[]>([])
+    const [permissions, setPermissions] = useState<PermissionModel[]>([])
+    const [profileLoading, setProfileLoading] = useState(false)
+    const [profileError, setProfileError] = useState<string | null>(null)
     const isManagementRole = hasRole(roleCodes, "ADMIN", "MANAGER")
     const can = (permission: string) => hasPermission(permissionCodes, permission, roleCodes)
     const canAny = (...permissions: string[]) => hasAnyPermissionForRole(permissionCodes, roleCodes, ...permissions)
@@ -93,6 +103,57 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
     const canViewOwnContracts = can(PERMISSIONS.contractReadOwn)
     const canViewOwnViolations = can(PERMISSIONS.contractViolationReadOwn)
     const accountInitial = email.charAt(0).toUpperCase()
+
+    useEffect(() => {
+        if (!isAccountDetailsOpen) return
+
+        let isCurrent = true
+        setProfileLoading(true)
+        setProfile(null)
+        setRoles([])
+        setPermissions([])
+        setProfileError(null)
+        void Promise.allSettled([
+            identityApi.getProfileByAccountId(accountId),
+            identityApi.getAllRolesWithPermissions(),
+            identityApi.getAllPermissions(),
+        ]).then(([profileResult, roleResult, permissionResult]) => {
+            if (!isCurrent) return
+            if (profileResult.status === "fulfilled") {
+                setProfile(profileResult.value)
+            } else if (!/profile was not found/i.test(profileResult.reason instanceof Error
+                ? profileResult.reason.message
+                : "")) {
+                setProfileError(profileResult.reason instanceof Error
+                    ? profileResult.reason.message
+                    : "Không thể tải hồ sơ người dùng.")
+            }
+            if (roleResult.status === "fulfilled") {
+                setRoles(roleResult.value)
+            } else {
+                setProfileError((current) => current ?? (roleResult.reason instanceof Error
+                    ? roleResult.reason.message
+                    : "Không thể tải vai trò tài khoản."))
+            }
+            if (permissionResult.status === "fulfilled") {
+                setPermissions(permissionResult.value)
+            } else {
+                setProfileError((current) => current ?? (permissionResult.reason instanceof Error
+                    ? permissionResult.reason.message
+                    : "Không thể tải quyền tài khoản."))
+            }
+        }).finally(() => {
+            if (isCurrent) setProfileLoading(false)
+        })
+        return () => {
+            isCurrent = false
+        }
+    }, [accountId, isAccountDetailsOpen])
+
+    const effectiveRoles = roles.filter((role) =>
+        roleCodes.some((code) => code.toUpperCase() === role.roleCode.toUpperCase()))
+    const effectivePermissions = permissions.filter((permission) =>
+        permissionCodes.some((code) => code.toUpperCase() === permission.permissionCode.toUpperCase()))
 
     return (
         <div className="flex" style={{fontFamily: "Inter, sans-serif"}}>
@@ -131,8 +192,10 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
 
                 <div className="border-t px-3 py-4" style={{borderColor: "rgba(255,255,255,0.06)"}}>
                     <div className="flex items-center gap-3 px-2">
-                        <div
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-violet-500 text-xs font-bold text-white">{accountInitial}</div>
+                        <button type="button" onClick={() => setIsAccountDetailsOpen(true)}
+                                aria-label="Xem tài khoản của tôi"
+                                title="Tài khoản của tôi"
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-blue-400 to-violet-500 text-xs font-bold text-white ring-offset-2 transition hover:ring-2 hover:ring-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400">{accountInitial}</button>
                         <div className="min-w-0 flex-1">
                             <div className="truncate text-xs font-medium text-white">{email}</div>
                             <div className="truncate text-xs"
@@ -185,6 +248,77 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
                     {currentActive === "contacts" && <ContactsModule/>}
                 </div>
             </main>
+            {isAccountDetailsOpen && <Modal title="Tài khoản của tôi" onClose={() => setIsAccountDetailsOpen(false)} wide>
+                <div className="grid gap-4 xl:grid-cols-2">
+                    <section className="rounded-lg border border-slate-100 p-4">
+                        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Thông tin tài khoản</h2>
+                        <dl className="space-y-3 text-sm">
+                            <div><dt className="text-xs text-slate-500">Account ID</dt>
+                                <dd className="mt-1 break-all font-mono text-xs text-slate-800">{accountId}</dd></div>
+                            <div><dt className="text-xs text-slate-500">Email</dt>
+                                <dd className="mt-1 font-medium text-slate-900">{email}</dd></div>
+                        </dl>
+                    </section>
+                    <section className="rounded-lg border border-slate-100 p-4">
+                        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Hồ sơ người dùng</h2>
+                        {profileLoading ? <p role="status" className="text-sm text-slate-500">Đang tải hồ sơ...</p>
+                            : profileError ? <p role="alert" className="text-sm text-red-700">{profileError}</p>
+                                : profile ? <div className="grid gap-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
+                                    <img src={profile.userProfileAvatarUrl || "/assets/avatar-placeholder.svg"}
+                                         onError={(event) => {
+                                             event.currentTarget.onerror = null
+                                             event.currentTarget.src = "/assets/avatar-placeholder.svg"
+                                         }}
+                                         alt="Ảnh đại diện"
+                                         className="h-24 w-24 rounded-full border border-slate-200 object-cover"/>
+                                    <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
+                                        <dt className="text-slate-500">Mã hồ sơ</dt>
+                                        <dd className="break-all">{profile.userProfileId}</dd>
+                                        <dt className="text-slate-500">Họ tên</dt>
+                                        <dd>{[profile.userProfileLastName, profile.userProfileFirstName].filter(Boolean).join(" ") || "—"}</dd>
+                                        <dt className="text-slate-500">Ngày sinh</dt>
+                                        <dd>{profile.userProfileDateOfBirth ? dateLabel(profile.userProfileDateOfBirth) : "—"}</dd>
+                                        <dt className="text-slate-500">Giới tính</dt>
+                                        <dd>{profile.userProfileGender === "Male" ? "Nam" : profile.userProfileGender === "Female" ? "Nữ" : "Chưa xác định"}</dd>
+                                        <dt className="text-slate-500">Điện thoại</dt>
+                                        <dd>{profile.userProfilePhoneNumber || "—"}</dd>
+                                        <dt className="text-slate-500">Địa chỉ</dt>
+                                        <dd className="wrap-break-word">{profile.userProfileAddress || "—"}</dd>
+                                    </dl>
+                                </div> : <p className="text-sm text-slate-500">Tài khoản chưa có hồ sơ người dùng.</p>}
+                    </section>
+                    <section className="rounded-lg border border-slate-100 p-4">
+                        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò</h2>
+                        <div className="space-y-2">
+                            {effectiveRoles.map((role) => <div key={role.roleId}
+                                className="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-2 text-sm">
+                                <span className="font-medium text-slate-800">{role.roleName}</span>
+                                <span className="text-xs text-slate-500">{role.roleCode}</span>
+                            </div>)}
+                            {effectiveRoles.length === 0 && roleCodes.map((code) => <div key={code}
+                                className="rounded-md bg-slate-50 p-2 text-sm text-slate-800">{code}</div>)}
+                            {roleCodes.length === 0 && <p className="text-sm text-slate-500">Chưa được gán vai trò.</p>}
+                        </div>
+                    </section>
+                    <section className="rounded-lg border border-slate-100 p-4">
+                        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Quyền hiệu lực</h2>
+                        <div className="max-h-56 space-y-2 overflow-y-auto">
+                            {effectivePermissions.map((permission) => <div key={permission.permissionId}
+                                className="rounded-md bg-slate-50 p-2">
+                                <p className="text-sm font-medium text-slate-800">{permission.permissionName}</p>
+                                <p className="mt-0.5 text-xs text-slate-500">{permission.permissionCode}</p>
+                            </div>)}
+                            {effectivePermissions.length === 0 && permissionCodes.map((code) => <div key={code}
+                                className="rounded-md bg-slate-50 p-2 text-xs text-slate-800">{code}</div>)}
+                            {permissionCodes.length === 0 && <p className="text-sm text-slate-500">Tài khoản chưa có quyền nào.</p>}
+                        </div>
+                    </section>
+                </div>
+                <div className="mt-4 flex justify-end">
+                    <button type="button" onClick={() => setIsAccountDetailsOpen(false)}
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Đóng</button>
+                </div>
+            </Modal>}
         </div>
     )
 }

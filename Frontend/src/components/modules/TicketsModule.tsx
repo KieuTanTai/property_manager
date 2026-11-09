@@ -1,6 +1,9 @@
 import type {SubmitEvent} from "react"
-import {useEffect, useState} from "react"
+import {useEffect, useMemo, useState} from "react"
+import debounce from "lodash.debounce"
 import {compressImageToDataUrl} from "@/utils/compressImage"
+import {identityApi} from "@/api/identity"
+import type {UserProfileModel} from "@/types/identity"
 import {
     type NotificationModel,
     type NotificationType,
@@ -52,6 +55,11 @@ export function TicketsModule({
     const [notificationReload, setNotificationReload] = useState(0)
     const [modal, setModal] = useState<"tickets" | null>(null)
     const [ticketForm, setTicketForm] = useState({accountId: "", content: "", type: "Feedback" as TicketType})
+    const [profileIdInput, setProfileIdInput] = useState("")
+    const [debouncedProfileId, setDebouncedProfileId] = useState("")
+    const [ticketProfile, setTicketProfile] = useState<UserProfileModel | null>(null)
+    const [profileLookup, setProfileLookup] = useState<"idle" | "waiting" | "loading" | "found" | "notFound" | "error">("idle")
+    const [profileLookupError, setProfileLookupError] = useState<string | null>(null)
     const [ticketImages, setTicketImages] = useState<File[]>([])
     const [imageToView, setImageToView] = useState<{ urls: string[]; index: number } | null>(null)
     const [loadingTickets, setLoadingTickets] = useState(true)
@@ -61,6 +69,59 @@ export function TicketsModule({
     const [notificationLoadError, setNotificationLoadError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
     const [loadingNotifications, setLoadingNotifications] = useState(customerMode)
+    const updateDebouncedProfileId = useMemo(
+        () => debounce(setDebouncedProfileId, APP_SETTINGS.debounceDelayMs),
+        [],
+    )
+
+    useEffect(() => () => updateDebouncedProfileId.cancel(), [updateDebouncedProfileId])
+    useEffect(() => {
+        updateDebouncedProfileId(profileIdInput)
+    }, [profileIdInput, updateDebouncedProfileId])
+
+    useEffect(() => {
+        if (modal !== "tickets" || ticketForm.type !== "Violation") {
+            setTicketProfile(null)
+            setProfileLookup("idle")
+            setProfileLookupError(null)
+            return
+        }
+
+        const identityCode = profileIdInput.trim()
+        if (!/^\d{12}$/.test(identityCode)) {
+            setTicketProfile(null)
+            setProfileLookup(identityCode ? "waiting" : "idle")
+            setProfileLookupError(null)
+            return
+        }
+        if (identityCode !== debouncedProfileId.trim()) {
+            setProfileLookup("waiting")
+            return
+        }
+
+        let isCurrent = true
+        setProfileLookup("loading")
+        setTicketProfile(null)
+        setProfileLookupError(null)
+        void identityApi.getProfileByIdentityCode(identityCode).then((profile) => {
+            if (!isCurrent) return
+            setTicketProfile(profile)
+            setProfileLookup(profile.userProfileAccountId ? "found" : "notFound")
+        }).catch((cause: unknown) => {
+            if (!isCurrent) return
+            const message = cause instanceof Error ? cause.message : "Không thể tra cứu hồ sơ."
+            if (/profile was not found/i.test(message)) {
+                setProfileLookup("notFound")
+                setProfileLookupError(null)
+            } else {
+                setProfileLookup("error")
+                setProfileLookupError(message)
+            }
+        })
+        return () => {
+            isCurrent = false
+        }
+    }, [debouncedProfileId, modal, profileIdInput, ticketForm.type])
 
     useEffect(() => {
         if (customerMode || !canViewTickets) {
@@ -238,7 +299,12 @@ export function TicketsModule({
             </div>
             {canCreateViolation && <div className="flex gap-2">
                 <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`} onClick={() => {
-                    setTicketForm({accountId: accountId ?? "", content: "", type: "Violation"});
+                    setTicketForm({accountId: "", content: "", type: "Violation"});
+                    setProfileIdInput("")
+                    setDebouncedProfileId("")
+                    setTicketProfile(null)
+                    setProfileLookup("idle")
+                    setProfileLookupError(null)
                     setTicketImages([]);
                     setModal("tickets")
                 }}>Tạo ticket vi phạm
@@ -477,11 +543,40 @@ export function TicketsModule({
 
         {modal === "tickets" && <Modal title="Tạo ticket" onClose={() => setModal(null)}>
             <ProcessingForm processing={saving} onSubmit={createTicket}>
-                <FormField label="Account ID"><input className={inputCls} required placeholder="GUID tài khoản"
-                                                     value={ticketForm.accountId} onChange={(event) => setTicketForm({
-                    ...ticketForm,
-                    accountId: event.target.value
-                })}/></FormField>
+                <FormField label="Mã hồ sơ người dùng">
+                    <input className={inputCls} required inputMode="numeric" maxLength={12}
+                           placeholder="Nhập mã hồ sơ 12 chữ số"
+                           value={profileIdInput}
+                           onChange={(event) => {
+                               const value = event.target.value.replace(/\D/g, "").slice(0, 12)
+                               setProfileIdInput(value)
+                               setTicketProfile(null)
+                               setTicketForm((current) => ({...current, accountId: ""}))
+                           }}/>
+                    <p className="mt-1 text-xs text-slate-500">Nhập mã hồ sơ đã tồn tại để tra cứu tài khoản.</p>
+                    {profileLookup === "waiting" &&
+                        <p role="status" className="mt-1 text-xs text-slate-500">Nhập đủ 12 chữ số để tra cứu...</p>}
+                    {profileLookup === "loading" &&
+                        <p role="status" className="mt-1 text-xs text-slate-500">Đang kiểm tra hồ sơ...</p>}
+                    {profileLookup === "notFound" &&
+                        <p role="alert" className="mt-1 text-xs text-red-600">Không tìm thấy hồ sơ với mã này.</p>}
+                    {profileLookupError &&
+                        <p role="alert" className="mt-1 text-xs text-red-600">{profileLookupError}</p>}
+                </FormField>
+                <FormField label="Tài khoản của hồ sơ">
+                    <select className={selectCls} required aria-label="Chọn tài khoản của hồ sơ"
+                            value={ticketForm.accountId}
+                            disabled={profileLookup !== "found" || !ticketProfile?.userProfileAccountId}
+                            onChange={(event) => setTicketForm((current) => ({
+                                ...current,
+                                accountId: event.target.value
+                            }))}>
+                        <option value="">Chọn tài khoản</option>
+                        {ticketProfile?.userProfileAccountId && <option value={ticketProfile.userProfileAccountId}>
+                            {ticketProfile.userProfileId} — {ticketProfile.userProfileAccountId}
+                        </option>}
+                    </select>
+                </FormField>
                 <FormField label="Loại ticket"><select className={selectCls} value={ticketForm.type} disabled
                                                        onChange={(event) => setTicketForm({
                                                            ...ticketForm,
@@ -501,7 +596,8 @@ export function TicketsModule({
                             onClick={() => setModal(null)}>Hủy
                     </button>
                     <button className={`${button} bg-blue-600 text-white`}
-                            disabled={saving}>{saving ? "Đang tải ảnh..." : "Tạo ticket"}</button>
+                            disabled={saving || !ticketForm.accountId || profileLookup !== "found"}>
+                        {saving ? "Đang tải ảnh..." : "Tạo ticket"}</button>
                 </div>
             </ProcessingForm>
         </Modal>}
