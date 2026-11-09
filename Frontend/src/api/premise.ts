@@ -6,6 +6,7 @@ import {
     type ProductResponse,
 } from "@/components/premises/types"
 import {compressImageToDataUrl} from "@/utils/compressImage"
+import {createApiHeaders} from "@/api/authHeaders"
 
 const apiBase = (import.meta.env.VITE_IDENTITY_API_BASE_URL || "/api").replace(/\/$/, "")
 
@@ -51,10 +52,10 @@ export type PublicPremise = {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let response: Response
     try {
-        const headers = new Headers(init?.headers)
+        const headers = createApiHeaders(init?.headers)
         if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
         response = await fetch(`${apiBase}${path}`, {...init, headers})
-        console.log("response: ");
+        console.log(`response: ${response}`)
     } catch {
         throw new Error(`Không thể kết nối Premise API tại ${apiBase}. Kiểm tra backend và HTTPS.`)
     }

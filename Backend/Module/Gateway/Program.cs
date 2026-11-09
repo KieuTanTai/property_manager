@@ -1,19 +1,13 @@
 using System.Text.Json.Serialization;
+using Gateway.Infrastructure.DIContainer;
 using Gateway.Middleware;
-using Gateway.Services;
-using Shared.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration["ModuleUrls:Identity"] ??= "https://localhost:7048";
-builder.Configuration["ModuleUrls:Contract"] ??= "https://localhost:7255";
-builder.Configuration["ModuleUrls:Premise"] ??= "https://localhost:7081";
-builder.Configuration["ModuleUrls:TicketAndNotification"] ??= "https://localhost:7092";
-
 builder.Services.AddOpenApi();
-builder.Services.AddSingleton<ILogPool, LogPool>();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddProxyMapping(builder.Environment);
-builder.Services.AddScoped<ModuleProxyService>();
+builder.Services.AddGatewayCollection(builder.Configuration, builder.Environment);
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
@@ -25,8 +19,10 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<RequestDeadlineMiddleware>();
 app.UseHttpsRedirection();
 app.UseWebSockets();
 app.UseMiddleware<NotificationHubProxyMiddleware>();
+app.UseMiddleware<IdentityTokenAuthorizationMiddleware>();
 app.MapControllers();
 app.Run();

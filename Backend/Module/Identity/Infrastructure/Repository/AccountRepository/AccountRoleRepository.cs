@@ -49,27 +49,12 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         public async Task AddRangeAsync(List<AccountRoleModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account role association batch creation.");
-            // var filteredAccountRoles = await GetNotExistedEntitiesList(entities, cancellationToken);
-            // if (!filteredAccountRoles.Any())
-            // {
-            //     throw new InvalidOperationException("All account roles already exist!");
-            // }
-            // await _db.AccountRoles.AddRangeAsync(filteredAccountRoles, cancellationToken);
             await _db.AccountRoles.AddRangeAsync(entities, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Account role associations staged for creation.");
         }
 
         #endregion
-
-        //
-        // private async Task<List<AccountRoleModel>> GetNotExistedEntitiesList(List<AccountRoleModel> entities, CancellationToken cancellationToken = default)
-        // {
-        //     var existedAccountRoles = await GetAllAsync(cancellationToken);
-        //     return entities.Where(entity => !existedAccountRoles.Any(existedAccountRole =>
-        //             existedAccountRole.AccountId == entity.AccountId && existedAccountRole.RoleId == entity.RoleId))
-        //         .ToList();
-        // }
 
         #region DELETE
 

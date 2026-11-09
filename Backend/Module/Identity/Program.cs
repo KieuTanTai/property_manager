@@ -9,7 +9,7 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddIdentityRepositoryCollection(builder.Configuration, builder.Environment);
+builder.Services.AddIdentityInfrastructureCollection(builder.Configuration, builder.Environment);
 builder.Services.AddIdentityApplicationCollection(builder.Configuration);
 
 if (builder.Environment.IsDevelopment())

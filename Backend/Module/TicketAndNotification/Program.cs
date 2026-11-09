@@ -11,7 +11,7 @@ builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-builder.Services.AddTicketAndNotificationRepositoryCollection(
+builder.Services.AddTicketAndNotificationInfrastructureCollection(
     builder.Configuration, builder.Environment);
 builder.Services.AddTicketAndNotificationApplicationCollection();
 

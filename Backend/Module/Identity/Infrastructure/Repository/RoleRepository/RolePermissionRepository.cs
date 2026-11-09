@@ -48,29 +48,13 @@ namespace Identity.Infrastructure.Repository.RoleRepository
 
         public async Task AddRangeAsync(List<RolePermissionModel> entities, CancellationToken cancellationToken = default)
         {
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Preparing role permission association batch creation.");
-            // var filteredRolePermissions = await GetNotExistedEntitiesList(entities, cancellationToken);
-            // if (!filteredRolePermissions.Any())
-            //     throw new InvalidOperationException("All role permissions already exist!");
-            // await _db.RolePermissions.AddRangeAsync(filteredRolePermissions, cancellationToken);
-
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing role permission association batch creation.");
             await _db.RolePermissions.AddRangeAsync(entities, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Role permission associations staged for creation.");
         }
 
         #endregion
-
-        // private check if role and permission are existed
-        // private async Task<List<RolePermissionModel>> GetNotExistedEntitiesList(List<RolePermissionModel> entities,
-        //     CancellationToken cancellationToken = default)
-        // {
-        //     var existedRolePermissions = await GetAllAsync(cancellationToken);
-        //     return entities.Where(entity => !existedRolePermissions.Any(existedRolePermission =>
-        //             existedRolePermission.RoleId == entity.RoleId && existedRolePermission.PermissionId == entity.PermissionId))
-        //         .ToList();
-        // }
 
         #region DELETE
 

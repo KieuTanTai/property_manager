@@ -21,6 +21,28 @@ namespace Contract.Presentation.Controller
 
         private readonly ILogger<ContractController> _logger = logger;
 
+        #region PRIVATE
+
+        private static string? ValidateContractRequest(Guid accountId, decimal deposit, decimal rentalPrice,
+            DateTime premiseReturnDate)
+        {
+            if (accountId == Guid.Empty)
+            {
+                return "Contract account id is required.";
+            }
+            if (deposit <= 0)
+            {
+                return "Contract deposit must be greater than 0.";
+            }
+            if (rentalPrice <= 0)
+            {
+                return "Contract rental price must be greater than 0.";
+            }
+            return premiseReturnDate <= DateTime.Now ? "Contract premise return date must be in the future." : null;
+        }
+
+        #endregion
+
         #region POST
 
         [RequireHttps]
@@ -30,6 +52,13 @@ namespace Contract.Presentation.Controller
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Contract creation request received.");
+            var validationError = ValidateContractRequest(request.AccountId, request.Deposit,
+                request.RentalPrice, request.PremiseReturnDate);
+            if (validationError is not null)
+            {
+                return BadRequest(validationError);
+            }
+
             try
             {
                 var contract = new ContractModel(request.AccountId, request.Deposit,
@@ -70,6 +99,12 @@ namespace Contract.Presentation.Controller
             if (contractId == Guid.Empty)
             {
                 return BadRequest("Contract id is required.");
+            }
+            var validationError = ValidateContractRequest(request.AccountId, request.Deposit,
+                request.RentalPrice, request.PremiseReturnDate);
+            if (validationError is not null)
+            {
+                return BadRequest(validationError);
             }
             if (!Enum.IsDefined(request.Status))
             {
@@ -123,6 +158,10 @@ namespace Contract.Presentation.Controller
             if (contractId == Guid.Empty)
             {
                 return BadRequest("Contract id is required.");
+            }
+            if (terminationDate < DateTime.UtcNow)
+            {
+                return BadRequest("Termination date cannot be in the past.");
             }
 
             try
@@ -202,6 +241,11 @@ namespace Contract.Presentation.Controller
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 $"Contract lookup request received for {contractId}.");
+            if (contractId == Guid.Empty)
+            {
+                return BadRequest("Contract id is required.");
+            }
+
             try
             {
                 var result = await _contractApplication.GetByContractIdAsync(

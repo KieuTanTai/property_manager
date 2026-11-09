@@ -1,25 +1,29 @@
 using Contract.Infrastructure.Persistence.DbContext;
 using Contract.Infrastructure.Repository;
+using Contract.Infrastructure.Services;
 using Contract.Infrastructure.Repository.ContactRepository;
 using Contract.Infrastructure.Repository.ContractRepository;
 using Contract.Infrastructure.Repository.InvoiceRepository;
 using Contract.Infrastructure.Repository.ReceiptRepository;
 using Contract.Infrastructure.Repository.RegulationRepository;
 using Contract.Interfaces.IRepository;
+using Contract.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
+using Shared.Caching;
+using Shared.DIContainer;
 using Shared.Interfaces;
 using Shared.Logging;
 
 namespace Contract.Infrastructure.DIContainer
 {
-    public static class CollectionContractRepository
+    public static class CollectionContractInfrastructure
     {
-        public static IServiceCollection AddContractRepositoryCollection(this IServiceCollection services,
+        public static IServiceCollection AddContractInfrastructureCollection(this IServiceCollection services,
             IConfiguration configuration, IHostEnvironment environment)
         {
             #region CONFIG
 
-            var connectionString = configuration.GetConnectionString("IdentityTest")
+            var connectionString = configuration["IdentityTest"]
                                    ?? throw new InvalidOperationException(
                                        "Connection string 'IdentityTest' was not found.");
 
@@ -39,9 +43,22 @@ namespace Contract.Infrastructure.DIContainer
 
             #endregion
 
-            #region REPOSITORY
+            #region CACHE
+
+            services.AddSharedHybridCache(configuration);
+
+            #endregion
+
+            #region HELPERS
 
             services.AddSingleton<ILogPool, LogPool>();
+
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+            #endregion
+
+            #region REPOSITORY
+
             services.AddScoped<IUnitOfWork, EfContractUnitOfWork>();
             services.AddScoped<IContractRepository, ContractRepository>();
             services.AddScoped<IContractViolationRepository, ContractViolationRepository>();

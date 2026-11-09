@@ -15,7 +15,6 @@ namespace Identity.Infrastructure.DIContainer
             #region CONFIG
 
             services.AddSharedIdentityHelper<AccountModel>(configuration);
-
             services.Configure<PasswordHasherOptions>(options => {
                 options.CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3;
                 options.IterationCount = configuration.GetValue<int>("PasswordHasherOptions:IterationCount");
@@ -23,13 +22,13 @@ namespace Identity.Infrastructure.DIContainer
 
             #endregion
 
-            services.AddSingleton<IApiHelper, ApiHelper>();
+
+            services.AddSingleton<IMappingHelper, MappingHelper>();
             services.AddSingleton<IPasswordHasher<AccountModel>, PasswordHasher<AccountModel>>();
+
             services.AddScoped<IAuthorizationApplication, AuthorizationApplication>();
             services.AddScoped<IAccountApplication, AccountApplication>();
             services.AddScoped<IUserProfileApplication, UserProfileApplication>();
-            // HashExistingAccounts.RunAsync(environment).Wait();
-
 
             return services;
         }

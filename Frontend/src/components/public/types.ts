@@ -7,6 +7,7 @@ export interface LoginModalProps {
     onLogin: (account: {
         accountId: string;
         email: string;
+        accessToken: string;
         roleCodes: string[];
         permissionCodes: string[];
         sessionInstanceId: string;

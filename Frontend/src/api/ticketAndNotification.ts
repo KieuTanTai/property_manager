@@ -1,3 +1,5 @@
+import {createApiHeaders} from "@/api/authHeaders"
+
 export type TicketType = "Review" | "Complaint" | "Violation" | "Feedback"
 export type NotificationType = "Violation" | "Ticket" | "Other"
 
@@ -41,7 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     try {
         response = await fetch(`${base}${path}`, {
             ...init,
-            headers: {...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers},
+            headers: createApiHeaders({...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers}),
         })
     } catch {
         throw new Error(`Không thể kết nối Gateway API tại ${base}; kiểm tra Gateway và HTTPS.`)

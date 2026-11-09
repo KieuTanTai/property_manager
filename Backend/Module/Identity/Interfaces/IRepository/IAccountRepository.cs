@@ -5,7 +5,7 @@ using Shared.Persistence.Record;
 
 namespace Identity.Interfaces.IRepository
 {
-    public interface IAccountRepository : IBaseReadRepository<AccountModel, Guid>, IBaseUpsertRepository<AccountModel>
+    public interface IAccountRepository : IBaseReadRepository<AccountModel, Guid>, IIdentityUpsertRepository<AccountModel>
     {
         Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize,
             CancellationToken cancellationToken = default);

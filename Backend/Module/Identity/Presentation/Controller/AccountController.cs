@@ -1,9 +1,7 @@
-using System.Security.Claims;
 using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
 using Identity.Models.Account;
 using Identity.Presentation.Record.Account;
-using Identity.Presentation.Record.Profile;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Enum;
 using Shared.Interfaces;
@@ -18,7 +16,7 @@ namespace Identity.Presentation.Controller
     public class AccountController(
         IAccountApplication accountApplication,
         IIdentityHelper<AccountModel> helper,
-        IApiHelper apiHelper,
+        IMappingHelper apiHelper,
         ILogger<AccountController> logger,
         ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
     {
@@ -26,7 +24,7 @@ namespace Identity.Presentation.Controller
 
         private readonly IAccountApplication _accountApplication = accountApplication;
 
-        private readonly IApiHelper _apiHelper = apiHelper;
+        private readonly IMappingHelper _apiHelper = apiHelper;
 
         private readonly IIdentityHelper<AccountModel> _helper = helper;
 
@@ -36,18 +34,23 @@ namespace Identity.Presentation.Controller
 
         #region PRIVATE
 
-        private static List<RecordClaimResponse> CreateClaims(RecordAuthResponse account)
-        {
-            var nameIdentifierClaim = new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString());
-            var emailClaim = new Claim(ClaimTypes.Email, account.Email);
+        private bool IsValidCredentials(string email, string password) =>
+            _helper.IsEmailValid(email) && _helper.IsPasswordValid(password);
 
-            var roleClaims = account.RoleCodes.Select(roleCode => new Claim(ClaimTypes.Role, roleCode));
-            var additionalPermissionClaims = account.PermissionCodes.Select(permissionCode => new Claim("Permissions", permissionCode));
-            var claims = new List<Claim> { nameIdentifierClaim, emailClaim };
-            claims.AddRange(roleClaims);
-            claims.AddRange(additionalPermissionClaims);
-            return [.. claims.Select(claim => new RecordClaimResponse(claim.Type, claim.Value))];
+        private bool IsValidPasswordChange(RecordUpdateAccountPasswordRequest request) =>
+            IsValidCredentials(request.Email, request.OldPassword) &&
+            _helper.IsPasswordValid(request.NewPassword) &&
+            !string.Equals(request.OldPassword, request.NewPassword, StringComparison.Ordinal);
+
+        private bool IsValidAccountModel(AccountModel account, bool requireId)
+        {
+            return (!requireId || account.AccountId != Guid.Empty) &&
+                   _helper.IsEmailValid(account.AccountEmail) &&
+                   !string.IsNullOrWhiteSpace(account.AccountPassword) && account.AccountPassword.Length <= 255;
         }
+
+        private bool AreValidAccountsForUpdate(IReadOnlyCollection<AccountModel>? accounts) =>
+            accounts is { Count: > 0 } && accounts.All(account => IsValidAccountModel(account, true));
 
         #endregion
 
@@ -94,6 +97,12 @@ namespace Identity.Presentation.Controller
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code request received.");
+            if (!Enum.IsDefined(roleCode))
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account role lookup request rejected because role code is invalid.");
+                return BadRequest("Role code is invalid.");
+            }
+
             try
             {
                 var result = await _accountApplication.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
@@ -160,7 +169,7 @@ namespace Identity.Presentation.Controller
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account lookup request received.");
-            if (string.IsNullOrWhiteSpace(email) || !_helper.IsEmailValid(email))
+            if (!_helper.IsEmailValid(email))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account lookup request rejected because email format is invalid.");
                 return BadRequest("A valid email is required.");
@@ -192,6 +201,12 @@ namespace Identity.Presentation.Controller
         public async Task<ActionResult<RecordAuthResponse>> RegisterAsync([FromBody] RecordAuthRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account registration request received.");
+            if (!IsValidCredentials(requestDto.Email, requestDto.Password))
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account registration request rejected because email or password is invalid.");
+                return BadRequest("A valid email and password are required.");
+            }
+
             try
             {
                 var result = await _accountApplication.RegisterAsync(requestDto.Email, requestDto.Password, cancellationToken);
@@ -215,27 +230,16 @@ namespace Identity.Presentation.Controller
         public async Task<IActionResult> LoginAsync([FromBody] RecordAuthRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account login request received.");
+            if (!IsValidCredentials(requestDto.Email, requestDto.Password))
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account login request rejected because email or password is invalid.");
+                return BadRequest("A valid email and password are required.");
+            }
+
             try
             {
-                var result = await _accountApplication.LoginAsync(requestDto.Email, requestDto.Password, cancellationToken);
-                RecordProfileResponse? profile = null;
-                RecordAuthResponse? account = null;
-
-                var threadMappingAccount = new Thread(() => { account = _apiHelper.MappingAuthResult(result); });
-                var threadMappingProfile = new Thread(() => {
-                    profile = result.UserProfile is null
-                        ? null
-                        : _apiHelper.MappingProfileResult(result.UserProfile);
-                });
-
-                threadMappingAccount.Start();
-                threadMappingProfile.Start();
-
-                threadMappingAccount.Join();
-                threadMappingProfile.Join();
-
-                var claims = CreateClaims(account ?? throw new InvalidOperationException("Account mapping failed."));
-                return Ok(new RecordLoginResponse(account, profile, claims));
+                var response = await _accountApplication.LoginAsync(requestDto.Email, requestDto.Password, cancellationToken);
+                return Ok(response);
             }
             catch (OperationCanceledException ex)
             {
@@ -264,7 +268,7 @@ namespace Identity.Presentation.Controller
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account logout request received.");
-            if (string.IsNullOrWhiteSpace(email) || !_helper.IsEmailValid(email))
+            if (!_helper.IsEmailValid(email))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account logout request rejected because the account identifier is invalid.");
                 return BadRequest("A valid email is required.");
@@ -292,6 +296,13 @@ namespace Identity.Presentation.Controller
         public async Task<IActionResult> ChangePasswordAsync([FromBody] RecordUpdateAccountPasswordRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account password change request received.");
+            
+            if (!IsValidPasswordChange(requestDto))
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Password change request rejected because credentials are invalid.");
+                return BadRequest("Email and passwords must be valid, and the new password must differ from the old password.");
+            }
+
             try
             {
                 var result = await _accountApplication.ChangePasswordAsync(requestDto.Email, requestDto.OldPassword, requestDto.NewPassword, cancellationToken);
@@ -342,49 +353,13 @@ namespace Identity.Presentation.Controller
         }
 
         [RequireHttps]
-        [HttpPost("import")]
-        public async Task<IActionResult> ImportAccountsAsync([FromBody] RecordImportAccountRequest requestDto, CancellationToken cancellationToken = default)
-        {
-            if (!requestDto.Accounts.Any())
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no accounts were provided.");
-                return BadRequest("No accounts to import.");
-            }
-
-            if (!requestDto.AccountRoles.Any())
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account import request rejected because no account roles were provided.");
-                return BadRequest("No account roles to import.");
-            }
-
-            try
-            {
-                var result = await _accountApplication.ImportAsync(requestDto.Accounts, requestDto.AccountRoles, requestDto.AccountAdditionalPermissions, requestDto.UserProfiles, cancellationToken);
-                if (result == 0)
-                {
-                    return BadRequest("Could not import accounts.");
-                }
-                return Ok(result);
-            }
-            catch (OperationCanceledException ex)
-            {
-                return BadRequest($"request canceled! \n {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, ex, "Account import request failed.");
-                return BadRequest($"An error occurred \n {ex.Message}");
-            }
-        }
-
-        [RequireHttps]
         [HttpPut("update-range")]
         public async Task<IActionResult> UpdateAccountsRangeAsync([FromBody] List<AccountModel> accounts, CancellationToken cancellationToken = default)
         {
-            if (!accounts.Any())
+            if (!AreValidAccountsForUpdate(accounts))
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Account update range request rejected because no accounts were provided.");
-                return BadRequest("No accounts to update.");
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account update range request rejected by input validation.");
+                return BadRequest("Account updates must contain valid account identifiers, emails, and passwords.");
             }
 
             try
@@ -415,6 +390,13 @@ namespace Identity.Presentation.Controller
         [HttpDelete("delete")]
         public async Task<IActionResult> InactiveAccountAsync([FromBody] RecordInactiveAccountRequest requestDto, CancellationToken cancellationToken = default)
         {
+            if (!IsValidCredentials(requestDto.Email, requestDto.Password) ||
+                !string.Equals(requestDto.Password, requestDto.ConfirmPassword, StringComparison.Ordinal))
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Account deactivation request rejected by input validation.");
+                return BadRequest("A valid email and matching passwords are required.");
+            }
+
             try
             {
                 var result = await _accountApplication.InactiveAccountAsync(requestDto.Email, requestDto.Password, cancellationToken);
@@ -439,15 +421,15 @@ namespace Identity.Presentation.Controller
         [HttpDelete("delete/{accountId}")]
         public async Task<IActionResult> InactiveAccountByAdminAsync([FromRoute] string accountId, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(accountId))
+            if (!Guid.TryParse(accountId, out var parsedAccountId) || parsedAccountId == Guid.Empty)
             {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Admin account deactivation request rejected because the account identifier is missing.");
-                return BadRequest("Account id is required.");
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Admin account deactivation request rejected because the account identifier is invalid.");
+                return BadRequest("A valid account id is required.");
             }
 
             try
             {
-                var result = await _accountApplication.InactiveAccountByAdminAsync(new Guid(accountId), cancellationToken);
+                var result = await _accountApplication.InactiveAccountByAdminAsync(parsedAccountId, cancellationToken);
                 if (result == 0)
                 {
                     return BadRequest("Could not inactive account.");

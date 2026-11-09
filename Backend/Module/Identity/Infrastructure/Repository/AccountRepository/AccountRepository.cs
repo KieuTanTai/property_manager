@@ -231,24 +231,6 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account staged for creation.");
         }
 
-        public async Task AddRangeAsync(IEnumerable<AccountModel> entities,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account range creation.");
-            var accountModels = entities.ToList();
-            if (!accountModels.Any())
-            {
-                var exception = new ArgumentException("AccountModel collection is required.", nameof(entities));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Account range creation rejected because the collection is empty.");
-                throw exception;
-            }
-
-            await _db.Accounts.AddRangeAsync(accountModels, cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Account range staged for creation.");
-        }
-
         public async Task UpdateAsync(AccountModel accountModel,
             CancellationToken cancellationToken = default)
         {
@@ -281,7 +263,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing account range update.");
             var accountModels = entities.ToList();
-            if (!accountModels.Any())
+            if (accountModels.Count == 0)
             {
                 var exception = new ArgumentException("AccountModel collection is required.", nameof(entities));
                 _logger.LogLayerError(_logPool, Module, Layer, exception,

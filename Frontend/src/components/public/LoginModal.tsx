@@ -18,10 +18,14 @@ export function LoginModal({onClose, onLogin}: Props) {
             const result = await identityApi.loginAccount(email.trim(), password)
             const {sessionInstanceId} = await identityApi.getSessionInstanceId()
             const roleCodes = result.account.roleCodes ?? []
-            const permissionCodes = result.account.permissionCodes ?? []
+            const permissionCodes = [...new Set([
+                ...(result.account.rolePermissionCodes ?? []),
+                ...(result.account.additionalPermissionCodes ?? []),
+            ])]
             onLogin({
                 accountId: result.account.accountId,
                 email: result.account.email,
+                accessToken: result.accessToken,
                 roleCodes,
                 permissionCodes,
                 sessionInstanceId,
@@ -66,13 +70,15 @@ export function LoginModal({onClose, onLogin}: Props) {
                         không gian làm việc.</p>
                 </div>
 
-                <ProcessingForm processing={isSubmitting} onSubmit={handleSubmit} className="space-y-4">
+                <ProcessingForm processing={isSubmitting} onSubmit={handleSubmit} autoComplete="on"
+                                className="space-y-4">
                     <div className="space-y-4">
                         <label className="block">
                             <span className="mb-1.5 block text-sm font-medium text-slate-700">Email</span>
                             <input
                                 autoFocus
                                 required
+                                name="username"
                                 type="email"
                                 autoComplete="username"
                                 value={email}
@@ -85,6 +91,7 @@ export function LoginModal({onClose, onLogin}: Props) {
                             <span className="mb-1.5 block text-sm font-medium text-slate-700">Mật khẩu</span>
                             <input
                                 required
+                                name="password"
                                 type="password"
                                 autoComplete="current-password"
                                 value={password}

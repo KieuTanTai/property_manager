@@ -6,18 +6,22 @@ using Shared.Persistence.Record.Auth;
 
 namespace Identity.Utils
 {
-    public class ApiHelper : IApiHelper
+    public class MappingHelper : IMappingHelper
     {
         public RecordAuthResponse MappingAuthResult(AccountModel result)
         {
             var roleCodes = result.Roles.Select(role => role.RoleCode).ToList();
-            var permissionCodes = result.Roles
+            var rolePermissionCodes = result.Roles
                 .SelectMany(role => role.Permissions)
-                .Concat(result.AdditionalPermissions)
                 .Select(permission => permission.PermissionCode)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            return new RecordAuthResponse(result.AccountId, result.AccountEmail!, result.AccountIsActive, roleCodes, permissionCodes, result.AccountCreatedAt, result.AccountUpdatedAt);
+            var additionalPermissionCodes = result.AdditionalPermissions
+                .Select(permission => permission.PermissionCode)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            return new RecordAuthResponse(result.AccountId, result.AccountEmail!, result.AccountIsActive, roleCodes,
+                rolePermissionCodes, additionalPermissionCodes, result.AccountCreatedAt, result.AccountUpdatedAt);
         }
 
         public RecordProfileResponse MappingProfileResult(UserProfileModel model)

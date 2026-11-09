@@ -1,0 +1,10 @@
+{
+  "MaxPasswordLength": 20,
+  "MinPasswordLength": 10,
+  "RequireUppercase": true,
+  "RequireLowercase": true,
+  "RequireDigit": true,
+  "RequiredSpecialCharacter": true,
+  "RegexForEmail": "regex pattern for email",
+  "RegexForPhoneNumber": "regex pattern for phone number"
+}

@@ -1,11 +1,7 @@
 namespace Shared.Enum
 {
-    // Mapping quyền mặc định theo role. Các quyền truy cập dữ liệu "own" vẫn phải được
-    // giới hạn theo AccountId trong truy vấn/API, không chỉ dựa vào permission claim.
     public static class SystemRolePermission
     {
-        // Customer là role duy nhất được đăng ký thuê mặt bằng. Các quyền còn lại chỉ
-        // cho phép xem/cập nhật tài nguyên thuộc chính tài khoản này.
         public static IReadOnlySet<ESystemPermissionCode> Customer { get; } = new HashSet<ESystemPermissionCode>
         {
             ESystemPermissionCode.IdentityReadOwn,
@@ -28,8 +24,6 @@ namespace Shared.Enum
             ESystemPermissionCode.NotificationReadOwn
         };
 
-        // Employee xem whitelist, cập nhật trạng thái premise, xử lý hợp đồng và hóa đơn.
-        // Không cấp quyền đọc toàn bộ ticket/notification; dữ liệu riêng dùng quyền own.
         public static IReadOnlySet<ESystemPermissionCode> Employee { get; } = new HashSet<ESystemPermissionCode>
         {
             ESystemPermissionCode.PremiseWhitelistRead,
@@ -45,8 +39,6 @@ namespace Shared.Enum
             ESystemPermissionCode.NotificationReadOwn
         };
 
-        // Inspector chỉ đọc premise/whitelist, hợp đồng, hóa đơn, receipt; được tạo
-        // ticket vi phạm. Ticket và notification chỉ xem được dữ liệu của chính mình.
         public static IReadOnlySet<ESystemPermissionCode> Inspector { get; } = new HashSet<ESystemPermissionCode>
         {
             ESystemPermissionCode.PremiseReadList,
@@ -61,16 +53,11 @@ namespace Shared.Enum
             ESystemPermissionCode.NotificationReadOwn
         };
 
-        // Admin có toàn bộ quyền quản trị, ngoại trừ đăng ký thuê premise (chỉ Customer).
-        // Dùng enum hiện tại để quyền mới được cấp mặc định cho Admin.
         public static IReadOnlySet<ESystemPermissionCode> Admin { get; } =
             System.Enum.GetValues<ESystemPermissionCode>()
                 .Where(permission => permission != ESystemPermissionCode.PremiseRent)
                 .ToHashSet();
 
-        // Manager tương đương Admin ngoài các thao tác tạo/sửa/xóa định nghĩa role,
-        // permission và đăng ký thuê. Quyền gán role/permission cho account vẫn có;
-        // API/service phải giới hạn account đích chỉ là Inspector hoặc Employee.
         public static IReadOnlySet<ESystemPermissionCode> Manager { get; } =
             Admin.Where(permission => permission is not ESystemPermissionCode.IdentityRoleCreate
                     and not ESystemPermissionCode.IdentityRoleUpdate

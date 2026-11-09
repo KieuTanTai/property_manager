@@ -1,28 +1,33 @@
 using Identity.Infrastructure.Persistence.DbContext;
+using Identity.Infrastructure.Credentials;
+using Identity.Infrastructure.Credentials.Models;
 using Identity.Infrastructure.Repository;
 using Identity.Infrastructure.Repository.AccountRepository;
 using Identity.Infrastructure.Repository.PermissionRepository;
 using Identity.Infrastructure.Repository.RoleRepository;
 using Identity.Infrastructure.Repository.UserProfileRepository;
 using Identity.Interfaces.IRepository;
+using Identity.Interfaces.Credentials;
 using Identity.Models.Account;
 using Identity.Models.Permission;
 using Identity.Models.Role;
 using Microsoft.EntityFrameworkCore;
+using Shared.Caching;
+using Shared.DIContainer;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 
 namespace Identity.Infrastructure.DIContainer
 {
-    public static class CollectionIdentityRepository
+    public static class CollectionIdentityInfrastructure
     {
-        public static IServiceCollection AddIdentityRepositoryCollection(this IServiceCollection services,
+        public static IServiceCollection AddIdentityInfrastructureCollection(this IServiceCollection services,
             IConfiguration configuration, IHostEnvironment environment)
         {
             #region CONFIG
 
-            var connectionString = configuration.GetConnectionString("IdentityTest")
+            var connectionString = configuration["IdentityTest"]
                                    ?? throw new InvalidOperationException(
                                        "Connection string 'IdentityTest' was not found.");
 
@@ -42,9 +47,33 @@ namespace Identity.Infrastructure.DIContainer
 
             #endregion
 
-            #region REPOSITORY
+            #region CACHE
+
+            services.AddSharedHybridCache(configuration);
+
+            #endregion
+
+            #region JWT
+
+            services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+            services.AddSingleton<IJwtTokenService, JwtTokenService>();
+            services.AddSingleton<RsaSigningKeyRotationService>();
+            services.AddSingleton<IRsaSigningKeyProvider>(provider =>
+                provider.GetRequiredService<RsaSigningKeyRotationService>());
+            services.AddHostedService(provider =>
+                provider.GetRequiredService<RsaSigningKeyRotationService>());
+            services.AddSingleton<IJwtAccessTokenValidator, JwtAccessTokenValidator>();
+
+            #endregion
+
+            #region LOGGING
 
             services.AddSingleton<ILogPool, LogPool>();
+
+            #endregion
+
+            #region REPOSITORY
+
             services.AddScoped<IUnitOfWork, EfIdentityUnitOfWork>();
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid>, RoleRepository>();

@@ -1,0 +1,39 @@
+using Microsoft.Extensions.Caching.Hybrid;
+using Shared.Interfaces.Caching;
+
+namespace Shared.Caching
+{
+    public sealed class BaseCacheService<TModel>(HybridCache cache) : IBaseCacheService<TModel>
+    {
+        public ValueTask<TModel> GetOrCreateAsync(
+            string key,
+            Func<CancellationToken, Task<TModel>> loader,
+            HybridCacheEntryOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            return cache.GetOrCreateAsync(
+                key,
+                async token => await loader(token),
+                options,
+                cancellationToken: cancellationToken);
+        }
+
+        public ValueTask<TModel[]> GetOrCreateManyAsync(
+            string key,
+            Func<CancellationToken, Task<IReadOnlyList<TModel>>> loader,
+            HybridCacheEntryOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            return cache.GetOrCreateAsync(
+                key,
+                async token => (await loader(token)).ToArray(),
+                options,
+                cancellationToken: cancellationToken);
+        }
+
+        public ValueTask InvalidateAsync(string key, CancellationToken cancellationToken = default)
+        {
+            return cache.RemoveAsync(key, cancellationToken);
+        }
+    }
+}

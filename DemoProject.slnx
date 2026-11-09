@@ -1,6 +1,7 @@
 <Solution>
     <Folder Name="/Backend/">
-        <File Path="Backend\README.md"/>
+        <File Path="Backend\compose.yaml"/>
+        <File Path="Backend\global.json"/>
         <Project Path="Backend/Shared/Shared.csproj"/>
     </Folder>
     <Folder Name="/Backend/Module/">

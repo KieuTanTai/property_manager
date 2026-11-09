@@ -12,6 +12,7 @@ const SESSION_CHECK_INTERVAL_MS = 15 * 1000
 type ManagerSession = {
     accountId: string
     email: string
+    accessToken: string
     roleCodes: string[]
     permissionCodes: string[]
     sessionInstanceId: string
@@ -23,7 +24,7 @@ function loadSession(): ManagerSession | null {
         const stored = sessionStorage.getItem(SESSION_KEY)
         if (!stored) return null
         const session = JSON.parse(stored) as ManagerSession
-        if (!session.email || !session.accountId || !session.sessionInstanceId || !session.lastActivityAt || !Array.isArray(session.permissionCodes)) {
+        if (!session.email || !session.accountId || !session.accessToken || !session.sessionInstanceId || !session.lastActivityAt || !Array.isArray(session.permissionCodes)) {
             sessionStorage.removeItem(SESSION_KEY)
             return null
         }

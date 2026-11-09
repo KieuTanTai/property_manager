@@ -1,4 +1,5 @@
 using System.Net.WebSockets;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
 
 namespace Gateway.Services
@@ -21,52 +22,76 @@ namespace Gateway.Services
                 return;
             }
 
-            // Module controllers expose their endpoints under /api, so preserve the
-            // incoming path when forwarding (for example /api/contact -> /api/contact).
-            var path = MapModulePath(
-                context.Request.Path.Value ?? string.Empty,
-                moduleUrlKey);
+            var targetUri = BuildTargetUri(context, moduleUrl);
+            using var request = CreateProxyRequest(context, targetUri);
+            using var response = await SendRequestAsync(request, context.RequestAborted);
+            await WriteResponseAsync(context, response, context.RequestAborted);
+        }
 
-            var targetUri = new UriBuilder(moduleUrl)
+        private static Uri BuildTargetUri(HttpContext context, string moduleUrl)
+        {
+            // Keep the incoming API path when forwarding (for example /api/contact -> /api/contact).
+            var path = context.Request.Path.Value ?? string.Empty;
+            return new UriBuilder(moduleUrl)
             {
                 Path = $"{new Uri(moduleUrl).AbsolutePath.TrimEnd('/')}{path}",
                 Query = context.Request.QueryString.Value?.TrimStart('?') ?? string.Empty
             }.Uri;
+        }
 
-            using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), targetUri);
-            if (context.Request.ContentLength is > 0 || context.Request.Headers.ContainsKey("Transfer-Encoding"))
+        private HttpRequestMessage CreateProxyRequest(HttpContext context, Uri targetUri)
+        {
+            var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), targetUri);
+            var httpRequestBodyDetectionFeature = context.Features.Get<IHttpRequestBodyDetectionFeature>();
+            if (httpRequestBodyDetectionFeature?.CanHaveBody == true)
             {
                 request.Content = new StreamContent(context.Request.Body);
             }
 
-            foreach (var header in context.Request.Headers)
+            CopyRequestHeaders(context.Request.Headers, request);
+            return request;
+        }
+
+        private static void CopyRequestHeaders(IHeaderDictionary sourceHeaders, HttpRequestMessage request)
+        {
+            foreach (var header in sourceHeaders)
             {
                 if (HopByHopHeaders.Contains(header.Key))
                 {
                     continue;
                 }
-                if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()))
+
+                if (!request.Headers.TryAddWithoutValidation(header.Key, [.. header.Value]))
                 {
-                    request.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+                    request.Content?.Headers.TryAddWithoutValidation(header.Key, [.. header.Value]);
                 }
             }
+        }
 
-            using var response = await httpClientFactory.CreateClient("ModuleProxy")
-                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
+        private Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            httpClientFactory.CreateClient("ModuleProxy")
+                .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
+        private static async Task WriteResponseAsync(HttpContext context, HttpResponseMessage response,
+            CancellationToken cancellationToken)
+        {
             context.Response.StatusCode = (int)response.StatusCode;
-            foreach (var header in response.Headers)
-                if (!HopByHopHeaders.Contains(header.Key))
-                {
-                    context.Response.Headers[header.Key] = new StringValues(header.Value.ToArray());
-                }
-            foreach (var header in response.Content.Headers)
-                if (!HopByHopHeaders.Contains(header.Key))
-                {
-                    context.Response.Headers[header.Key] = new StringValues(header.Value.ToArray());
-                }
+            CopyResponseHeaders(response.Headers, context.Response.Headers);
+            CopyResponseHeaders(response.Content.Headers, context.Response.Headers);
 
-            await response.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
+            await response.Content.CopyToAsync(context.Response.Body, cancellationToken);
+        }
+
+        private static void CopyResponseHeaders(IEnumerable<KeyValuePair<string, IEnumerable<string>>> sourceHeaders,
+            IHeaderDictionary destinationHeaders)
+        {
+            foreach (var header in sourceHeaders)
+            {
+                if (!HopByHopHeaders.Contains(header.Key))
+                {
+                    destinationHeaders[header.Key] = new StringValues([.. header.Value]);
+                }
+            }
         }
 
         private static string MapModulePath(string path, string moduleUrlKey)

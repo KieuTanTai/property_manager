@@ -1,9 +1,261 @@
-﻿services:
-  auth:
-    image: auth
-    build:
-      context: .
-      dockerfile: Module/Auth/Dockerfile
+services:
+  build:
+    image: mcr.microsoft.com/dotnet/sdk:10.0.103
+    working_dir: /workspace/Backend
+    command: dotnet build ../DemoProject.slnx --artifacts-path /artifacts --configuration Debug --maxcpucount:1
+    volumes:
+      - ../:/workspace:ro
+      - artifacts:/artifacts
     environment:
-      - name=value
+      NUGET_PACKAGES: /artifacts/nuget
+
+  identity:
+    image: mcr.microsoft.com/dotnet/sdk:10.0.103
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - dotnet run --project Module/Identity/Identity.csproj --no-build --artifacts-path /artifacts --no-launch-profile
+    volumes:
+      - ./:/workspace:ro
+      - artifacts:/artifacts:ro
+      - dev-certs:/certs:ro
+      - ../docs:/docs
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      SSL_CERT_FILE: /certs/localhost.pem
+      ASPNETCORE_URLS: https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
+      InternalGateway__ApiKey: ${INTERNAL_GATEWAY_API_KEY:?Set INTERNAL_GATEWAY_API_KEY}
+      REDIS_CACHE: redis:6379
+    ports:
+      - "7048:8443"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mariadb:
+        condition: service_healthy
+      dev-certs:
+        condition: service_completed_successfully
+      build:
+        condition: service_completed_successfully
+
+  contract:
+    image: mcr.microsoft.com/dotnet/sdk:10.0.103
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - dotnet run --project Module/Contract/Contract.csproj --no-build --artifacts-path /artifacts --no-launch-profile
+    volumes:
+      - ./:/workspace:ro
+      - artifacts:/artifacts:ro
+      - dev-certs:/certs:ro
+      - ../docs:/docs
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      SSL_CERT_FILE: /certs/localhost.pem
+      ASPNETCORE_URLS: https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
+      REDIS_CACHE: redis:6379
+    ports:
+      - "7255:8443"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mariadb:
+        condition: service_healthy
+      dev-certs:
+        condition: service_completed_successfully
+      build:
+        condition: service_completed_successfully
+
+  premise:
+    image: mcr.microsoft.com/dotnet/sdk:10.0.103
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - dotnet run --project Module/Premise/Premise.csproj --no-build --artifacts-path /artifacts --no-launch-profile
+    volumes:
+      - ./:/workspace:ro
+      - artifacts:/artifacts:ro
+      - dev-certs:/certs:ro
+      - ../docs:/docs
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      SSL_CERT_FILE: /certs/localhost.pem
+      ASPNETCORE_URLS: https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
+      REDIS_CACHE: redis:6379
+    ports:
+      - "7081:8443"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mariadb:
+        condition: service_healthy
+      dev-certs:
+        condition: service_completed_successfully
+      build:
+        condition: service_completed_successfully
+
+  ticket-and-notification:
+    image: mcr.microsoft.com/dotnet/sdk:10.0.103
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - dotnet run --project Module/TicketAndNotification/TicketAndNotification.csproj --no-build --artifacts-path /artifacts --no-launch-profile
+    volumes:
+      - ./:/workspace:ro
+      - artifacts:/artifacts:ro
+      - dev-certs:/certs:ro
+      - ../docs:/docs
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      SSL_CERT_FILE: /certs/localhost.pem
+      ASPNETCORE_URLS: https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
+      IdentityTest: Server=mariadb;Port=3306;Database=${MARIADB_DATABASE:-ms_identity_test};User=${DB_USERNAME:-root};Password=${DB_PASSWORD:?Set DB_PASSWORD}
+      REDIS_CACHE: redis:6379
+    ports:
+      - "7092:8443"
+    depends_on:
+      redis:
+        condition: service_healthy
+      mariadb:
+        condition: service_healthy
+      dev-certs:
+        condition: service_completed_successfully
+      build:
+        condition: service_completed_successfully
+
+  gateway:
+    image: mcr.microsoft.com/dotnet/sdk:10.0.103
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - dotnet run --project Module/Gateway/Gateway.csproj --no-build --artifacts-path /artifacts --no-launch-profile
+    volumes:
+      - ./:/workspace:ro
+      - artifacts:/artifacts:ro
+      - dev-certs:/certs:ro
+      - ../docs:/docs
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      SSL_CERT_FILE: /certs/localhost.pem
+      ASPNETCORE_URLS: https://+:8443
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /certs/localhost.pem
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /certs/localhost-key.pem
+      REDIS_CACHE: redis:6379
+      InternalGateway__ApiKey: ${INTERNAL_GATEWAY_API_KEY:?Set INTERNAL_GATEWAY_API_KEY}
+      ModuleUrls__Identity: https://identity:8443
+      ModuleUrls__Contract: https://contract:8443
+      ModuleUrls__Premise: https://premise:8443
+      ModuleUrls__TicketAndNotification: https://ticket-and-notification:8443
+    ports:
+      - "7002:8443"
+    depends_on:
+      redis:
+        condition: service_healthy
+      dev-certs:
+        condition: service_completed_successfully
+      build:
+        condition: service_completed_successfully
+      identity:
+        condition: service_started
+      contract:
+        condition: service_started
+      premise:
+        condition: service_started
+      ticket-and-notification:
+        condition: service_started
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /workspace
+    command:
+      - /bin/sh
+      - -c
+      - '[ -d node_modules/vite ] || npm ci; npm run dev -- --host 0.0.0.0'
+    volumes:
+      - ../Frontend:/workspace
+      - frontend-node-modules:/workspace/node_modules
+      - dev-certs:/certs:ro
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8443
+      HTTPS_CERT_FILE: /certs/localhost.pem
+      HTTPS_KEY_FILE: /certs/localhost-key.pem
+      GATEWAY_API_PROXY_TARGET: https://gateway:8443
+    ports:
+      - "8443:8443"
+    depends_on:
+      dev-certs:
+        condition: service_completed_successfully
+      gateway:
+        condition: service_started
+
+  dev-certs:
+    image: alpine:3.22
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        apk add --no-cache openssl >/dev/null &&
+        if [ ! -f /certs/localhost.pem ]; then
+          openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 365 -keyout /certs/localhost-key.pem -out /certs/localhost.pem -subj '/CN=localhost' -addext 'basicConstraints=critical,CA:TRUE' -addext 'subjectAltName=DNS:localhost,DNS:identity,DNS:contract,DNS:premise,DNS:ticket-and-notification,DNS:gateway,IP:127.0.0.1,IP:::1';
+        fi && chmod 644 /certs/localhost-key.pem /certs/localhost.pem
+    volumes:
+      - dev-certs:/certs
+    restart: "no"
+
+  redis:
+    image: redis:latest
+    command: [ "redis-server", "--appendonly", "yes" ]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mariadb:
+    image: mariadb:latest
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-ms_identity_test}
+      MARIADB_USER: ${DB_USERNAME:-root}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -u root -p\"$${MARIADB_ROOT_PASSWORD}\" --silent" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  artifacts:
+  redis-data:
+  mariadb-data:
+  dev-certs:
+  frontend-node-modules:
 

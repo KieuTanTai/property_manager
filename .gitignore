@@ -34,6 +34,7 @@ project.assets.json
 appsettings.Local.json
 appsettings.*.Local.json
 secrets.json
+Backend/**/account-rules.json
 appsettings.json
 appsettings.*.json
 # Visual Studio

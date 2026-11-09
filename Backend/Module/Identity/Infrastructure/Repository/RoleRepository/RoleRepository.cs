@@ -119,14 +119,12 @@ namespace Identity.Infrastructure.Repository.RoleRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Role staged for creation.");
         }
 
-        public async Task AddRangeAsync(IEnumerable<RoleModel> entities,
-            CancellationToken cancellationToken = default)
+        public async Task AddRangeAsync(IEnumerable<RoleModel> entities, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing role range creation.");
             var roleModels = entities.ToList();
             await _db.Roles.AddRangeAsync(roleModels, cancellationToken);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Role range staged for creation.");
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Role range staged for creation.");
         }
 
         public async Task UpdateAsync(RoleModel entity, CancellationToken cancellationToken = default)
