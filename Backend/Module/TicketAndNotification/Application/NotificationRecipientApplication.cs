@@ -117,6 +117,9 @@ namespace TicketAndNotification.Application
             IReadOnlyCollection<NotificationRecipientModel> recipients,
             CancellationToken cancellationToken)
         {
+            // RabbitMQ notifications should be published from an outbox/event after this transaction commits.
+            // Notification + NotificationRecipient remain the durable source of truth: no recipient associations
+            // can represent a system-wide broadcast, while explicit associations target selected accounts.
             var notificationIds = recipients
                 .Select(recipient => recipient.NotificationId)
                 .Distinct()
