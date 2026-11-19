@@ -156,24 +156,24 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
         permissionCodes.some((code) => code.toUpperCase() === permission.permissionCode.toUpperCase()))
 
     return (
-        <div className="flex" style={{fontFamily: "Inter, sans-serif"}}>
-            <aside className="flex w-56 shrink-0 flex-col" style={{background: "#0f1629", minHeight: "100vh"}}>
+        <div className="flex h-dvh overflow-hidden" style={{fontFamily: "Open Sans, sans-serif"}}>
+            <aside className="sticky top-0 flex h-dvh w-56 shrink-0 flex-col" style={{background: "#0f1629"}}>
                 <div className="border-b px-5 py-5" style={{borderColor: "rgba(255,255,255,0.06)"}}>
                     <div className="flex items-center gap-2.5">
                         <div
                             className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500 text-xs font-bold text-white"
-                            style={{fontFamily: "DM Sans"}}>M
+                            style={{fontFamily: "Open Sans, sans-serif"}}>M
                         </div>
                         <div>
                             <div className="text-sm font-semibold leading-tight text-white"
-                                 style={{fontFamily: "DM Sans"}}>ManagerSpace
+                                 style={{fontFamily: "Open Sans, sans-serif"}}>ManagerSpace
                             </div>
                             <div className="text-xs" style={{color: "rgba(255,255,255,0.35)"}}>Quản lý mặt bằng</div>
                         </div>
                     </div>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto px-3 py-4">
+                <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
                     <div className="space-y-0.5">
                         {nav.map((item) => (
                             <button
@@ -184,7 +184,7 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
                             >
                                 <span className="material-symbols-outlined w-4 text-center text-[18px] leading-none"
                                       aria-hidden="true">{item.icon}</span>
-                                <span style={{fontFamily: "DM Sans"}}>{item.label}</span>
+                                <span style={{fontFamily: "Open Sans, sans-serif"}}>{item.label}</span>
                             </button>
                         ))}
                     </div>
@@ -209,17 +209,17 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
                 </div>
             </aside>
 
-            <main className="flex min-w-0 flex-1 flex-col">
+            <main className="flex h-dvh min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <header
                     className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-8 py-3">
                     <div className="text-xs text-gray-400">{nav.find((item) => item.id === currentActive)?.label}</div>
                     <div className="flex items-center gap-4">
                         <div className="text-xs text-gray-400"
-                             style={{fontFamily: "JetBrains Mono, monospace"}}>{new Intl.DateTimeFormat("vi-VN").format(new Date())}</div>
+                             style={{fontFamily: "Open Sans, sans-serif"}}>{new Intl.DateTimeFormat("vi-VN").format(new Date())}</div>
                         <div className="h-2 w-2 rounded-full bg-emerald-400" title="Hệ thống hoạt động bình thường"/>
                     </div>
                 </header>
-                <div className="flex-1 overflow-y-auto p-8">
+                <div className="min-h-0 flex-1 overflow-y-auto p-8">
                     {currentActive === "dashboard" && <Dashboard/>}
                     {currentActive === "statistics" && <StatisticsModule/>}
                     {currentActive === "premises" &&
@@ -242,6 +242,7 @@ export function ManagerWorkspace({accountId, email, roleCodes, permissionCodes, 
                                                                    canReadOwn={canReadOwnTickets}/>}
                     {currentActive === "notifications" &&
                         <TicketsModule accountId={accountId} customerMode ownOnly={!isManagementRole}
+                                       roleCodes={roleCodes}
                                        canReadOwn={canReadOwnTickets}/>}
                     {currentActive === "accounts" &&
                         <AccountsModule currentAccountId={accountId} roleCodes={roleCodes} permissionCodes={permissionCodes}/>}

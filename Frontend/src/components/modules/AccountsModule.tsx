@@ -4,7 +4,7 @@ import debounce from "lodash.debounce"
 import {identityApi} from "@/api/identity.ts"
 import {compressImageToDataUrl} from "@/utils/compressImage"
 import type {AccountModel, PermissionModel, RoleModel, UserProfileModel} from "@/types/identity"
-import {BaseTable, FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
+import {BaseTable, FormField, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
 import {accountName, dateLabel} from "@/scripts/identity.ts"
 import {APP_SETTINGS} from "@/config/appSettings"
 import {hasPermission, hasRole, PERMISSIONS} from "@/utils/authorization"
@@ -417,13 +417,11 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
 
     return (
         <div className="-m-8 flex min-h-[calc(100vh-49px)] flex-col bg-[#f8fafc]">
-            <header className="flex min-h-18 items-center justify-between border-b border-[#e2e8f0] bg-white px-8">
-                <div>
-                    <h1 className="text-lg font-bold text-[#0f172a]">Quản lý Định danh &amp; Tài khoản</h1>
-                    <p className="mt-1 text-xs text-[#64748b]">Dữ liệu trực tiếp từ Identity API · tài khoản, vai trò và
-                        quyền</p>
-                </div>
-            </header>
+            <ModulePageHeader
+                title="Quản lý Định danh & Tài khoản"
+                description="Dữ liệu trực tiếp từ Identity API · tài khoản, vai trò và quyền"
+                flush={false}
+            />
 
             <main className="flex flex-1 flex-col gap-5 p-8">
                 {error && <div role="alert"

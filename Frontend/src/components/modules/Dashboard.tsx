@@ -1,6 +1,7 @@
 import {CONTRACTS, INVOICES, PREMISES, TICKETS, VIOLATIONS} from "@/mocks/shared.ts"
 import {fmt} from "@/scripts/format.ts"
 import type {PremiseStatus} from "../premises/types"
+import {ModulePageHeader} from "./shared"
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────
 
@@ -25,7 +26,7 @@ function StatCard({
             </div>
             <div
                 className="text-2xl font-bold text-gray-900"
-                style={{fontFamily: "DM Sans"}}
+                style={{fontFamily: "Open Sans, sans-serif"}}
             >
                 {value}
             </div>
@@ -48,17 +49,7 @@ export function Dashboard() {
 
     return (
         <div>
-            <div className="mb-6">
-                <h1
-                    className="text-xl font-bold text-gray-900"
-                    style={{fontFamily: "DM Sans"}}
-                >
-                    Tổng quan hệ thống
-                </h1>
-                <p className="text-sm text-gray-400 mt-0.5">
-                    Cập nhật lần cuối: 29/09/2026
-                </p>
-            </div>
+            <ModulePageHeader title="Tổng quan hệ thống" description="Cập nhật lần cuối: 29/09/2026"/>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <StatCard
@@ -92,7 +83,7 @@ export function Dashboard() {
                 <div className="bg-white rounded-xl border border-gray-100 p-5">
                     <h2
                         className="text-sm font-semibold text-gray-700 mb-4"
-                        style={{fontFamily: "DM Sans"}}
+                        style={{fontFamily: "Open Sans, sans-serif"}}
                     >
                         Trạng thái mặt bằng
                     </h2>
@@ -123,7 +114,7 @@ export function Dashboard() {
                                         <span className="text-xs text-gray-500">{labels[s]}</span>
                                         <span
                                             className="text-xs font-medium text-gray-700"
-                                            style={{fontFamily: "JetBrains Mono, monospace"}}
+                                            style={{fontFamily: "Open Sans, sans-serif"}}
                                         >
                       {count} / {PREMISES.length}
                     </span>
@@ -144,7 +135,7 @@ export function Dashboard() {
                 <div className="bg-white rounded-xl border border-gray-100 p-5">
                     <h2
                         className="text-sm font-semibold text-gray-700 mb-4"
-                        style={{fontFamily: "DM Sans"}}
+                        style={{fontFamily: "Open Sans, sans-serif"}}
                     >
                         Hoạt động gần đây
                     </h2>
@@ -205,7 +196,7 @@ export function Dashboard() {
                 <div className="bg-white rounded-xl border border-gray-100 p-5">
                     <h2
                         className="text-sm font-semibold text-gray-700 mb-3"
-                        style={{fontFamily: "DM Sans"}}
+                        style={{fontFamily: "Open Sans, sans-serif"}}
                     >
                         Cần xử lý
                     </h2>

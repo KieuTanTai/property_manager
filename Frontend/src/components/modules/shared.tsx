@@ -30,6 +30,22 @@ export function ProcessingForm({processing = false, onSubmit, children, ...formP
     </form>
 }
 
+export function ModulePageHeader({title, description, children, flush = true}: {
+    title: string
+    description?: ReactNode
+    children?: ReactNode
+    flush?: boolean
+}) {
+    return (
+        <header className={`${flush ? "-mx-8 -mt-8 mb-5" : ""} flex min-h-18 items-center justify-between gap-4 border-b border-[#e2e8f0] bg-white px-8 py-3`}>
+            <div className="min-w-0">
+                <h1 className="text-lg font-bold text-[#0f172a]">{title}</h1>
+                {description && <p className="mt-1 text-xs text-[#64748b]">{description}</p>}
+            </div>
+            {children && <div className="flex shrink-0 items-center gap-2">{children}</div>}
+        </header>
+    )
+}
 
 // ─── Badge helpers ─────────────────────────────────────────────────────────
 
@@ -215,6 +231,7 @@ export function BaseTable<T>({
     const page = Math.min(requestedPage, pageCount)
     const pageRows = rows.slice((page - 1) * pageSize, page * pageSize)
     const canPaginate = rows.length > pageSize
+    const emptyRowCount = Math.max(0, pageSize - pageRows.length - (loading || rows.length === 0 ? 1 : 0))
 
     useEffect(() => {
         setRequestedPage(1)
@@ -245,9 +262,9 @@ export function BaseTable<T>({
             </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-            {loading ? <tr>
+            {loading ? <tr className="h-[72px]">
                 <td colSpan={columns.length + (isHaveStt ? 1 : 0)}
-                    className="p-8 text-center text-slate-500">Đang tải...
+                    className="h-[72px] px-4 py-3 text-center text-slate-500">Đang tải...
                 </td>
             </tr> : rows.length ? pageRows.map((row, index) =>
                 <tr key={getRowKey(row)} onClick={() => onRowClick?.(row)}
@@ -258,19 +275,28 @@ export function BaseTable<T>({
                         }
                     } : undefined}
                     tabIndex={onRowClick ? 0 : undefined} title={rowTitle}
-                    className={`${rowClassName?.(row, index) ?? ""} ${onRowClick ? "cursor-pointer" : ""}`}>
+                    className={`h-[72px] ${rowClassName?.(row, index) ?? ""} ${onRowClick ? "cursor-pointer" : ""}`}>
                     {isHaveStt &&
-                        <td className="px-4 py-3 text-center tabular-nums text-slate-400">{sttStart + (page - 1) * pageSize + index}</td>}
-                    {columns.map((column) => <td key={column.key} className={column.cellClassName ?? "px-4 py-3"}>
-                        {column.render(row, index)}
+                        <td className="h-[72px] px-4 py-3 text-center tabular-nums text-slate-400"><div className="max-h-12 overflow-hidden">{sttStart + (page - 1) * pageSize + index}</div></td>}
+                    {columns.map((column) => <td key={column.key} className={`h-[72px] ${column.cellClassName ?? "px-4 py-3"}`}>
+                        <div className="max-h-12 overflow-hidden">{column.render(row, index)}</div>
                     </td>)}
-                </tr>) : <tr>
+                </tr>) : <tr className="h-[72px]">
                 <td colSpan={columns.length + (isHaveStt ? 1 : 0)}
-                    className="p-8 text-center text-slate-500">{emptyMessage}</td>
+                    className="h-[72px] px-4 py-3 text-center text-slate-500">{emptyMessage}</td>
             </tr>}
+            {!loading && rows.length === 0 && Array.from({length: Math.max(0, pageSize - 1)}, (_, index) =>
+                <tr key={`empty-${index}`} aria-hidden="true" className="h-[72px]">
+                    <td colSpan={columns.length + (isHaveStt ? 1 : 0)} className="h-[72px]"/>
+                </tr>)}
+            {(loading || rows.length > 0) && Array.from({length: emptyRowCount}, (_, index) =>
+                <tr key={`placeholder-${index}`} aria-hidden="true" className="h-[72px]">
+                    <td colSpan={columns.length + (isHaveStt ? 1 : 0)} className="h-[72px]"/>
+                </tr>)}
             </tbody>
         </table>
-        {canPaginate && <footer className="flex justify-center border-t border-slate-100 px-3 py-3">
+        <footer className="flex h-14 justify-center border-t border-slate-100 px-3 py-3">
+            {canPaginate && <>
             <nav aria-label="Phân trang" className="flex items-center justify-center gap-4 text-sm">
                 <button type="button" aria-label="Trang trước" disabled={page <= 1}
                         onClick={() => setRequestedPage((current) => Math.max(1, current - 1))}
@@ -320,7 +346,8 @@ export function BaseTable<T>({
                     </svg>
                 </button>
             </nav>
-        </footer>}
+            </>}
+        </footer>
     </div>
 }
 
@@ -361,7 +388,7 @@ export function Modal({
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h3
                         className="text-base font-semibold text-gray-900"
-                        style={{fontFamily: "DM Sans"}}
+                        style={{fontFamily: "Open Sans, sans-serif"}}
                     >
                         {title}
                     </h3>

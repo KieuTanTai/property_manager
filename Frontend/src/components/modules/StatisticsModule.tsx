@@ -5,7 +5,7 @@ import {
     MOCK_MONTHLY_REVENUE,
     MOCK_VIOLATION_MONTHLY
 } from "../../mocks/statistics"
-import {BaseTable, ContractStatusBadge, InvoiceStatusBadge, PremiseStatusBadge} from "./shared"
+import {BaseTable, ContractStatusBadge, InvoiceStatusBadge, ModulePageHeader, PremiseStatusBadge} from "./shared"
 import {ACCOUNTS, CONTRACTS, INVOICES, VIOLATIONS} from "../../mocks/shared"
 import {fmt} from "../../scripts/format"
 import {premiseApi} from "@/api/premise"
@@ -44,7 +44,7 @@ function KPICard({
             </div>
             <div
                 className="text-2xl font-bold text-gray-900"
-                style={{fontFamily: "DM Sans"}}
+                style={{fontFamily: "Open Sans, sans-serif"}}
             >
                 {value}
             </div>
@@ -70,7 +70,7 @@ function SectionHeading({title, sub}: { title: string; sub?: string }) {
             <div>
                 <h2
                     className="text-base font-bold text-gray-900"
-                    style={{fontFamily: "DM Sans"}}
+                    style={{fontFamily: "Open Sans, sans-serif"}}
                 >
                     {title}
                 </h2>
@@ -298,17 +298,7 @@ export function StatisticsModule() {
 
     return (
         <div>
-            <div className="mb-6">
-                <h1
-                    className="text-xl font-bold text-gray-900"
-                    style={{fontFamily: "DM Sans"}}
-                >
-                    Thống kê & Phân tích
-                </h1>
-                <p className="text-sm text-gray-400 mt-0.5">
-                    Dữ liệu tổng hợp theo thời gian thực — năm 2024
-                </p>
-            </div>
+            <ModulePageHeader title="Thống kê & Phân tích" description="Dữ liệu tổng hợp theo thời gian thực — năm 2024"/>
 
             {/* Tab navigation */}
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 w-fit">

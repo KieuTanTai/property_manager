@@ -6,7 +6,9 @@ import type {
     ContractModel,
     ContractViolationModel,
     CreateContractRequest,
+    MonthlyInvoiceModel,
     RegulationModel,
+    ReceiptModel,
     UpdateContractRequest
 } from "@/types/contracts"
 import {APP_SETTINGS} from "@/config/appSettings"
@@ -28,8 +30,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     if (!response.ok) {
         const detail = await response.text()
-        if (response.status === 404 && /no (contracts|regulations|violations) found/i.test(detail)) {
-            if (path.startsWith("/Contract") || path.startsWith("/Violation") || path.startsWith("/Regulation")) {
+        if (response.status === 404 && /no (contracts|regulations|violations|invoices|receipts) found/i.test(detail)) {
+            if (path.startsWith("/Contract") || path.startsWith("/Violation") || path.startsWith("/Regulation") || path.startsWith("/Invoice")) {
                 return {items: [], nextCursor: null, isHasMore: false} as T
             }
             return [] as T
@@ -126,5 +128,73 @@ export const contractApi = {
     },
     updateContract(id: string, body: UpdateContractRequest) {
         return request<ContractModel>(`/Contract/${id}`, {method: "PUT", body: JSON.stringify(body)})
+    },
+    invoices(cursor: string | null = null) {
+        const query = new URLSearchParams({pageSize: maxPageLoaded, isGetDetails: "true", isGetReceipt: "true"})
+        if (cursor) query.set("cursor", cursor)
+        return request<CursorPage<MonthlyInvoiceModel>>(`/Invoice?${query}`)
+    },
+    createInvoice(body: {
+        invoiceId: string
+        contractId: string
+        paymentDate: string
+        dueDate: string
+        totalAmount: number
+        status: MonthlyInvoiceModel["invoiceStatus"]
+        details: Array<{
+            premiseId: string
+            rentalPrice: number
+            electricityFee: number
+            waterFee: number
+            garbageFee: number
+        }>
+    }) {
+        return request<MonthlyInvoiceModel>("/Invoice", {method: "POST", body: JSON.stringify(body)})
+    },
+    updateInvoice(invoiceId: string, body: {
+        contractId: string
+        paymentDate: string
+        dueDate: string
+        totalAmount: number
+        status: MonthlyInvoiceModel["invoiceStatus"]
+        details?: Array<{
+            detailId: number
+            premiseId: string
+            rentalPrice: number
+            electricityFee: number
+            waterFee: number
+            garbageFee: number
+        }>
+    }) {
+        return request<MonthlyInvoiceModel>(`/Invoice/${encodeURIComponent(invoiceId)}`, {
+            method: "PUT",
+            body: JSON.stringify(body),
+        })
+    },
+    receipts() {
+        return request<ReceiptModel[]>("/Receipt")
+    },
+    createReceipt(body: {
+        invoiceId: string
+        createdByAccountId: string
+        paymentMethod: "VnPay" | "Bank" | "Cash"
+        amount: number
+        paymentDate: string
+        transactionReference: string | null
+        gatewayTransactionNumber: string | null
+        transactionInfo: string | null
+        bankName: string | null
+    }) {
+        return request<ReceiptModel>("/Receipt", {method: "POST", body: JSON.stringify(body)})
+    },
+    updateReceipt(receiptId: string, invoiceId: string, body: {
+        paymentDate: string
+        amount: number
+        transactionInfo: string | null
+    }) {
+        return request<ReceiptModel>(
+            `/Receipt/${encodeURIComponent(receiptId)}/invoice/${encodeURIComponent(invoiceId)}`,
+            {method: "PUT", body: JSON.stringify(body)},
+        )
     },
 }

@@ -1,9 +1,11 @@
-import {useState} from "react"
-import {BaseTable, FormField, inputCls, InvoiceStatusBadge, Modal, selectCls,} from "./shared"
+import {useEffect, useState} from "react"
+import {BaseTable, FormField, inputCls, InvoiceStatusBadge, Modal, ModulePageHeader, selectCls,} from "./shared"
 import type {InvoiceStatus} from "@/types/modules.ts"
 import type {InvoiceDetail, InvoiceTab, MonthlyInvoice, Receipt, ReceiptPaymentMethod} from "@/types/invoices"
-import {MOCK_CONTRACT_BILLING, MOCK_INVOICE_DETAILS, MOCK_MONTHLY_INVOICES, MOCK_RECEIPTS} from "@/mocks/invoices.ts"
-import {MOCK_CONTRACTS} from "@/mocks/contracts"
+import {contractApi} from "@/api/contracts"
+import {premiseApi} from "@/api/premise"
+import type {ContractModel, MonthlyInvoiceModel, ReceiptModel} from "@/types/contracts"
+import type {PremiseModel} from "@/components/premises/types"
 import {createUuidV7} from "@/scripts/ids.ts"
 import {fmt, isIntegerAmountInput, today} from "@/scripts/format.ts"
 import {hasAnyPermissionForRole, hasPermission, PERMISSIONS} from "@/utils/authorization"
@@ -12,6 +14,49 @@ const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     cash: "Tiền mặt",
     vnpay: "VNPAY",
     bank: "Chuyển khoản",
+}
+
+const toUiInvoice = (invoice: MonthlyInvoiceModel): MonthlyInvoice => ({
+    ...invoice,
+    invoiceStatus: invoice.invoiceStatus.toLowerCase() as InvoiceStatus,
+})
+
+const toUiDetail = (detail: MonthlyInvoiceModel["invoiceDetails"][number]): InvoiceDetail => ({...detail})
+
+const toUiReceipt = (receipt: ReceiptModel): Receipt => ({
+    ...receipt,
+    receiptPaymentMethod: receipt.receiptPaymentMethod.toLowerCase() as ReceiptPaymentMethod,
+})
+
+async function loadInvoicesData(includeReceipts: boolean, includePremises: boolean) {
+    const [receipts, contracts, premises] = await Promise.all([
+        includeReceipts ? contractApi.receipts() : Promise.resolve([]),
+        (async () => {
+            const results: ContractModel[] = []
+            let cursor: string | null = null
+            do {
+                const page = await contractApi.contracts(cursor)
+                results.push(...page.items)
+                cursor = page.isHasMore ? page.nextCursor : null
+            } while (cursor)
+            return results
+        })(),
+        includePremises ? premiseApi.getPremise() : Promise.resolve([]),
+    ])
+    const invoiceModels: MonthlyInvoiceModel[] = []
+    let cursor: string | null = null
+    do {
+        const page = await contractApi.invoices(cursor)
+        invoiceModels.push(...page.items)
+        cursor = page.isHasMore ? page.nextCursor : null
+    } while (cursor)
+    return {
+        invoices: invoiceModels.map(toUiInvoice),
+        details: invoiceModels.flatMap((invoice) => (invoice.invoiceDetails ?? []).map(toUiDetail)),
+        receipts: receipts.map(toUiReceipt),
+        contracts,
+        premises,
+    }
 }
 
 export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId, ownOnly = false}: {
@@ -26,9 +71,14 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
     const canUpdateInvoice = canAny(PERMISSIONS.invoiceUpdate, PERMISSIONS.invoiceStatusUpdate)
     const canCreateReceipt = can(PERMISSIONS.receiptCreate)
     const canReadReceipts = canAny("RECEIPT_READ_LIST", "RECEIPT_READ_OWN", PERMISSIONS.receiptCreate)
-    const [invoices, setInvoices] = useState<MonthlyInvoice[]>(MOCK_MONTHLY_INVOICES)
-    const [details, setDetails] = useState<InvoiceDetail[]>(MOCK_INVOICE_DETAILS)
-    const [receipts, setReceipts] = useState<Receipt[]>(MOCK_RECEIPTS)
+    const [invoices, setInvoices] = useState<MonthlyInvoice[]>([])
+    const [details, setDetails] = useState<InvoiceDetail[]>([])
+    const [receipts, setReceipts] = useState<Receipt[]>([])
+    const [contracts, setContracts] = useState<ContractModel[]>([])
+    const [premises, setPremises] = useState<PremiseModel[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState<InvoiceTab>("invoices")
     const [filter, setFilter] = useState<InvoiceStatus | "all">("all")
     const [selected, setSelected] = useState<MonthlyInvoice | null>(null)
@@ -48,7 +98,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
     })
     const [receiptForm, setReceiptForm] = useState({
         invoiceId: "",
-        createdByAccountId: "0195d6e0-0000-7111-8111-100000000001",
+        createdByAccountId: accountId ?? "",
         paymentMethod: "cash" as ReceiptPaymentMethod,
         amount: "",
         paymentDate: today(),
@@ -68,13 +118,14 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         waterFee: string
         garbageFee: string
     }>>({})
+    const [createPremiseIds, setCreatePremiseIds] = useState<string[]>([])
     const [receiptEditForm, setReceiptEditForm] = useState({
         paymentDate: "",
         amount: "",
         transactionInfo: "",
     })
 
-    const ownContractIds = new Set(MOCK_CONTRACTS.filter((contract) => contract.contractAccountId === accountId).map((contract) => contract.contractId))
+    const ownContractIds = new Set(contracts.filter((contract) => contract.contractAccountId === accountId).map((contract) => contract.contractId))
     const visibleInvoices = ownOnly ? invoices.filter((invoice) => ownContractIds.has(invoice.invoiceContractId)) : invoices
     const visibleInvoiceIds = new Set(visibleInvoices.map((invoice) => invoice.invoiceId))
     const visibleReceipts = ownOnly ? receipts.filter((receipt) => visibleInvoiceIds.has(receipt.receiptInvoiceId)) : receipts
@@ -86,10 +137,55 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         .filter((invoice) => invoice.invoiceStatus !== "paid")
         .reduce((sum, invoice) => sum + (invoice.invoiceTotalAmount ?? 0), 0)
 
+    const refreshData = async () => {
+        const data = await loadInvoicesData(canReadReceipts, canCreateInvoice)
+        setInvoices(data.invoices)
+        setDetails(data.details)
+        setReceipts(data.receipts)
+        setContracts(data.contracts)
+        setPremises(data.premises)
+        return data
+    }
+
+    useEffect(() => {
+        let isActive = true
+        void loadInvoicesData(canReadReceipts, canCreateInvoice)
+            .then((data) => {
+                if (!isActive) return
+                setInvoices(data.invoices)
+                setDetails(data.details)
+                setReceipts(data.receipts)
+                setContracts(data.contracts)
+                setPremises(data.premises)
+            })
+            .catch((loadError: unknown) => {
+                if (isActive) setError(loadError instanceof Error ? loadError.message : "Không tải được dữ liệu hóa đơn.")
+            })
+            .finally(() => {
+                if (isActive) setIsLoading(false)
+            })
+        return () => {
+            isActive = false
+        }
+    }, [canCreateInvoice, canReadReceipts])
+
+    const runMutation = async (operation: () => Promise<void>) => {
+        setError(null)
+        setIsSaving(true)
+        try {
+            await operation()
+        } catch (mutationError) {
+            setError(mutationError instanceof Error ? mutationError.message : "Không thể lưu thay đổi.")
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
     const openAddInvoice = () => {
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + 30)
-        const contractId = Object.keys(MOCK_CONTRACT_BILLING)[0] ?? ""
+        const availableContracts = contracts.filter((contract) => !ownOnly || contract.contractAccountId === accountId)
+        const contractId = availableContracts[0]?.contractId ?? ""
         setInvoiceForm({
             contractId,
             paymentDate: today(),
@@ -97,41 +193,21 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
             totalAmount: "",
             status: "unpaid",
         })
-        setCreateDetailFees(
-            Object.fromEntries(
-                (MOCK_CONTRACT_BILLING[contractId]?.premiseIds ?? []).map((premiseId) => [
-                    premiseId,
-                    {electricityFee: "", waterFee: "", garbageFee: ""},
-                ]),
-            ),
-        )
+        setCreatePremiseIds([])
+        setCreateDetailFees({})
         setInvoiceModal("add")
     }
 
     const selectInvoiceContract = (contractId: string) => {
         setInvoiceForm({...invoiceForm, contractId})
-        setCreateDetailFees(
-            Object.fromEntries(
-                (MOCK_CONTRACT_BILLING[contractId]?.premiseIds ?? []).map((premiseId) => [
-                    premiseId,
-                    {electricityFee: "", waterFee: "", garbageFee: ""},
-                ]),
-            ),
-        )
     }
 
     const openInvoice = (invoice: MonthlyInvoice) => {
         setSelected(invoice)
         setIsEditing(false)
-        const availablePremise =
-            MOCK_CONTRACT_BILLING[invoice.invoiceContractId]?.premiseIds.find(
-                (premiseId) =>
-                    !details.some(
-                        (detail) =>
-                            detail.invoiceDetailInvoiceId === invoice.invoiceId &&
-                            detail.invoiceDetailPremiseId === premiseId,
-                    ),
-            ) ?? ""
+        const availablePremise = premises.find((premise) => premise.premiseStatus === "Rented" &&
+            !details.some((detail) => detail.invoiceDetailInvoiceId === invoice.invoiceId && detail.invoiceDetailPremiseId === premise.premiseId),
+        )?.premiseId ?? ""
         setDetailForm({
             premiseId: availablePremise,
             electricityFee: "",
@@ -141,50 +217,42 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         setInvoiceModal("detail")
     }
 
-    const addInvoice = () => {
-        const now = new Date().toISOString()
-        const invoiceId = createUuidV7()
-        const billing = MOCK_CONTRACT_BILLING[invoiceForm.contractId]
-        if (!billing) return
-        const firstDetailId =
-            Math.max(0, ...details.map((detail) => detail.invoiceDetailId)) + 1
-        const newDetails: InvoiceDetail[] = billing.premiseIds.map(
-            (premiseId, index) => {
-                const fees = createDetailFees[premiseId]
-                const electricityFee = Number(fees.electricityFee)
-                const waterFee = Number(fees.waterFee)
-                const garbageFee = Number(fees.garbageFee)
-                return {
-                    invoiceDetailId: firstDetailId + index,
-                    invoiceDetailInvoiceId: invoiceId,
-                    invoiceDetailPremiseId: premiseId,
-                    invoiceDetailRentalPrice: billing.rentalPrice,
-                    invoiceDetailElectricityFee: electricityFee,
-                    invoiceDetailWaterFee: waterFee,
-                    invoiceDetailGarbageFee: garbageFee,
-                    invoiceDetailTotalAmount:
-                        billing.rentalPrice + electricityFee + waterFee + garbageFee,
-                }
-            },
-        )
-        const totalAmount = newDetails.reduce(
-            (sum, detail) => sum + detail.invoiceDetailTotalAmount,
+    const addInvoice = async () => {
+        const contract = contracts.find((item) => item.contractId === invoiceForm.contractId)
+        if (!contract) return
+        const invoiceDetails = createPremiseIds.map((premiseId) => {
+            const fees = createDetailFees[premiseId]
+            return {
+                premiseId,
+                rentalPrice: contract.contractRentalPrice,
+                electricityFee: Number(fees?.electricityFee),
+                waterFee: Number(fees?.waterFee),
+                garbageFee: Number(fees?.garbageFee),
+            }
+        })
+        const totalAmount = invoiceDetails.reduce(
+            (sum, detail) => sum + detail.rentalPrice + detail.electricityFee + detail.waterFee + detail.garbageFee,
             0,
         )
-        const invoice: MonthlyInvoice = {
-            invoiceId,
-            invoiceContractId: invoiceForm.contractId,
-            invoicePaymentDate: invoiceForm.paymentDate,
-            invoiceDueDate: invoiceForm.dueDate,
-            invoiceTotalAmount: totalAmount,
-            invoiceStatus: "unpaid",
-            invoiceCreatedAt: now,
-            invoiceUpdatedAt: now,
-        }
-        setInvoices([...invoices, invoice])
-        setDetails([...details, ...newDetails])
-        setSelected(invoice)
-        setInvoiceModal("detail")
+        await runMutation(async () => {
+            const created = await contractApi.createInvoice({
+                invoiceId: createUuidV7(),
+                contractId: invoiceForm.contractId,
+                paymentDate: invoiceForm.paymentDate,
+                dueDate: invoiceForm.dueDate,
+                totalAmount,
+                status: "Unpaid",
+                details: invoiceDetails,
+            })
+            const data = await refreshData()
+            const invoice = data.invoices.find((item) => item.invoiceId === created.invoiceId)
+            if (invoice) {
+                setSelected(invoice)
+                setInvoiceModal("detail")
+            } else {
+                setInvoiceModal(null)
+            }
+        })
     }
 
     const startEditing = () => {
@@ -202,24 +270,28 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         setIsEditing(true)
     }
 
-    const updateInvoice = () => {
+    const updateInvoice = async () => {
         if (!selected) return
-        const updated: MonthlyInvoice = {
-            ...selected,
-            invoiceContractId: invoiceForm.contractId,
-            invoicePaymentDate: invoiceForm.paymentDate,
-            invoiceDueDate: invoiceForm.dueDate,
-            invoiceTotalAmount: selected.invoiceTotalAmount,
-            invoiceStatus: invoiceForm.status,
-            invoiceUpdatedAt: new Date().toISOString(),
-        }
-        setInvoices(
-            invoices.map((invoice) =>
-                invoice.invoiceId === selected.invoiceId ? updated : invoice,
-            ),
-        )
-        setSelected(updated)
-        setIsEditing(false)
+        await runMutation(async () => {
+            await contractApi.updateInvoice(selected.invoiceId, {
+                contractId: invoiceForm.contractId,
+                paymentDate: invoiceForm.paymentDate,
+                dueDate: invoiceForm.dueDate,
+                totalAmount: selected.invoiceTotalAmount ?? 0,
+                status: invoiceForm.status.replace(/^\w/, (letter) => letter.toUpperCase()) as MonthlyInvoiceModel["invoiceStatus"],
+                details: details.filter((detail) => detail.invoiceDetailInvoiceId === selected.invoiceId).map((detail) => ({
+                    detailId: detail.invoiceDetailId,
+                    premiseId: detail.invoiceDetailPremiseId,
+                    rentalPrice: detail.invoiceDetailRentalPrice,
+                    electricityFee: detail.invoiceDetailElectricityFee,
+                    waterFee: detail.invoiceDetailWaterFee,
+                    garbageFee: detail.invoiceDetailGarbageFee,
+                })),
+            })
+            await refreshData()
+            setSelected({...selected, invoiceContractId: invoiceForm.contractId, invoicePaymentDate: invoiceForm.paymentDate, invoiceDueDate: invoiceForm.dueDate, invoiceStatus: invoiceForm.status})
+            setIsEditing(false)
+        })
     }
 
     const openAddReceipt = (invoice = selected) => {
@@ -241,56 +313,57 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         setReceiptModal(true)
     }
 
-    const addReceipt = () => {
-        const now = new Date().toISOString()
-        const receipt: Receipt = {
-            receiptId: createUuidV7(),
-            receiptInvoiceId: receiptForm.invoiceId,
-            receiptCreatedByAccountId: receiptForm.createdByAccountId,
-            receiptPaymentMethod: receiptForm.paymentMethod,
-            receiptAmount: Number(receiptForm.amount),
-            receiptPaymentDate: receiptForm.paymentDate,
-            receiptTransactionReference:
-                receiptForm.transactionReference.trim() || null,
-            receiptGatewayTransactionNumber:
-                receiptForm.gatewayTransactionNumber.trim() || null,
-            receiptTransactionInfo: receiptForm.transactionInfo.trim() || null,
-            receiptBankName: receiptForm.bankName.trim() || null,
-            receiptCreatedAt: now,
-            receiptUpdatedAt: now,
-        }
-        const nextReceipts = [...receipts, receipt]
-        const relatedInvoice = invoices.find(
-            (invoice) => invoice.invoiceId === receipt.receiptInvoiceId,
-        )
-        const received = nextReceipts
-            .filter((item) => item.receiptInvoiceId === receipt.receiptInvoiceId)
-            .reduce((sum, item) => sum + item.receiptAmount, 0)
-        const nextInvoices = invoices.map((invoice) =>
-            invoice.invoiceId === receipt.receiptInvoiceId &&
-            relatedInvoice?.invoiceTotalAmount !== null &&
-            relatedInvoice?.invoiceTotalAmount !== undefined &&
-            received >= relatedInvoice.invoiceTotalAmount
-                ? {
-                    ...invoice,
-                    invoiceStatus: "paid" as InvoiceStatus,
-                    invoiceUpdatedAt: now,
-                }
-                : invoice,
-        )
-        setReceipts(nextReceipts)
-        setInvoices(nextInvoices)
-        setReceiptModal(false)
+    const syncInvoicePaymentStatus = async (invoice: MonthlyInvoice, amountReceived: number) => {
+        if (invoice.invoiceTotalAmount === null) return
+        const nextStatus: InvoiceStatus = amountReceived >= invoice.invoiceTotalAmount
+            ? "paid"
+            : invoice.invoiceDueDate.slice(0, 10) < today() ? "overdue" : "unpaid"
+        if (nextStatus === invoice.invoiceStatus) return
+        await contractApi.updateInvoice(invoice.invoiceId, {
+            contractId: invoice.invoiceContractId,
+            paymentDate: invoice.invoicePaymentDate,
+            dueDate: invoice.invoiceDueDate,
+            totalAmount: invoice.invoiceTotalAmount,
+            status: nextStatus.replace(/^\w/, (letter) => letter.toUpperCase()) as MonthlyInvoiceModel["invoiceStatus"],
+        })
     }
 
-    const addInvoiceDetail = () => {
+    const addReceipt = async () => {
+        await runMutation(async () => {
+            const created = await contractApi.createReceipt({
+                invoiceId: receiptForm.invoiceId,
+                createdByAccountId: receiptForm.createdByAccountId,
+                paymentMethod: receiptForm.paymentMethod === "vnpay" ? "VnPay" : receiptForm.paymentMethod === "bank" ? "Bank" : "Cash",
+                amount: Number(receiptForm.amount),
+                paymentDate: receiptForm.paymentDate,
+                transactionReference: receiptForm.transactionReference.trim() || null,
+                gatewayTransactionNumber: receiptForm.gatewayTransactionNumber.trim() || null,
+                transactionInfo: receiptForm.transactionInfo.trim() || null,
+                bankName: receiptForm.bankName.trim() || null,
+            })
+            const relatedInvoice = invoices.find((invoice) => invoice.invoiceId === created.receiptInvoiceId)
+            try {
+                if (relatedInvoice) {
+                    const amountReceived = receipts
+                        .filter((receipt) => receipt.receiptInvoiceId === created.receiptInvoiceId)
+                        .reduce((sum, receipt) => sum + receipt.receiptAmount, 0) + created.receiptAmount
+                    await syncInvoicePaymentStatus(relatedInvoice, amountReceived)
+                }
+            } finally {
+                await refreshData()
+            }
+            setReceiptModal(false)
+        })
+    }
+
+    const addInvoiceDetail = async () => {
         if (!selected) return
-        const billing = MOCK_CONTRACT_BILLING[selected.invoiceContractId]
+        const contract = contracts.find((item) => item.contractId === selected.invoiceContractId)
         const electricityFee = Number(detailForm.electricityFee)
         const waterFee = Number(detailForm.waterFee)
         const garbageFee = Number(detailForm.garbageFee)
         if (
-            !billing ||
+            !contract ||
             !detailForm.premiseId ||
             [
                 detailForm.electricityFee,
@@ -301,50 +374,38 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         )
             return
 
-        const detail: InvoiceDetail = {
-            invoiceDetailId:
-                Math.max(0, ...details.map((item) => item.invoiceDetailId)) + 1,
-            invoiceDetailInvoiceId: selected.invoiceId,
-            invoiceDetailPremiseId: detailForm.premiseId,
-            invoiceDetailRentalPrice: billing.rentalPrice,
-            invoiceDetailElectricityFee: electricityFee,
-            invoiceDetailWaterFee: waterFee,
-            invoiceDetailGarbageFee: garbageFee,
-            invoiceDetailTotalAmount:
-                billing.rentalPrice + electricityFee + waterFee + garbageFee,
-        }
-        const now = new Date().toISOString()
-        const nextDetails = [...details, detail]
-        const total = nextDetails
-            .filter((item) => item.invoiceDetailInvoiceId === selected.invoiceId)
-            .reduce((sum, item) => sum + item.invoiceDetailTotalAmount, 0)
-        const updated = {
-            ...selected,
-            invoiceTotalAmount: total,
-            invoiceUpdatedAt: now,
-        }
-        const nextPremise =
-            billing.premiseIds.find(
-                (premiseId) =>
-                    !nextDetails.some(
-                        (item) =>
-                            item.invoiceDetailInvoiceId === selected.invoiceId &&
-                            item.invoiceDetailPremiseId === premiseId,
-                    ),
-            ) ?? ""
-
-        setDetails(nextDetails)
-        setInvoices(
-            invoices.map((invoice) =>
-                invoice.invoiceId === selected.invoiceId ? updated : invoice,
-            ),
-        )
-        setSelected(updated)
-        setDetailForm({
-            premiseId: nextPremise,
-            electricityFee: "",
-            waterFee: "",
-            garbageFee: "",
+        const nextDetails = [
+            ...details.filter((item) => item.invoiceDetailInvoiceId === selected.invoiceId),
+            {
+                invoiceDetailId: 0,
+                invoiceDetailInvoiceId: selected.invoiceId,
+                invoiceDetailPremiseId: detailForm.premiseId,
+                invoiceDetailRentalPrice: contract.contractRentalPrice,
+                invoiceDetailElectricityFee: electricityFee,
+                invoiceDetailWaterFee: waterFee,
+                invoiceDetailGarbageFee: garbageFee,
+                invoiceDetailTotalAmount: contract.contractRentalPrice + electricityFee + waterFee + garbageFee,
+            },
+        ]
+        const total = nextDetails.reduce((sum, detail) => sum + detail.invoiceDetailTotalAmount, 0)
+        await runMutation(async () => {
+            await contractApi.updateInvoice(selected.invoiceId, {
+                contractId: selected.invoiceContractId,
+                paymentDate: selected.invoicePaymentDate,
+                dueDate: selected.invoiceDueDate,
+                totalAmount: total,
+                status: selected.invoiceStatus.replace(/^\w/, (letter) => letter.toUpperCase()) as MonthlyInvoiceModel["invoiceStatus"],
+                details: nextDetails.map((detail) => ({
+                    detailId: detail.invoiceDetailId,
+                    premiseId: detail.invoiceDetailPremiseId,
+                    rentalPrice: detail.invoiceDetailRentalPrice,
+                    electricityFee: detail.invoiceDetailElectricityFee,
+                    waterFee: detail.invoiceDetailWaterFee,
+                    garbageFee: detail.invoiceDetailGarbageFee,
+                })),
+            })
+            await refreshData()
+            setDetailForm({premiseId: "", electricityFee: "", waterFee: "", garbageFee: ""})
         })
     }
 
@@ -368,46 +429,32 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         setReceiptIsEditing(true)
     }
 
-    const updateReceipt = () => {
+    const updateReceipt = async () => {
         if (!selectedReceipt || Number(receiptEditForm.amount) <= 0) return
-        const now = new Date().toISOString()
-        const updated: Receipt = {
-            ...selectedReceipt,
-            receiptPaymentDate: receiptEditForm.paymentDate,
-            receiptAmount: Number(receiptEditForm.amount),
-            receiptTransactionInfo: receiptEditForm.transactionInfo.trim() || null,
-            receiptUpdatedAt: now,
-        }
-        const nextReceipts = receipts.map((receipt) =>
-            receipt.receiptId === updated.receiptId ? updated : receipt,
-        )
-        const received = nextReceipts
-            .filter(
-                (receipt) => receipt.receiptInvoiceId === updated.receiptInvoiceId,
+        await runMutation(async () => {
+            const updated = await contractApi.updateReceipt(
+                selectedReceipt.receiptId,
+                selectedReceipt.receiptInvoiceId,
+                {
+                    paymentDate: receiptEditForm.paymentDate,
+                    amount: Number(receiptEditForm.amount),
+                    transactionInfo: receiptEditForm.transactionInfo.trim() || null,
+                },
             )
-            .reduce((sum, receipt) => sum + receipt.receiptAmount, 0)
-        const nextInvoices = invoices.map((invoice) => {
-            if (
-                invoice.invoiceId !== updated.receiptInvoiceId ||
-                invoice.invoiceTotalAmount === null
-            )
-                return invoice
-            return {
-                ...invoice,
-                invoiceStatus:
-                    received >= invoice.invoiceTotalAmount
-                        ? "paid" as InvoiceStatus
-                        : invoice.invoiceStatus === "overdue"
-                            ? "overdue" as InvoiceStatus
-                            : "unpaid" as InvoiceStatus,
-                invoiceUpdatedAt: now,
+            const relatedInvoice = invoices.find((invoice) => invoice.invoiceId === updated.receiptInvoiceId)
+            try {
+                if (relatedInvoice) {
+                    const amountReceived = receipts
+                        .filter((receipt) => receipt.receiptInvoiceId === updated.receiptInvoiceId && receipt.receiptId !== updated.receiptId)
+                        .reduce((sum, receipt) => sum + receipt.receiptAmount, 0) + updated.receiptAmount
+                    await syncInvoicePaymentStatus(relatedInvoice, amountReceived)
+                }
+            } finally {
+                await refreshData()
             }
+            setSelectedReceipt(toUiReceipt(updated))
+            setReceiptIsEditing(false)
         })
-
-        setReceipts(nextReceipts)
-        setInvoices(nextInvoices)
-        setSelectedReceipt(updated)
-        setReceiptIsEditing(false)
     }
 
     const invoiceDetails = selected
@@ -415,35 +462,32 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
             (detail) => detail.invoiceDetailInvoiceId === selected.invoiceId,
         )
         : []
-    const selectedBilling = selected
-        ? MOCK_CONTRACT_BILLING[selected.invoiceContractId]
-        : undefined
     const availablePremiseIds =
-        selectedBilling?.premiseIds.filter(
+        premises.filter((premise) => premise.premiseStatus === "Rented").map((premise) => premise.premiseId).filter(
             (premiseId) =>
                 !invoiceDetails.some(
                     (detail) => detail.invoiceDetailPremiseId === premiseId,
                 ),
         ) ?? []
+    const selectedContract = selected ? contracts.find((contract) => contract.contractId === selected.invoiceContractId) : undefined
     const detailTotal =
-        (selectedBilling?.rentalPrice ?? 0) +
+        (selectedContract?.contractRentalPrice ?? 0) +
         (Number(detailForm.electricityFee) || 0) +
         (Number(detailForm.waterFee) || 0) +
         (Number(detailForm.garbageFee) || 0)
     const createInvoiceDetailsValid =
-        Object.keys(createDetailFees).length > 0 &&
-        Object.values(createDetailFees).every((fees) =>
-            [fees.electricityFee, fees.waterFee, fees.garbageFee].every(
+        createPremiseIds.length > 0 &&
+        createPremiseIds.every((premiseId) => {
+            const fees = createDetailFees[premiseId]
+            return fees && [fees.electricityFee, fees.waterFee, fees.garbageFee].every(
                 (value) => value !== "" && Number(value) >= 0,
-            ),
-        )
-    const createInvoiceTotal = (
-        MOCK_CONTRACT_BILLING[invoiceForm.contractId]?.premiseIds ?? []
-    ).reduce((sum, premiseId) => {
+            )
+        })
+    const createInvoiceTotal = createPremiseIds.reduce((sum, premiseId) => {
         const fees = createDetailFees[premiseId]
         return (
             sum +
-            (MOCK_CONTRACT_BILLING[invoiceForm.contractId]?.rentalPrice ?? 0) +
+            (contracts.find((contract) => contract.contractId === invoiceForm.contractId)?.contractRentalPrice ?? 0) +
             (Number(fees?.electricityFee) || 0) +
             (Number(fees?.waterFee) || 0) +
             (Number(fees?.garbageFee) || 0)
@@ -456,19 +500,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1
-                        className="text-xl font-bold text-gray-900"
-                        style={{fontFamily: "DM Sans"}}
-                    >
-                        Hóa đơn hàng tháng
-                    </h1>
-                    <p className="text-sm text-gray-400 mt-0.5">
-                        Tổng chưa thu:{" "}
-                        <span className="font-mono text-red-500">{fmt(totalUnpaid)}</span>
-                    </p>
-                </div>
+            <ModulePageHeader title="Hóa đơn hàng tháng" description={<>Tổng chưa thu: <span className="font-mono text-red-500">{fmt(totalUnpaid)}</span></>}>
                 {(activeTab === "invoices" ? canCreateInvoice : canCreateReceipt) && <button
                     onClick={
                         activeTab === "invoices"
@@ -476,11 +508,18 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                             : () => openAddReceipt(null)
                     }
                     className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                    disabled={isLoading || isSaving}
                 >
                     <span>+</span>{" "}
                     {activeTab === "invoices" ? "Tạo hóa đơn" : "Tạo phiếu thu"}
                 </button>}
-            </div>
+            </ModulePageHeader>
+
+            {error && (
+                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                </div>
+            )}
 
             <div className="border-b border-gray-200 mb-5">
                 <div className="flex gap-6">
@@ -508,7 +547,9 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                 </div>
             </div>
 
-            {activeTab === "invoices" ? (
+            {isLoading ? (
+                <p className="py-12 text-center text-sm text-gray-500">Đang tải dữ liệu từ database...</p>
+            ) : activeTab === "invoices" ? (
                 <>
                     <div className="flex gap-1 bg-gray-100 rounded-lg p-1 mb-5 w-fit">
                         {(["all", "unpaid", "paid", "overdue"] as const).map((status) => {
@@ -658,13 +699,13 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 value={invoiceForm.contractId}
                                 onChange={(event) => selectInvoiceContract(event.target.value)}
                             >
-                                {Object.entries(MOCK_CONTRACT_BILLING).map(
-                                    ([contractId, billing]) => (
-                                        <option key={contractId} value={contractId}>
-                                            {contractId} · {billing.premiseIds.length} mặt bằng
+                                {contracts
+                                    .filter((contract) => !ownOnly || contract.contractAccountId === accountId)
+                                    .map((contract) => (
+                                        <option key={contract.contractId} value={contract.contractId}>
+                                            {contract.contractId} · {fmt(contract.contractRentalPrice)}/tháng
                                         </option>
-                                    ),
-                                )}
+                                    ))}
                             </select>
                         </FormField>
                         <FormField label="Ngày lập">
@@ -704,8 +745,9 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                             <span className="text-right">Tiền nước</span>
                             <span className="text-right">Phí rác</span>
                         </div>
-                        {(MOCK_CONTRACT_BILLING[invoiceForm.contractId]?.premiseIds ?? []).map(
-                            (premiseId) => {
+                        {premises.filter((premise) => premise.premiseStatus === "Rented").map((premise) => {
+                                const premiseId = premise.premiseId
+                                const isSelected = createPremiseIds.includes(premiseId)
                                 const fees = createDetailFees[premiseId] ?? {
                                     electricityFee: "",
                                     waterFee: "",
@@ -716,19 +758,33 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                         key={premiseId}
                                         className="grid grid-cols-5 gap-3 items-center px-4 py-3 border-t border-gray-50"
                                     >
-                    <span
-                        className="text-xs font-mono text-gray-500 truncate"
-                        title={premiseId}
-                    >
-                      {premiseId}
-                    </span>
+                    <label className="flex min-w-0 items-center gap-2 text-xs font-mono text-gray-500">
+                        <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(event) => {
+                                setCreatePremiseIds(event.target.checked
+                                    ? [...createPremiseIds, premiseId]
+                                    : createPremiseIds.filter((id) => id !== premiseId))
+                                if (event.target.checked) {
+                                    setCreateDetailFees({
+                                        ...createDetailFees,
+                                        [premiseId]: {electricityFee: "", waterFee: "", garbageFee: ""},
+                                    })
+                                }
+                            }}
+                        />
+                        <span className="truncate" title={`${premise.premiseName} · ${premiseId}`}>
+                            {premise.premiseName} · {premiseId}
+                        </span>
+                    </label>
                                         <div className="relative">
                                             <input
-                                                className={`${inputCls} pr-12 bg-gray-100 text-gray-500 cursor-not-allowed text-right`}
+                                                className={`${inputCls} pr-12 bg-gray-100 text-gray-500 cursor-not-allowed text-right disabled:opacity-50`}
                                                 value={
-                                                    MOCK_CONTRACT_BILLING[invoiceForm.contractId]
-                                                        ?.rentalPrice ?? 0
+                                                    contracts.find((contract) => contract.contractId === invoiceForm.contractId)?.contractRentalPrice ?? 0
                                                 }
+                                                disabled={!isSelected}
                                                 readOnly
                                             />
                                             <span
@@ -743,6 +799,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                             step="1"
                                             required
                                             value={fees.electricityFee}
+                                            disabled={!isSelected}
                                             onChange={(event) => {
                                                 if (!isIntegerAmountInput(event.target.value)) return
                                                 setCreateDetailFees({
@@ -762,6 +819,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                             step="1"
                                             required
                                             value={fees.waterFee}
+                                            disabled={!isSelected}
                                             onChange={(event) => {
                                                 if (!isIntegerAmountInput(event.target.value)) return
                                                 setCreateDetailFees({
@@ -781,6 +839,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                             step="1"
                                             required
                                             value={fees.garbageFee}
+                                            disabled={!isSelected}
                                             onChange={(event) => {
                                                 if (!isIntegerAmountInput(event.target.value)) return
                                                 setCreateDetailFees({
@@ -795,8 +854,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                         />
                                     </div>
                                 )
-                            },
-                        )}
+                            })}
                     </div>
 
                     <div
@@ -818,6 +876,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                         <button
                             onClick={addInvoice}
                             disabled={
+                                isSaving ||
                                 !invoiceForm.contractId ||
                                 !invoiceForm.paymentDate ||
                                 !invoiceForm.dueDate ||
@@ -904,6 +963,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 </button>
                                 <button
                                     onClick={updateInvoice}
+                                    disabled={isSaving}
                                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                                 >
                                     Lưu thay đổi
@@ -1082,7 +1142,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                             >
                                                 {availablePremiseIds.map((premiseId) => (
                                                     <option key={premiseId} value={premiseId}>
-                                                        {premiseId}
+                                                        {premises.find((premise) => premise.premiseId === premiseId)?.premiseName ?? premiseId} · {premiseId}
                                                     </option>
                                                 ))}
                                             </select>
@@ -1091,7 +1151,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                             <div className="relative">
                                                 <input
                                                     className={`${inputCls} pr-12 bg-gray-100 text-gray-500 cursor-not-allowed`}
-                                                    value={selectedBilling?.rentalPrice ?? 0}
+                                                    value={selectedContract?.contractRentalPrice ?? 0}
                                                     readOnly
                                                 />
                                                 <span
@@ -1156,6 +1216,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                         <button
                                             onClick={addInvoiceDetail}
                                             disabled={
+                                                isSaving ||
                                                 !detailForm.premiseId ||
                                                 [
                                                     detailForm.electricityFee,
@@ -1171,7 +1232,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 </>
                             ) : (
                                 <p className="text-sm text-gray-400">
-                                    Tất cả mặt bằng của hợp đồng đã có trong hóa đơn này.
+                                    Không còn mặt bằng đang thuê khả dụng cho chi tiết hóa đơn.
                                 </p>
                             )}
                         </div>
@@ -1338,6 +1399,9 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                         <button
                             onClick={addReceipt}
                             disabled={
+                                isSaving ||
+                                !receiptForm.createdByAccountId ||
+                                !receiptForm.invoiceId ||
                                 !receiptForm.invoiceId ||
                                 !receiptForm.createdByAccountId ||
                                 Number(receiptForm.amount) <= 0
@@ -1457,7 +1521,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 </button>
                                 <button
                                     onClick={updateReceipt}
-                                    disabled={!receiptEditForm.paymentDate || Number(receiptEditForm.amount) <= 0}
+                                    disabled={isSaving || !receiptEditForm.paymentDate || Number(receiptEditForm.amount) <= 0}
                                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400"
                                 >Lưu thay đổi
                                 </button>

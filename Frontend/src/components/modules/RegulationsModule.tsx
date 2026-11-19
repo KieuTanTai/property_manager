@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react"
 import {contractApi} from "@/api/contracts.ts"
 import type {RegulationModel} from "@/types/contracts"
-import {BaseTable, FormField, inputCls, Modal, ProcessingForm} from "./shared"
+import {BaseTable, FormField, inputCls, Modal, ModulePageHeader, ProcessingForm} from "./shared"
 import {fmt, formatDateTime, isIntegerAmountInput} from "../../scripts/format"
 import type {RegulationForm} from "../../types/regulations"
 
@@ -127,22 +127,14 @@ export function RegulationsModule({readOnly = false}: { readOnly?: boolean }) {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1
-                        className="text-xl font-bold text-gray-900"
-                        style={{fontFamily: "DM Sans"}}
-                    >
-                        Quản lý quy định
-                    </h1>
-                    <p className="text-sm text-gray-400 mt-0.5">
-                        {
+            <ModulePageHeader
+                title="Quản lý quy định"
+                description={
                             regulations.filter((regulation) => regulation.regulationIsActive)
                                 .length
-                        }{" "}
-                        quy định đang áp dụng
-                    </p>
-                </div>
+                        + " quy định đang áp dụng"
+                }
+            >
                 {!readOnly && <button
                     onClick={openAdd}
                     className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
@@ -150,7 +142,7 @@ export function RegulationsModule({readOnly = false}: { readOnly?: boolean }) {
                     <span className="text-base leading-none">+</span>
                     Thêm quy định
                 </button>}
-            </div>
+            </ModulePageHeader>
 
             {error && !modal && <p role="alert"
                                    className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
@@ -174,7 +166,7 @@ export function RegulationsModule({readOnly = false}: { readOnly?: boolean }) {
                     {
                         key: "name",
                         header: "Tên quy định",
-                        cellClassName: "max-w-48 px-4 py-3 font-semibold text-gray-900",
+                        cellClassName: "max-w-48 px-4 py-3 text-xs font-semibold text-gray-900",
                         render: (item) => item.regulationName
                     },
                     {

@@ -19,6 +19,7 @@ import {
     FormField,
     inputCls,
     Modal,
+    ModulePageHeader,
     ProcessingForm,
     selectCls
 } from "./shared"
@@ -379,14 +380,14 @@ export function ContractsModule({
     </div>
 
     return <div>
-        <div className="mb-5 flex items-center justify-between">
-            <div><h1
-                className="text-xl font-bold text-slate-900">{ownOnly ? "Hợp đồng của tôi" : "Quản lý hợp đồng"}</h1><p
-                className="mt-1 text-sm text-slate-500">{visibleContracts.length} hợp đồng</p>
-            </div>
+        <ModulePageHeader
+            title={ownOnly ? "Hợp đồng của tôi" : "Quản lý hợp đồng"}
+            description={`${visibleContracts.length} hợp đồng`}
+        >
             {canCreate &&
                 <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`} onClick={openCreate}>+ Tạo hợp
-                    đồng</button>}</div>
+                    đồng</button>}
+        </ModulePageHeader>
         {error && <div role="alert"
                        className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}{notice &&
         <div role="status"

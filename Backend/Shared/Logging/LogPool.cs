@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 
@@ -6,7 +5,9 @@ namespace Shared.Logging
 {
     public sealed class LogPool(IHostEnvironment environment) : ILogPool
     {
-        private readonly ConcurrentQueue<LogEntry> _entries = new();
+        private readonly SemaphoreSlim _flushLock = new(1, 1);
+        private readonly object _entriesLock = new();
+        private Queue<LogEntry> _entries = new();
 
         public void Add(
             string module,
@@ -17,7 +18,7 @@ namespace Shared.Logging
             string message,
             Exception? exception = null)
         {
-            _entries.Enqueue(new LogEntry(
+            var entry = new LogEntry(
                 DateTimeOffset.UtcNow,
                 module,
                 Path.GetFileName(file),
@@ -25,12 +26,19 @@ namespace Shared.Logging
                 member,
                 level,
                 message,
-                exception?.GetType().Name));
+                exception?.GetType().Name);
+            lock (_entriesLock)
+            {
+                _entries.Enqueue(entry);
+            }
         }
 
         public IReadOnlyList<LogEntry> Fetch()
         {
-            return [.. _entries];
+            lock (_entriesLock)
+            {
+                return [.. _entries];
+            }
         }
 
         public async Task<int> FlushAsync(
@@ -38,20 +46,14 @@ namespace Shared.Logging
             string layer,
             CancellationToken cancellationToken = default)
         {
-            var entries = _entries
-                .Where(entry => string.Equals(entry.Module, module, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            if (entries.Count == 0)
+            lock (_entriesLock)
             {
-                return 0;
+                if (!_entries.Any(entry => string.Equals(
+                        entry.Module, module, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return 0;
+                }
             }
-
-            var entrySet = entries.ToHashSet();
-            var remaining = new ConcurrentQueue<LogEntry>(
-                _entries.Where(entry => !entrySet.Contains(entry)));
-            while (_entries.TryDequeue(out _)) {}
-            foreach (var entry in remaining)
-                _entries.Enqueue(entry);
 
             var logDirectory = Path.Combine(
                 environment.ContentRootPath,
@@ -60,17 +62,81 @@ namespace Shared.Logging
             var date = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd");
             var logFile = Path.Combine(logDirectory, $"{module.ToLowerInvariant()}_{date}.jsonl");
 
-            await using var stream = new FileStream(
-                logFile, FileMode.Append, FileAccess.Write, FileShare.Read, 4096, true);
-            await using var writer = new StreamWriter(stream);
-            foreach (var entry in entries)
+            await _flushLock.WaitAsync(cancellationToken);
+            try
+            {
+                await using var stream = await OpenLogFileForAppendAsync(logFile, cancellationToken);
+                LogEntry[] entries;
+                lock (_entriesLock)
+                {
+                    entries = _entries
+                        .Where(entry => string.Equals(entry.Module, module, StringComparison.OrdinalIgnoreCase))
+                        .ToArray();
+                }
+
+                if (entries.Length == 0)
+                {
+                    return 0;
+                }
+
+                var originalLength = stream.Length;
+                try
+                {
+                    stream.Position = originalLength;
+                    await using (var writer = new StreamWriter(stream, leaveOpen: true))
+                    {
+                        foreach (var entry in entries)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            await writer.WriteLineAsync(JsonSerializer.Serialize(entry).AsMemory(), cancellationToken);
+                        }
+                        await writer.FlushAsync(cancellationToken);
+                    }
+                }
+                catch
+                {
+                    stream.SetLength(originalLength);
+                    throw;
+                }
+
+                var entrySet = entries.ToHashSet(ReferenceEqualityComparer.Instance);
+                lock (_entriesLock)
+                {
+                    _entries = new Queue<LogEntry>(_entries.Where(entry => !entrySet.Contains(entry)));
+                }
+
+                return entries.Length;
+            }
+            finally
+            {
+                _flushLock.Release();
+            }
+        }
+
+        private static async Task<FileStream> OpenLogFileForAppendAsync(
+            string logFile,
+            CancellationToken cancellationToken)
+        {
+            const int maxAttempts = 30;
+            for (var attempt = 0; ; attempt++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var line = JsonSerializer.Serialize(entry);
-                await writer.WriteLineAsync(line.AsMemory(), cancellationToken);
+                try
+                {
+                    return new FileStream(
+                        logFile, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read, 4096, true);
+                }
+                catch (IOException exception) when (IsFileLock(exception) && attempt < maxAttempts)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(Math.Min(50 + attempt * 25, 500)), cancellationToken);
+                }
             }
+        }
 
-            return entries.Count;
+        private static bool IsFileLock(IOException exception)
+        {
+            var errorCode = exception.HResult & 0xFFFF;
+            return errorCode is 11 or 32 or 33 or 35;
         }
     }
 }

@@ -84,6 +84,11 @@ export const ticketApi = {
             method: "POST",
             body: JSON.stringify({notificationId, accountId}),
         }),
+    addRecipients: (notificationId: string, accountIds: string[]) =>
+        request<number>("/notification-recipients/batch", {
+            method: "POST",
+            body: JSON.stringify(accountIds.map((accountId) => ({notificationId, accountId}))),
+        }),
     updateNotification: (notification: NotificationModel, isRead: boolean) =>
         request<NotificationModel>("/notifications", {
             method: "PUT",

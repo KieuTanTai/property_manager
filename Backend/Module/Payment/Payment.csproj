@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+        <UserSecretsId>8b1e4c62-3d7a-4f19-9c05-2af6d8e17b34</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Shared\Shared.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9"/>
+
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0-rc.1.26425.128"/>
+
+        <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.9"/>
+
+        <PackageReference Include="RabbitMQ.Client" Version="7.2.2"/>
+
+        <PackageReference Include="Serilog" Version="4.4.1-dev-02447"/>
+
+        <PackageReference Include="Serilog.Sinks.File" Version="8.0.0-nblumhardt-02322"/>
+
+        <PackageReference Include="StackExchange.Redis" Version="3.2.0"/>
+
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3"/>
+
+        <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="10.2.3"/>
+
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.2.3"/>
+
+        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3"/>
+
+        <PackageReference Include="VNPAY.NET" Version="8.5.0"/>
+    </ItemGroup>
+
+</Project>

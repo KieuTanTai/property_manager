@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from "react"
-import {FormField, inputCls, Modal, PremiseStatusBadge, premiseStatusSurface, selectCls} from "./shared"
+import {FormField, inputCls, Modal, ModulePageHeader, PremiseStatusBadge, premiseStatusSurface, selectCls} from "./shared"
 import type {BusinessType, Location, WhitelistProduct} from "@/types/modules.ts"
 import type {
     BusinessTypeModel,
@@ -850,24 +850,16 @@ export function PremisesModule({
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1
-                        className="text-xl font-bold text-gray-900"
-                        style={{fontFamily: "DM Sans"}}
-                    >
-                        Quản lý mặt bằng
-                    </h1>
-                    <p className="text-sm text-gray-400 mt-0.5">
-                        {activeSubTab === "locations"
-                            ? `${locations.length} địa chỉ đã tạo`
-                            : activeSubTab === "business-types"
-                                ? `${businessTypes.length} loại mặt hàng`
-                                : activeSubTab === "products"
-                                    ? `${productCatalog.length} sản phẩm trong danh mục`
-                                    : `${premises.length} mặt bằng tổng cộng`}
-                    </p>
-                </div>
+            <ModulePageHeader
+                title="Quản lý mặt bằng"
+                description={activeSubTab === "locations"
+                    ? `${locations.length} địa chỉ đã tạo`
+                    : activeSubTab === "business-types"
+                        ? `${businessTypes.length} loại mặt hàng`
+                        : activeSubTab === "products"
+                            ? `${productCatalog.length} sản phẩm trong danh mục`
+                            : `${premises.length} mặt bằng tổng cộng`}
+            >
                 {canAddInActiveTab && (
                     <button
                         onClick={
@@ -895,7 +887,7 @@ export function PremisesModule({
                                     : "Thêm mặt bằng"}
                     </button>
                 )}
-            </div>
+            </ModulePageHeader>
 
             {premiseError && (
                 <div role="alert"

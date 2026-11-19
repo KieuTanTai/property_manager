@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react"
 import type {ContactInfoModel, ContactInfoRequest} from "@/types/contracts"
 import {contractApi} from "@/api/contracts.ts"
-import {BaseTable, FormField, inputCls, Modal, ProcessingForm} from "./shared"
+import {BaseTable, FormField, inputCls, Modal, ModulePageHeader, ProcessingForm} from "./shared"
 
 const emptyForm: ContactInfoRequest = {
     contactInfoEmail: "",
@@ -97,12 +97,7 @@ export function ContactsModule() {
 
     return (
         <div>
-            <div className="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 className="text-xl font-bold text-gray-900" style={{fontFamily: "DM Sans"}}>Thông tin liên
-                        hệ</h1>
-                    <p className="mt-0.5 text-sm text-gray-400">{contacts.length} đầu mối liên hệ của chủ quản</p>
-                </div>
+            <ModulePageHeader title="Thông tin liên hệ" description={`${contacts.length} đầu mối liên hệ của chủ quản`}>
                 <button onClick={() => {
                     setForm(emptyForm);
                     setIsAdding(true);
@@ -111,7 +106,7 @@ export function ContactsModule() {
                         className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
                     <span className="text-base leading-none">+</span> Thêm liên hệ
                 </button>
-            </div>
+            </ModulePageHeader>
 
             {error && <p role="alert"
                          className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}

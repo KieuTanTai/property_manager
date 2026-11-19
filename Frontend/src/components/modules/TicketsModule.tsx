@@ -3,7 +3,7 @@ import {useEffect, useMemo, useState} from "react"
 import debounce from "lodash.debounce"
 import {compressImageToDataUrl} from "@/utils/compressImage"
 import {identityApi} from "@/api/identity"
-import type {UserProfileModel} from "@/types/identity"
+import type {AccountProfileOption, UserProfileModel} from "@/types/identity"
 import {
     type NotificationModel,
     type NotificationType,
@@ -12,8 +12,9 @@ import {
     type TicketType
 } from "../../api/ticketAndNotification"
 import {APP_SETTINGS} from "@/config/appSettings"
-import {FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
+import {FormField, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
 import {ImageAttachments} from "./ImageAttachments"
+import {hasRole} from "@/utils/authorization"
 
 const button = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
 const ticketTypes: TicketType[] = ["Review", "Complaint", "Violation", "Feedback"]
@@ -24,19 +25,29 @@ const ticketLabel: Record<TicketType, string> = {
     Feedback: "Phản hồi"
 }
 const notificationLabel: Record<NotificationType, string> = {Violation: "Vi phạm", Ticket: "Yêu cầu", Other: "Khác"}
+type NotificationRecipientRole = "Admin" | "Manager" | "Inspector" | "Employee" | "Customer"
+const notificationRoleLabel: Record<NotificationRecipientRole, string> = {
+    Admin: "Admin",
+    Manager: "Manager",
+    Inspector: "Inspector",
+    Employee: "Employee",
+    Customer: "Customer",
+}
 
 export function TicketsModule({
                                   accountId,
                                   customerMode = false,
                                   ownOnly = false,
                                   canReadOwn = false,
-                                  canCreateViolation = false
+                                  canCreateViolation = false,
+                                  roleCodes = []
                               }: {
     accountId?: string;
     customerMode?: boolean;
     ownOnly?: boolean;
     canReadOwn?: boolean;
-    canCreateViolation?: boolean
+    canCreateViolation?: boolean;
+    roleCodes?: string[]
 }) {
     const canViewTickets = !customerMode && (canReadOwn || canCreateViolation)
     const [tickets, setTickets] = useState<TicketModel[]>([])
@@ -53,7 +64,7 @@ export function TicketsModule({
     const [notificationPageInput, setNotificationPageInput] = useState("1")
     const [ticketReload, setTicketReload] = useState(0)
     const [notificationReload, setNotificationReload] = useState(0)
-    const [modal, setModal] = useState<"tickets" | null>(null)
+    const [modal, setModal] = useState<"tickets" | "notification" | null>(null)
     const [ticketForm, setTicketForm] = useState({accountId: "", content: "", type: "Feedback" as TicketType})
     const [profileIdInput, setProfileIdInput] = useState("")
     const [debouncedProfileId, setDebouncedProfileId] = useState("")
@@ -69,6 +80,20 @@ export function TicketsModule({
     const [notificationLoadError, setNotificationLoadError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
     const [loadingNotifications, setLoadingNotifications] = useState(customerMode)
+    const [notificationContent, setNotificationContent] = useState("")
+    const [notificationType, setNotificationType] = useState<NotificationType>("Other")
+    const [selectedRecipientRoles, setSelectedRecipientRoles] = useState<NotificationRecipientRole[]>([])
+    const [accountsByRecipientRole, setAccountsByRecipientRole] = useState<Partial<Record<NotificationRecipientRole, AccountProfileOption[]>>>({})
+    const [loadingRecipientAccounts, setLoadingRecipientAccounts] = useState(false)
+    const [recipientAccountsError, setRecipientAccountsError] = useState<string | null>(null)
+    const allowedRecipientRoles = useMemo<NotificationRecipientRole[]>(() => {
+        if (hasRole(roleCodes, "Admin")) return ["Admin", "Manager", "Inspector", "Employee", "Customer"]
+        if (hasRole(roleCodes, "Manager")) return ["Manager", "Inspector", "Employee", "Customer"]
+        if (hasRole(roleCodes, "Inspector")) return ["Employee", "Customer"]
+        if (hasRole(roleCodes, "Employee")) return ["Customer"]
+        return []
+    }, [roleCodes])
+    const canCreateNotification = customerMode && Boolean(accountId) && allowedRecipientRoles.length > 0
     const updateDebouncedProfileId = useMemo(
         () => debounce(setDebouncedProfileId, APP_SETTINGS.debounceDelayMs),
         [],
@@ -180,6 +205,27 @@ export function TicketsModule({
     }, [accountId, customerMode, notificationReload])
 
     useEffect(() => {
+        if (modal !== "notification") return
+        let isCurrent = true
+        setLoadingRecipientAccounts(true)
+        setRecipientAccountsError(null)
+        void Promise.all(allowedRecipientRoles.map(async (role) =>
+            [role, await identityApi.getAccountsByRoleCode(role)] as const,
+        )).then((entries) => {
+            if (isCurrent) setAccountsByRecipientRole(Object.fromEntries(entries))
+        }).catch((cause: unknown) => {
+            if (!isCurrent) return
+            setAccountsByRecipientRole({})
+            setRecipientAccountsError(cause instanceof Error ? cause.message : "Không tải được danh sách tài khoản nhận.")
+        }).finally(() => {
+            if (isCurrent) setLoadingRecipientAccounts(false)
+        })
+        return () => {
+            isCurrent = false
+        }
+    }, [allowedRecipientRoles, modal])
+
+    useEffect(() => {
         if (!imageToView) return
         const closeOnEscape = (event: KeyboardEvent) => {
             if (event.key === "Escape") setImageToView(null)
@@ -240,6 +286,34 @@ export function TicketsModule({
         setNotifications((current) => current.map((item) =>
             item.notificationId === updated.notificationId ? updated : item))
     }, "Đã đánh dấu thông báo đã đọc.")
+    const recipientAccountIds = [...new Set(selectedRecipientRoles.flatMap((role) =>
+        accountsByRecipientRole[role]?.map((account) => account.accountId) ?? [],
+    ))]
+    const createNotification = async (event: SubmitEvent<HTMLFormElement>) => {
+        event.preventDefault()
+        if (!accountId || recipientAccountIds.length === 0) return
+        const done = await run(async () => {
+            const created = await ticketApi.createNotification({
+                senderAccountId: accountId,
+                content: notificationContent.trim(),
+                type: notificationType,
+            })
+            try {
+                await ticketApi.addRecipients(created.notificationId, recipientAccountIds)
+            } catch (cause) {
+                const detail = cause instanceof Error ? cause.message : "Lỗi không xác định."
+                setModal(null)
+                throw new Error(`Thông báo đã được tạo nhưng chưa gửi được người nhận. Mã thông báo: ${created.notificationId}. ${detail}`)
+            }
+            setNotificationReload((current) => current + 1)
+        }, `Đã gửi thông báo đến ${recipientAccountIds.length} tài khoản.`)
+        if (done) {
+            setNotificationContent("")
+            setNotificationType("Other")
+            setSelectedRecipientRoles([])
+            setModal(null)
+        }
+    }
     const accountTickets = ownOnly && accountId ? tickets.filter((ticket) => ticket.ticketAccountId === accountId) : tickets
     const filteredTickets = accountTickets.filter((ticket) =>
         (filter === "all" || ticket.ticketIsResolved === (filter === "resolved"))
@@ -292,11 +366,12 @@ export function TicketsModule({
     }
 
     return <div>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div><h1
-                className="text-xl font-bold text-slate-900">{customerMode ? "Thông báo của tôi" : "Yêu cầu"}</h1>
-                <p className="mt-1 text-sm text-slate-500">{customerMode ? `${unreadNotificationCount} thông báo chưa đọc` : `${accountTickets.filter((ticket) => !ticket.ticketIsResolved).length} ticket chưa xử lý`}</p>
-            </div>
+        <ModulePageHeader
+            title={customerMode ? "Thông báo của tôi" : "Yêu cầu"}
+            description={customerMode
+                ? `${unreadNotificationCount} thông báo chưa đọc`
+                : `${accountTickets.filter((ticket) => !ticket.ticketIsResolved).length} ticket chưa xử lý`}
+        >
             {canCreateViolation && <div className="flex gap-2">
                 <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`} onClick={() => {
                     setTicketForm({accountId: "", content: "", type: "Violation"});
@@ -307,10 +382,19 @@ export function TicketsModule({
                     setProfileLookupError(null)
                     setTicketImages([]);
                     setModal("tickets")
-                }}>Tạo ticket vi phạm
+                }}>Tạo ticket
                 </button>
             </div>}
-        </div>
+            {canCreateNotification && <button className={`${button} bg-blue-600 text-white hover:bg-blue-700`}
+                                              onClick={() => {
+                                                  setNotificationContent("")
+                                                  setNotificationType("Other")
+                                                  setSelectedRecipientRoles([])
+                                                  setModal("notification")
+                                              }}>
+                Tạo thông báo
+            </button>}
+        </ModulePageHeader>
 
         {error && <div role="alert"
                        className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -540,6 +624,62 @@ export function TicketsModule({
                 </div>
             </nav>}
         </>}
+
+        {modal === "notification" && canCreateNotification && <Modal title="Tạo thông báo" onClose={() => setModal(null)} wide>
+            <ProcessingForm processing={saving || loadingRecipientAccounts} onSubmit={createNotification}>
+                <FormField label="Loại thông báo">
+                    <select className={selectCls} value={notificationType}
+                            onChange={(event) => setNotificationType(event.target.value as NotificationType)}>
+                        {Object.entries(notificationLabel).map(([type, label]) =>
+                            <option key={type} value={type}>{label}</option>)}
+                    </select>
+                </FormField>
+                <FormField label="Nội dung thông báo">
+                    <textarea className={inputCls} required maxLength={255} rows={4}
+                              value={notificationContent}
+                              onChange={(event) => setNotificationContent(event.target.value)}
+                              placeholder="Nhập nội dung (tối đa 255 ký tự)"/>
+                </FormField>
+                <fieldset className="mb-5">
+                    <legend className="mb-2 text-sm font-medium text-slate-700">Vai trò người nhận</legend>
+                    <p className="mb-3 text-xs text-slate-500">
+                        Chỉ tài khoản thuộc các vai trò được phép dưới đây mới có thể được chọn.
+                    </p>
+                    {loadingRecipientAccounts ? <p role="status" className="text-sm text-slate-500">Đang tải tài khoản...</p>
+                        : recipientAccountsError ? <p role="alert" className="text-sm text-red-700">{recipientAccountsError}</p>
+                            : <div className="grid gap-2 sm:grid-cols-2">
+                                {allowedRecipientRoles.map((role) => {
+                                    const count = accountsByRecipientRole[role]?.length ?? 0
+                                    const checked = selectedRecipientRoles.includes(role)
+                                    return <label key={role}
+                                                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${count ? "border-slate-200" : "border-slate-100 text-slate-400"}`}>
+                                        <span className="flex items-center gap-2">
+                                            <input type="checkbox" checked={checked} disabled={count === 0}
+                                                   onChange={(event) => setSelectedRecipientRoles((current) =>
+                                                       event.target.checked
+                                                           ? [...current, role]
+                                                           : current.filter((item) => item !== role))}/>
+                                            {notificationRoleLabel[role]}
+                                        </span>
+                                        <span className="text-xs text-slate-500">{count} tài khoản</span>
+                                    </label>
+                                })}
+                            </div>}
+                    <p className="mt-2 text-xs text-slate-500">
+                        Tổng người nhận: {recipientAccountIds.length} tài khoản
+                    </p>
+                </fieldset>
+                <div className="flex justify-end gap-2">
+                    <button type="button" className={`${button} border border-slate-200`}
+                            onClick={() => setModal(null)}>Hủy</button>
+                    <button className={`${button} bg-blue-600 text-white`}
+                            disabled={saving || loadingRecipientAccounts || !!recipientAccountsError
+                                || !notificationContent.trim() || recipientAccountIds.length === 0}>
+                        {saving ? "Đang gửi..." : "Gửi thông báo"}
+                    </button>
+                </div>
+            </ProcessingForm>
+        </Modal>}
 
         {modal === "tickets" && <Modal title="Tạo ticket" onClose={() => setModal(null)}>
             <ProcessingForm processing={saving} onSubmit={createTicket}>

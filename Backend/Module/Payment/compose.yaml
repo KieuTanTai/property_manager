@@ -1,0 +1,46 @@
+# Payment module in Docker.
+#
+#   cp .env.example .env      # then fill in the VNPAY values
+#   docker compose -f Backend/Module/Payment/compose.yaml up --build
+#
+# Swagger is then on https://localhost:7093/swagger (self-signed cert, use curl -k).
+# Every value below can be overridden from the environment or from .env, which compose
+# reads automatically next to this file.
+
+services:
+  payment:
+    image: property-manager-payment:local
+    build:
+      # Context is Backend/ because Payment references ../../Shared/Shared.csproj.
+      context: ../..
+      dockerfile: Module/Payment/Dockerfile
+    container_name: property_payment
+    ports:
+      - "7093:8080" # https - Swagger + client-facing endpoints
+      - "5144:8081" # http  - handy for a tunnel forwarding to the IPN endpoint
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+
+      # Reverse proxies / tunnels only need to set X-Forwarded-Proto: https, the app
+      # honours it (see the ForwardedHeaders setup in Program.cs).
+      ASPNETCORE_URLS: "https://+:8080;http://+:8081"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/payment.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${DEV_CERT_PASSWORD:-paymentdev}
+
+      # Reaches the MariaDB container from docs/sql/compose.yaml through the published port.
+      # If you instead attach this service to that stack's network, use
+      #   server=property_mariadb;port=3306;...
+      ConnectionStrings__IdentityTest: ${IDENTITY_TEST_CONNECTION:-server=host.docker.internal;port=3306;database=ms_identity_test;user=appuser;password=apppass}
+
+      # Required. `:?` makes compose stop with this message when the value is missing.
+      VNPAY__TmnCode: ${VNPAY_TMN_CODE:?set VNPAY_TMN_CODE in .env}
+      VNPAY__HashSecret: ${VNPAY_HASH_SECRET:?set VNPAY_HASH_SECRET in .env}
+      VNPAY__CallbackUrl: ${VNPAY_CALLBACK_URL:?set VNPAY_CALLBACK_URL in .env}
+
+      # Optional, these defaults match the code.
+      VNPAY__BaseUrl: ${VNPAY_BASE_URL:-https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      VNPAY__Version: ${VNPAY_VERSION:-2.1.0}
+      VNPAY__OrderType: ${VNPAY_ORDER_TYPE:-other}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

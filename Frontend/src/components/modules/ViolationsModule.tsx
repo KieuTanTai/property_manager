@@ -2,7 +2,7 @@ import type {SubmitEvent} from "react"
 import {useMemo, useState} from "react"
 import {MOCK_CONTRACTS} from "../../mocks/contracts"
 import {getMockTenant, MOCK_VIOLATIONS} from "../../mocks/violations"
-import {BaseTable, FormField, inputCls, Modal, ProcessingForm, selectCls} from "./shared"
+import {BaseTable, FormField, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
 import {fmt, isIntegerAmountInput} from "../../scripts/format"
 import type {Violation} from "../../types/modules"
 import {filterViolationsForAccount} from "../../scripts/violations"
@@ -108,15 +108,14 @@ export function ViolationsModule({
     const disabled = readOnly || (modal === "view" && !isEditing)
 
     return <div>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div><h1 className="text-xl font-bold text-gray-900"
-                     style={{fontFamily: "DM Sans"}}>{ownOnly ? "Vi phạm của tôi" : "Vi phạm hợp đồng"}</h1><p
-                className="mt-1 text-sm text-gray-400">{violations.filter((item) => !item.resolved).length} vi phạm chưa
-                xử lý · {violations.length} mock records</p></div>
+        <ModulePageHeader
+            title={ownOnly ? "Vi phạm của tôi" : "Vi phạm hợp đồng"}
+            description={`${violations.filter((item) => !item.resolved).length} vi phạm chưa xử lý`}
+        >
             {canCreate && <button onClick={openAdd}
                                   className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700">+
                 Ghi nhận vi phạm</button>}
-        </div>
+        </ModulePageHeader>
 
         {error && <p role="alert"
                      className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
