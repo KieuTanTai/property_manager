@@ -16,11 +16,14 @@ namespace Identity.Presentation.Controller
         ILogPool logPool) : ControllerBase
     {
         private const string Module = "Identity";
+
         private const string Layer = "Presentation/Controller";
+
         private const string GatewayKeyHeader = "X-Internal-Gateway-Key";
 
-        private readonly ILogger<InternalTokenAuthorizationController> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<InternalTokenAuthorizationController> _logger = logger;
 
         [HttpPost]
         public IActionResult AuthorizeToken([FromBody] RecordInternalTokenAuthorizationRequest request)
@@ -39,7 +42,6 @@ namespace Identity.Presentation.Controller
             _logger.LogLayerWarning(_logPool, Module, Layer,
                 "Internal token authorization rejected an invalid or expired access token.");
             return Unauthorized();
-
         }
 
         private bool IsAuthorizedGateway()
@@ -53,8 +55,7 @@ namespace Identity.Presentation.Controller
 
             var expectedBytes = Encoding.UTF8.GetBytes(expectedKey);
             var providedBytes = Encoding.UTF8.GetBytes(providedKey);
-            return expectedBytes.Length == providedBytes.Length &&
-                   CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
+            return expectedBytes.Length == providedBytes.Length && CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
         }
     }
 }

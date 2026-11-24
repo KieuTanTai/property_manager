@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
-using Shared.Messaging.Options;
 using Shared.Interfaces.Messaging;
+using Shared.Messaging.Options;
 
 namespace Shared.Messaging
 {

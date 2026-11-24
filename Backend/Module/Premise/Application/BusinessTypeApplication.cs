@@ -56,7 +56,7 @@ namespace Premise.Application
             }
 
             var businessType = await businessTypeRepository.GetTrackedByIdAsync(id, cancellationToken)
-                ?? throw new KeyNotFoundException($"Business type not found: {id}.");
+                               ?? throw new KeyNotFoundException($"Business type not found: {id}.");
             businessType.SetBusinessTypeName(name);
             if (string.IsNullOrWhiteSpace(description))
             {
@@ -84,7 +84,7 @@ namespace Premise.Application
             }
 
             var businessType = await businessTypeRepository.GetTrackedByIdAsync(id, cancellationToken)
-                ?? throw new KeyNotFoundException($"Business type not found: {id}.");
+                               ?? throw new KeyNotFoundException($"Business type not found: {id}.");
             businessType.SetBusinessTypeIsActive(isActive);
             await businessTypeRepository.UpdateAsync(businessType, cancellationToken);
             await SaveChangesOrThrowAsync(cancellationToken);

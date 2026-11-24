@@ -39,7 +39,7 @@ namespace Gateway.Services
             }.Uri;
         }
 
-        private HttpRequestMessage CreateProxyRequest(HttpContext context, Uri targetUri)
+        private static HttpRequestMessage CreateProxyRequest(HttpContext context, Uri targetUri)
         {
             var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), targetUri);
             var httpRequestBodyDetectionFeature = context.Features.Get<IHttpRequestBodyDetectionFeature>();
@@ -68,9 +68,11 @@ namespace Gateway.Services
             }
         }
 
-        private Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            httpClientFactory.CreateClient("ModuleProxy")
+        private Task<HttpResponseMessage> SendRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return httpClientFactory.CreateClient("ModuleProxy")
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
 
         private static async Task WriteResponseAsync(HttpContext context, HttpResponseMessage response,
             CancellationToken cancellationToken)
@@ -86,12 +88,10 @@ namespace Gateway.Services
             IHeaderDictionary destinationHeaders)
         {
             foreach (var header in sourceHeaders)
-            {
                 if (!HopByHopHeaders.Contains(header.Key))
                 {
                     destinationHeaders[header.Key] = new StringValues([.. header.Value]);
                 }
-            }
         }
 
         private static string MapModulePath(string path, string moduleUrlKey)
@@ -173,14 +173,12 @@ namespace Gateway.Services
             var downstreamToUpstream = RelayWebSocketAsync(downstream, upstream, relayCancellation.Token);
             var upstreamToDownstream = RelayWebSocketAsync(upstream, downstream, relayCancellation.Token);
             await Task.WhenAny(downstreamToUpstream, upstreamToDownstream);
-            relayCancellation.Cancel();
+            await relayCancellation.CancelAsync();
             try
             {
                 await Task.WhenAll(downstreamToUpstream, upstreamToDownstream);
             }
-            catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested)
-            {
-            }
+            catch (OperationCanceledException) when (!context.RequestAborted.IsCancellationRequested) {}
         }
 
         private static async Task RelayWebSocketAsync(

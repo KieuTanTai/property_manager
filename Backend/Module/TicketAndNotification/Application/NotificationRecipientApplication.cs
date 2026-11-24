@@ -168,16 +168,17 @@ namespace TicketAndNotification.Application
             CancellationToken cancellationToken)
         {
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            if (affectedRows == 0)
+            if (affectedRows != 0)
             {
-                var exception = new InvalidOperationException(
-                    "Notification recipient persistence returned zero affected rows.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Notification recipient creation persistence failed.");
-                throw exception;
+                _logger.LogLayerInformation(_logPool, Module, Layer,
+                    "Notification recipient persistence completed with {AffectedRows} affected rows.");
+                return affectedRows;
             }
-
-            return affectedRows;
+            var exception = new InvalidOperationException(
+                "Notification recipient persistence returned zero affected rows.");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Notification recipient creation persistence failed.");
+            throw exception;
         }
 
         private static void ThrowIfInvalidNotificationRecipientModel(NotificationRecipientModel recipient)

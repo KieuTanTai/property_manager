@@ -24,6 +24,20 @@ namespace Identity.Application
 
         private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
 
+        #region PRIVATE
+
+        private UserProfileModel EnsureProfileFound(UserProfileModel? result)
+        {
+            if (result is not null)
+            {
+                return result;
+            }
+            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup returned no profile.");
+            throw new InvalidOperationException("Profile was not found.");
+        }
+
+        #endregion
+
 
         #region GET
 
@@ -96,21 +110,6 @@ namespace Identity.Application
             _userProfileRepository.UpdateRange(userProfileModels, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation completed.");
             return await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-
-        #endregion
-
-        #region PRIVATE
-
-        private UserProfileModel EnsureProfileFound(UserProfileModel? result)
-        {
-            if (result is not null)
-            {
-                return result;
-            }
-            _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup returned no profile.");
-            throw new InvalidOperationException("Profile was not found.");
-
         }
 
         #endregion

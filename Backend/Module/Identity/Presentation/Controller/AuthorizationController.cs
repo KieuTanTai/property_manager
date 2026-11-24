@@ -385,14 +385,25 @@ namespace Identity.Presentation.Controller
 
         #region PRIVATE
 
-        private static bool IsValidId(Guid id) => id != Guid.Empty;
+        private static bool IsValidId(Guid id)
+        {
+            return id != Guid.Empty;
+        }
 
-        private static bool IsValidAssociationRequest(Guid id, IReadOnlyList<Guid>? ids) =>
-            ModelFieldGuard.ValidateIds(id, ids);
+        private static bool IsValidAssociationRequest(Guid id, IReadOnlyList<Guid>? ids)
+        {
+            return ModelFieldGuard.ValidateIds(id, ids);
+        }
 
-        private static bool IsValidRoleCode(ESystemRoleCode roleCode) => Enum.IsDefined(roleCode);
+        private static bool IsValidRoleCode(ESystemRoleCode roleCode)
+        {
+            return Enum.IsDefined(roleCode);
+        }
 
-        private static bool IsValidPermissionCode(ESystemPermissionCode permissionCode) => Enum.IsDefined(permissionCode);
+        private static bool IsValidPermissionCode(ESystemPermissionCode permissionCode)
+        {
+            return Enum.IsDefined(permissionCode);
+        }
 
         private static bool TryCreateRole(
             RoleChangeRequest request,

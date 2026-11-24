@@ -3,11 +3,11 @@ import {formatDateTime} from "../../scripts/format"
 import {BaseTable} from "../modules/shared"
 
 export function BusinessTypesTab({
-    businessTypes,
-    onView,
-    onToggleActive,
-    canToggleActive = true,
-}: Props) {
+                                     businessTypes,
+                                     onView,
+                                     onToggleActive,
+                                     canToggleActive = true,
+                                 }: Props) {
     return (
         <BaseTable
             rows={businessTypes}

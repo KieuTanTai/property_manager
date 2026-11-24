@@ -61,8 +61,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             CancellationToken cancellationToken = default)
         {
             var dueContracts = await _db.Contracts
-                .Where(contract => contract.ContractStatus == EContractStatus.Signed &&
-                                   contract.ContractPremiseReturnDate <= utcNow)
+                .Where(contract => contract.ContractStatus == EContractStatus.Signed && contract.ContractPremiseReturnDate <= utcNow)
                 .ToListAsync(cancellationToken);
 
             foreach (var contract in dueContracts)
@@ -78,8 +77,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
             CancellationToken cancellationToken = default)
         {
             return await _db.Contracts.AsNoTracking()
-                .Where(contract => contract.ContractStatus == EContractStatus.Expired ||
-                                   contract.ContractStatus == EContractStatus.Terminated)
+                .Where(contract => contract.ContractStatus == EContractStatus.Expired || contract.ContractStatus == EContractStatus.Terminated)
                 .Select(contract => contract.ContractId)
                 .ToListAsync(cancellationToken);
         }

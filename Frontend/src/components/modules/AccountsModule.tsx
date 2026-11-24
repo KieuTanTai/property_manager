@@ -578,7 +578,8 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                 <Modal title="Chi tiết tài khoản" onClose={() => setSelectedAccount(null)} wide>
                     <div className="grid gap-4 xl:auto-rows-fr xl:grid-cols-2">
                         <div className="contents">
-                            <div className="order-3 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-1 xl:row-start-2">
+                            <div
+                                className="order-3 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-1 xl:row-start-2">
                                 <div className="mb-2 flex items-center justify-between"><p
                                     className="text-xs font-semibold uppercase tracking-wide text-slate-500">Vai trò tài
                                     khoản</p>
@@ -590,7 +591,9 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                                                     setIsEditingAccountRoles(true)
                                                 }}>Chỉnh sửa</button>}
                                 </div>
-                                {selectedAccountIsCurrent && <p className="mt-2 text-xs text-amber-700">Không thể sửa vai trò của tài khoản đang đăng nhập.</p>}
+                                {selectedAccountIsCurrent &&
+                                    <p className="mt-2 text-xs text-amber-700">Không thể sửa vai trò của tài khoản đang
+                                        đăng nhập.</p>}
                                 <div className="mb-2 flex items-center justify-between gap-2">
                                     <p className="text-xs text-slate-500">Chọn thêm vai trò cho tài khoản.</p>
                                     {isEditingAccountRoles && <button type="button"
@@ -607,7 +610,7 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                                     {assignableRoles.map((role) => <label key={role.roleId}
                                                                           className={`flex items-center gap-2 rounded-md p-2 ${isEditingAccountRoles && !selectedAccount.roles.some((item) => item.roleId === role.roleId) ? "cursor-pointer hover:bg-slate-50" : "cursor-default opacity-70"}`}><input
                                         type="checkbox" className="accent-blue-600"
-                                                                            disabled={saving || selectedAccountIsCurrent || !isEditingAccountRoles || selectedAccount.roles.some((item) => item.roleId === role.roleId)}
+                                        disabled={saving || selectedAccountIsCurrent || !isEditingAccountRoles || selectedAccount.roles.some((item) => item.roleId === role.roleId)}
                                         checked={assignedRoleIds.includes(role.roleId)}
                                         onChange={(event) => setAssignedRoleIds((ids) => event.target.checked ? [...ids, role.roleId] : ids.filter((id) => id !== role.roleId))}/><span
                                         className="text-sm text-slate-800">{role.roleName}</span><span
@@ -627,7 +630,8 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                             </div>
                         </div>
                         <div className="contents">
-                            <section className="order-1 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-1 xl:row-start-1">
+                            <section
+                                className="order-1 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-1 xl:row-start-1">
                                 <h2 className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Hồ
                                     sơ người dùng</h2>
                                 {profileError && <p role="alert"
@@ -652,57 +656,61 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                                         </button>
                                     </ProcessingForm> : isEditingProfile ?
                                         <ProcessingForm processing={profileSaving} onSubmit={updateAccountProfile}>
-                                            <div className="grid min-w-0 gap-x-4 gap-y-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
+                                            <div
+                                                className="grid min-w-0 gap-x-4 gap-y-2 sm:grid-cols-[8rem_minmax(0,1fr)]">
                                                 <div className="sm:row-span-2 flex justify-center align-middle">
-                                                    <AvatarUploader file={avatarFile} currentUrl={profileDraft.avatarUrl}
+                                                    <AvatarUploader file={avatarFile}
+                                                                    currentUrl={profileDraft.avatarUrl}
                                                                     disabled={profileSaving} onChange={setAvatarFile}/>
                                                 </div>
                                                 <div className="grid min-w-0 gap-x-3 sm:grid-cols-2">
-                                                <FormField label="Mã định danh"><input className={inputCls}
-                                                                                       value={profileDraft.identityCode}
-                                                                                       readOnly/></FormField>
-                                                <FormField label="Giới tính"><select className={selectCls}
-                                                                                     value={profileDraft.gender}
-                                                                                     onChange={(event) => setProfileDraft((current) => ({
-                                                                                         ...current,
-                                                                                         gender: event.target.value as ProfileDraft["gender"]
-                                                                                     }))}>
-                                                    <option value="Unspecified">Chưa xác định</option>
-                                                    <option value="Male">Nam</option>
-                                                    <option value="Female">Nữ</option>
-                                                </select></FormField>
-                                                <FormField label="Họ"><input className={inputCls} maxLength={30}
-                                                                             value={profileDraft.lastName}
-                                                                             onChange={(event) => setProfileDraft((current) => ({
-                                                                                 ...current,
-                                                                                 lastName: event.target.value
-                                                                             }))}/></FormField>
-                                                <FormField label="Tên"><input className={inputCls} maxLength={30}
-                                                                              value={profileDraft.firstName}
-                                                                              onChange={(event) => setProfileDraft((current) => ({
-                                                                                  ...current,
-                                                                                  firstName: event.target.value
-                                                                              }))}/></FormField>
-                                                <FormField label="Ngày sinh"><input className={inputCls} type="date"
-                                                                                    value={profileDraft.dateOfBirth}
-                                                                                    onChange={(event) => setProfileDraft((current) => ({
-                                                                                        ...current,
-                                                                                        dateOfBirth: event.target.value
-                                                                                    }))}/></FormField>
-                                                <FormField label="Điện thoại"><input className={inputCls} maxLength={10}
-                                                                                     value={profileDraft.phoneNumber}
-                                                                                     onChange={(event) => setProfileDraft((current) => ({
-                                                                                         ...current,
-                                                                                         phoneNumber: event.target.value
-                                                                                     }))}/></FormField>
-                                                </div>
-                                                <div className="min-w-0 sm:col-span-2">
-                                                <FormField label="Địa chỉ"><input className={inputCls} maxLength={255}
-                                                                                  value={profileDraft.address}
+                                                    <FormField label="Mã định danh"><input className={inputCls}
+                                                                                           value={profileDraft.identityCode}
+                                                                                           readOnly/></FormField>
+                                                    <FormField label="Giới tính"><select className={selectCls}
+                                                                                         value={profileDraft.gender}
+                                                                                         onChange={(event) => setProfileDraft((current) => ({
+                                                                                             ...current,
+                                                                                             gender: event.target.value as ProfileDraft["gender"]
+                                                                                         }))}>
+                                                        <option value="Unspecified">Chưa xác định</option>
+                                                        <option value="Male">Nam</option>
+                                                        <option value="Female">Nữ</option>
+                                                    </select></FormField>
+                                                    <FormField label="Họ"><input className={inputCls} maxLength={30}
+                                                                                 value={profileDraft.lastName}
+                                                                                 onChange={(event) => setProfileDraft((current) => ({
+                                                                                     ...current,
+                                                                                     lastName: event.target.value
+                                                                                 }))}/></FormField>
+                                                    <FormField label="Tên"><input className={inputCls} maxLength={30}
+                                                                                  value={profileDraft.firstName}
                                                                                   onChange={(event) => setProfileDraft((current) => ({
                                                                                       ...current,
-                                                                                      address: event.target.value
-                                                                                   }))}/></FormField>
+                                                                                      firstName: event.target.value
+                                                                                  }))}/></FormField>
+                                                    <FormField label="Ngày sinh"><input className={inputCls} type="date"
+                                                                                        value={profileDraft.dateOfBirth}
+                                                                                        onChange={(event) => setProfileDraft((current) => ({
+                                                                                            ...current,
+                                                                                            dateOfBirth: event.target.value
+                                                                                        }))}/></FormField>
+                                                    <FormField label="Điện thoại"><input className={inputCls}
+                                                                                         maxLength={10}
+                                                                                         value={profileDraft.phoneNumber}
+                                                                                         onChange={(event) => setProfileDraft((current) => ({
+                                                                                             ...current,
+                                                                                             phoneNumber: event.target.value
+                                                                                         }))}/></FormField>
+                                                </div>
+                                                <div className="min-w-0 sm:col-span-2">
+                                                    <FormField label="Địa chỉ"><input className={inputCls}
+                                                                                      maxLength={255}
+                                                                                      value={profileDraft.address}
+                                                                                      onChange={(event) => setProfileDraft((current) => ({
+                                                                                          ...current,
+                                                                                          address: event.target.value
+                                                                                      }))}/></FormField>
                                                 </div>
                                             </div>
                                             <div className="flex justify-end gap-2 sm:col-span-2">
@@ -719,27 +727,27 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                                             </div>
                                         </ProcessingForm> : <>
                                             <div className="grid gap-4 sm:grid-cols-[8rem_minmax(0,1fr)]">
-                                            <div className="flex justify-start"><img
-                                                key={avatarDisplayUrl(selectedAccount.userProfile.userProfileAvatarUrl)}
-                                                src={avatarDisplayUrl(selectedAccount.userProfile.userProfileAvatarUrl)}
-                                                onError={(event) => {
-                                                    event.currentTarget.onerror = null;
-                                                    event.currentTarget.src = avatarDisplayUrl(fallbackAvatarUrl)
-                                                }} alt="Ảnh đại diện"
-                                                className="h-28 w-28 rounded-full border border-slate-200 object-cover shadow-sm"/>
-                                            </div>
-                                            <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-3 text-sm">
-                                                <dt className="text-slate-500">Mã định danh</dt>
-                                                <dd className="break-all">{selectedAccount.userProfile.userProfileId}</dd>
-                                                <dt className="text-slate-500">Họ và tên</dt>
-                                                <dd>{accountName(selectedAccount) || "—"}</dd>
-                                                <dt className="text-slate-500">Ngày sinh</dt>
-                                                <dd>{selectedAccount.userProfile.userProfileDateOfBirth ? dateLabel(selectedAccount.userProfile.userProfileDateOfBirth) : "—"}</dd>
-                                                <dt className="text-slate-500">Giới tính</dt>
-                                                <dd>{selectedAccount.userProfile.userProfileGender === "Male" ? "Nam" : selectedAccount.userProfile.userProfileGender === "Female" ? "Nữ" : "Chưa xác định"}</dd>
-                                                <dt className="text-slate-500">Điện thoại</dt>
-                                                <dd>{selectedAccount.userProfile.userProfilePhoneNumber || "—"}</dd>
-                                            </dl>
+                                                <div className="flex justify-start"><img
+                                                    key={avatarDisplayUrl(selectedAccount.userProfile.userProfileAvatarUrl)}
+                                                    src={avatarDisplayUrl(selectedAccount.userProfile.userProfileAvatarUrl)}
+                                                    onError={(event) => {
+                                                        event.currentTarget.onerror = null;
+                                                        event.currentTarget.src = avatarDisplayUrl(fallbackAvatarUrl)
+                                                    }} alt="Ảnh đại diện"
+                                                    className="h-28 w-28 rounded-full border border-slate-200 object-cover shadow-sm"/>
+                                                </div>
+                                                <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-3 text-sm">
+                                                    <dt className="text-slate-500">Mã định danh</dt>
+                                                    <dd className="break-all">{selectedAccount.userProfile.userProfileId}</dd>
+                                                    <dt className="text-slate-500">Họ và tên</dt>
+                                                    <dd>{accountName(selectedAccount) || "—"}</dd>
+                                                    <dt className="text-slate-500">Ngày sinh</dt>
+                                                    <dd>{selectedAccount.userProfile.userProfileDateOfBirth ? dateLabel(selectedAccount.userProfile.userProfileDateOfBirth) : "—"}</dd>
+                                                    <dt className="text-slate-500">Giới tính</dt>
+                                                    <dd>{selectedAccount.userProfile.userProfileGender === "Male" ? "Nam" : selectedAccount.userProfile.userProfileGender === "Female" ? "Nữ" : "Chưa xác định"}</dd>
+                                                    <dt className="text-slate-500">Điện thoại</dt>
+                                                    <dd>{selectedAccount.userProfile.userProfilePhoneNumber || "—"}</dd>
+                                                </dl>
                                             </div>
                                             <div className="mt-4 border-t border-slate-100 pt-3 text-sm sm:col-span-2">
                                                 <p className="mb-1 text-slate-500">Địa chỉ</p>
@@ -756,53 +764,75 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                                     Chỉnh sửa hồ sơ
                                 </button>}
                             </section>
-                            <section className="order-4 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-2 xl:row-start-2">
+                            <section
+                                className="order-4 h-full min-h-0 rounded-lg border border-slate-100 p-3 xl:col-start-2 xl:row-start-2">
                                 <div className="mb-3 flex items-center justify-between gap-3">
-                                    <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tổng quyền tài khoản</h2>
-                                    {!isEditingAccountPermissions && !selectedAccountIsCurrent && canAssignPermissions && selectedAccountIsAssignable && <button type="button"
-                                        className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`}
-                                        onClick={() => {
-                                            setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId))
-                                            setIsEditingAccountPermissions(true)
-                                        }}>Chỉnh sửa</button>}
-                                    {selectedAccountIsCurrent && <span className="text-[11px] text-amber-700">Quyền của tài khoản hiện tại bị khóa</span>}
+                                    <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tổng
+                                        quyền tài khoản</h2>
+                                    {!isEditingAccountPermissions && !selectedAccountIsCurrent && canAssignPermissions && selectedAccountIsAssignable &&
+                                        <button type="button"
+                                                className={`${buttonCls} border border-blue-200 text-blue-700 hover:bg-blue-50`}
+                                                onClick={() => {
+                                                    setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId))
+                                                    setIsEditingAccountPermissions(true)
+                                                }}>Chỉnh sửa</button>}
+                                    {selectedAccountIsCurrent &&
+                                        <span className="text-[11px] text-amber-700">Quyền của tài khoản hiện tại bị khóa</span>}
                                 </div>
-                                <p className="mb-2 text-xs text-slate-500">Quyền từ roles được giữ nguyên. Bỏ tích quyền bổ sung để xóa; tích quyền khác để thêm.</p>
+                                <p className="mb-2 text-xs text-slate-500">Quyền từ roles được giữ nguyên. Bỏ tích quyền
+                                    bổ sung để xóa; tích quyền khác để thêm.</p>
                                 {isEditingAccountPermissions ? <>
-                                    <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
+                                    <div
+                                        className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
                                         {editablePermissions.map((permission) => <label key={permission.permissionId}
-                                            className={`flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-slate-50 ${saving ? "opacity-60" : ""}`}>
-                                            <input type="checkbox" className="mt-0.5 accent-blue-600" disabled={saving || selectedAccountIsCurrent}
-                                                checked={assignedPermissionIds.includes(permission.permissionId)}
-                                                onChange={(event) => setAssignedPermissionIds((ids) => event.target.checked
-                                                    ? [...ids, permission.permissionId]
-                                                    : ids.filter((id) => id !== permission.permissionId))}/>
-                                            <span><span className="block text-xs font-medium text-slate-800">{permission.permissionName}</span>
-                                                <span className="text-[11px] text-slate-500">{permission.permissionCode}</span></span>
+                                                                                        className={`flex cursor-pointer items-start gap-2 rounded-md p-2 hover:bg-slate-50 ${saving ? "opacity-60" : ""}`}>
+                                            <input type="checkbox" className="mt-0.5 accent-blue-600"
+                                                   disabled={saving || selectedAccountIsCurrent}
+                                                   checked={assignedPermissionIds.includes(permission.permissionId)}
+                                                   onChange={(event) => setAssignedPermissionIds((ids) => event.target.checked
+                                                       ? [...ids, permission.permissionId]
+                                                       : ids.filter((id) => id !== permission.permissionId))}/>
+                                            <span><span
+                                                className="block text-xs font-medium text-slate-800">{permission.permissionName}</span>
+                                                <span
+                                                    className="text-[11px] text-slate-500">{permission.permissionCode}</span></span>
                                         </label>)}
-                                        {editablePermissions.length === 0 && <p className="p-2 text-xs text-slate-500">Các quyền đều đã được cấp qua roles.</p>}
+                                        {editablePermissions.length === 0 &&
+                                            <p className="p-2 text-xs text-slate-500">Các quyền đều đã được cấp qua
+                                                roles.</p>}
                                     </div>
                                     <div className="mt-3 flex gap-2">
-                                        <button className={`${buttonCls} flex-1 bg-blue-600 text-white hover:bg-blue-700`}
-                                            disabled={saving || selectedAccountIsCurrent} onClick={() => void saveAccountPermissions()}>
+                                        <button
+                                            className={`${buttonCls} flex-1 bg-blue-600 text-white hover:bg-blue-700`}
+                                            disabled={saving || selectedAccountIsCurrent}
+                                            onClick={() => void saveAccountPermissions()}>
                                             Lưu quyền
                                         </button>
                                         <button className={`${buttonCls} border border-slate-200 text-slate-700`}
-                                            disabled={saving} onClick={() => {
-                                                setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId))
-                                                setIsEditingAccountPermissions(false)
-                                            }}>Hủy</button>
+                                                disabled={saving} onClick={() => {
+                                            setAssignedPermissionIds(selectedAccount.additionalPermissions.map((permission) => permission.permissionId))
+                                            setIsEditingAccountPermissions(false)
+                                        }}>Hủy
+                                        </button>
                                     </div>
-                                </> : <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
-                                    {effectivePermissions.map((permission) => <div key={permission.permissionCode} className="flex items-start justify-between gap-3 rounded-md p-2 hover:bg-slate-50">
-                                        <span><span className="block text-xs font-medium text-slate-800">{permission.permissionName}</span><span className="text-[11px] text-slate-500">{permission.permissionCode}</span></span>
-                                        <span className="shrink-0 text-[10px] text-slate-500">{rolePermissionCodes.has(permission.permissionCode.toUpperCase()) && directPermissionCodes.has(permission.permissionCode.toUpperCase()) ? "Role + bổ sung" : rolePermissionCodes.has(permission.permissionCode.toUpperCase()) ? "Role" : "Bổ sung"}</span>
+                                </> : <div
+                                    className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-100 p-2">
+                                    {effectivePermissions.map((permission) => <div key={permission.permissionCode}
+                                                                                   className="flex items-start justify-between gap-3 rounded-md p-2 hover:bg-slate-50">
+                                        <span><span
+                                            className="block text-xs font-medium text-slate-800">{permission.permissionName}</span><span
+                                            className="text-[11px] text-slate-500">{permission.permissionCode}</span></span>
+                                        <span
+                                            className="shrink-0 text-[10px] text-slate-500">{rolePermissionCodes.has(permission.permissionCode.toUpperCase()) && directPermissionCodes.has(permission.permissionCode.toUpperCase()) ? "Role + bổ sung" : rolePermissionCodes.has(permission.permissionCode.toUpperCase()) ? "Role" : "Bổ sung"}</span>
                                     </div>)}
-                                    {effectivePermissions.length === 0 && <p className="p-2 text-xs text-slate-500">Tài khoản chưa có quyền nào.</p>}
+                                    {effectivePermissions.length === 0 &&
+                                        <p className="p-2 text-xs text-slate-500">Tài khoản chưa có quyền nào.</p>}
                                 </div>}
                             </section>
-                            <section className="order-2 h-full min-h-0 space-y-3 rounded-lg border border-slate-100 p-3 xl:col-start-2 xl:row-start-1">
-                                <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Thông tin tài khoản</h2>
+                            <section
+                                className="order-2 h-full min-h-0 space-y-3 rounded-lg border border-slate-100 p-3 xl:col-start-2 xl:row-start-1">
+                                <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Thông tin
+                                    tài khoản</h2>
                                 <div className="rounded-lg bg-slate-50 p-3"><p
                                     className="text-xs text-slate-500">AccountId</p><p
                                     className="mt-1 break-all font-mono text-xs text-slate-800">{selectedAccount.accountId}</p>

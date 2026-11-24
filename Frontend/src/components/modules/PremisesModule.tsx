@@ -1,5 +1,13 @@
 import {useEffect, useRef, useState} from "react"
-import {FormField, inputCls, Modal, ModulePageHeader, PremiseStatusBadge, premiseStatusSurface, selectCls} from "./shared"
+import {
+    FormField,
+    inputCls,
+    Modal,
+    ModulePageHeader,
+    PremiseStatusBadge,
+    premiseStatusSurface,
+    selectCls
+} from "./shared"
 import type {BusinessType, Location, WhitelistProduct} from "@/types/modules.ts"
 import type {
     BusinessTypeModel,
@@ -21,12 +29,7 @@ import {PremisesSubTabs} from "../premises/PremisesSubTabs"
 import {PremisesTab} from "../premises/PremisesTab"
 import {ProductsTab} from "../premises/ProductsTab"
 import {ImageAttachments} from "./ImageAttachments"
-import {
-    premiseApi,
-    type BusinessTypeRequest,
-    type PremiseRequest,
-    type ProductRequest,
-} from "@/api/premise"
+import {type BusinessTypeRequest, premiseApi, type PremiseRequest, type ProductRequest,} from "@/api/premise"
 import {hasPermission, PERMISSIONS} from "@/utils/authorization"
 
 function toPremiseStatus(status: string): PremiseStatus {
@@ -950,7 +953,8 @@ export function PremisesModule({
                         </p>
                     )}
                     {isLoadingProductCatalog ? (
-                        <div className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-500">
+                        <div
+                            className="rounded-xl border border-gray-100 bg-white px-6 py-12 text-center text-sm text-gray-500">
                             Đang tải danh mục sản phẩm...
                         </div>
                     ) : (

@@ -37,7 +37,8 @@ export function ModulePageHeader({title, description, children, flush = true}: {
     flush?: boolean
 }) {
     return (
-        <header className={`${flush ? "-mx-8 -mt-8 mb-5" : ""} flex min-h-18 items-center justify-between gap-4 border-b border-[#e2e8f0] bg-white px-8 py-3`}>
+        <header
+            className={`${flush ? "-mx-8 -mt-8 mb-5" : ""} flex min-h-18 items-center justify-between gap-4 border-b border-[#e2e8f0] bg-white px-8 py-3`}>
             <div className="min-w-0">
                 <h1 className="text-lg font-bold text-[#0f172a]">{title}</h1>
                 {description && <p className="mt-1 text-xs text-[#64748b]">{description}</p>}
@@ -277,8 +278,11 @@ export function BaseTable<T>({
                     tabIndex={onRowClick ? 0 : undefined} title={rowTitle}
                     className={`h-[72px] ${rowClassName?.(row, index) ?? ""} ${onRowClick ? "cursor-pointer" : ""}`}>
                     {isHaveStt &&
-                        <td className="h-[72px] px-4 py-3 text-center tabular-nums text-slate-400"><div className="max-h-12 overflow-hidden">{sttStart + (page - 1) * pageSize + index}</div></td>}
-                    {columns.map((column) => <td key={column.key} className={`h-[72px] ${column.cellClassName ?? "px-4 py-3"}`}>
+                        <td className="h-[72px] px-4 py-3 text-center tabular-nums text-slate-400">
+                            <div className="max-h-12 overflow-hidden">{sttStart + (page - 1) * pageSize + index}</div>
+                        </td>}
+                    {columns.map((column) => <td key={column.key}
+                                                 className={`h-[72px] ${column.cellClassName ?? "px-4 py-3"}`}>
                         <div className="max-h-12 overflow-hidden">{column.render(row, index)}</div>
                     </td>)}
                 </tr>) : <tr className="h-[72px]">
@@ -297,16 +301,16 @@ export function BaseTable<T>({
         </table>
         <footer className="flex h-14 justify-center border-t border-slate-100 px-3 py-3">
             {canPaginate && <>
-            <nav aria-label="Phân trang" className="flex items-center justify-center gap-4 text-sm">
-                <button type="button" aria-label="Trang trước" disabled={page <= 1}
-                        onClick={() => setRequestedPage((current) => Math.max(1, current - 1))}
-                        className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                         className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6"/>
-                    </svg>
-                </button>
-                <span aria-live="polite" className="min-w-20 text-center text-slate-600">
+                <nav aria-label="Phân trang" className="flex items-center justify-center gap-4 text-sm">
+                    <button type="button" aria-label="Trang trước" disabled={page <= 1}
+                            onClick={() => setRequestedPage((current) => Math.max(1, current - 1))}
+                            className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                             className="h-4 w-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6"/>
+                        </svg>
+                    </button>
+                    <span aria-live="polite" className="min-w-20 text-center text-slate-600">
                     {isEditingPage ? <input
                         aria-label="Chuyển đến trang"
                         type="number"
@@ -334,18 +338,18 @@ export function BaseTable<T>({
                         }}
                         className="rounded px-1 font-semibold text-blue-600 hover:bg-blue-50"
                     >{page}</button>}
-                    <span className="mx-1">/</span>
-                    {pageCount}
+                        <span className="mx-1">/</span>
+                        {pageCount}
                 </span>
-                <button type="button" aria-label="Trang sau" disabled={page >= pageCount}
-                        onClick={() => setRequestedPage((current) => Math.min(pageCount, current + 1))}
-                        className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                         className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6"/>
-                    </svg>
-                </button>
-            </nav>
+                    <button type="button" aria-label="Trang sau" disabled={page >= pageCount}
+                            onClick={() => setRequestedPage((current) => Math.min(pageCount, current + 1))}
+                            className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                             className="h-4 w-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </button>
+                </nav>
             </>}
         </footer>
     </div>

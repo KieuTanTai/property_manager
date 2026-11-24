@@ -7,8 +7,8 @@ import type {
     ContractViolationModel,
     CreateContractRequest,
     MonthlyInvoiceModel,
-    RegulationModel,
     ReceiptModel,
+    RegulationModel,
     UpdateContractRequest
 } from "@/types/contracts"
 import {APP_SETTINGS} from "@/config/appSettings"

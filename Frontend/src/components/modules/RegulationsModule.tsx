@@ -130,9 +130,9 @@ export function RegulationsModule({readOnly = false}: { readOnly?: boolean }) {
             <ModulePageHeader
                 title="Quản lý quy định"
                 description={
-                            regulations.filter((regulation) => regulation.regulationIsActive)
-                                .length
-                        + " quy định đang áp dụng"
+                    regulations.filter((regulation) => regulation.regulationIsActive)
+                        .length
+                    + " quy định đang áp dụng"
                 }
             >
                 {!readOnly && <button

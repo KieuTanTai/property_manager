@@ -24,8 +24,7 @@ namespace Premise.Presentations.Controller
             CancellationToken cancellationToken)
         {
             var configuredKey = configuration["InternalApi:Key"];
-            if (string.IsNullOrWhiteSpace(configuredKey) ||
-                !string.Equals(apiKey, configuredKey, StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(configuredKey) || !string.Equals(apiKey, configuredKey, StringComparison.Ordinal))
             {
                 return Unauthorized(new ProblemDetails { Title = "Internal API key is invalid." });
             }

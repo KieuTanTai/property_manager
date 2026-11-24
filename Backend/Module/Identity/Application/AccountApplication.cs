@@ -4,12 +4,11 @@ using Identity.Interfaces.Credentials;
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
+using Identity.Presentation.Record.Profile;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
 using Shared.Persistence.Record;
-using Identity.Presentation.Record.Account;
-using Identity.Presentation.Record.Profile;
 using Shared.Persistence.Record.Auth;
 
 namespace Identity.Application
@@ -35,13 +34,13 @@ namespace Identity.Application
 
         private readonly IAccountRepository _accountRepository = accountRepository;
 
-        private readonly IMappingHelper _apiHelper = apiHelper;
-
         private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
 
-        private readonly ILogPool _logPool = logPool;
+        private readonly IMappingHelper _apiHelper = apiHelper;
 
         private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
+
+        private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<AccountApplication> _logger = logger;
 
@@ -272,14 +271,20 @@ namespace Identity.Application
             return new RecordLoginResponse(authResponse, profileResponse, accessToken);
         }
 
-        private RecordAuthResponse MapLoginAccount(AccountModel account) =>
-            _apiHelper.MappingAuthResult(account);
+        private RecordAuthResponse MapLoginAccount(AccountModel account)
+        {
+            return _apiHelper.MappingAuthResult(account);
+        }
 
-        private RecordProfileResponse? MapLoginProfile(AccountModel account) =>
-            account.UserProfile is null ? null : _apiHelper.MappingProfileResult(account.UserProfile);
+        private RecordProfileResponse? MapLoginProfile(AccountModel account)
+        {
+            return account.UserProfile is null ? null : _apiHelper.MappingProfileResult(account.UserProfile);
+        }
 
-        private string CreateAccessToken(RecordAuthResponse account) =>
-            _jwtTokenService.GenerateAccessToken(account);
+        private string CreateAccessToken(RecordAuthResponse account)
+        {
+            return _jwtTokenService.GenerateAccessToken(account);
+        }
 
         private async Task EnsureEmailAvailableAsync(string email, CancellationToken cancellationToken = default)
         {
@@ -313,8 +318,6 @@ namespace Identity.Application
             var existedAccount = await _accountRepository.GetAccountByEmailAsync(email, cancellationToken);
             return existedAccount;
         }
-
-
 
         #endregion
     }

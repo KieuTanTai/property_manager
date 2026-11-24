@@ -289,7 +289,13 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                 })),
             })
             await refreshData()
-            setSelected({...selected, invoiceContractId: invoiceForm.contractId, invoicePaymentDate: invoiceForm.paymentDate, invoiceDueDate: invoiceForm.dueDate, invoiceStatus: invoiceForm.status})
+            setSelected({
+                ...selected,
+                invoiceContractId: invoiceForm.contractId,
+                invoicePaymentDate: invoiceForm.paymentDate,
+                invoiceDueDate: invoiceForm.dueDate,
+                invoiceStatus: invoiceForm.status
+            })
             setIsEditing(false)
         })
     }
@@ -500,7 +506,8 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
 
     return (
         <div>
-            <ModulePageHeader title="Hóa đơn hàng tháng" description={<>Tổng chưa thu: <span className="font-mono text-red-500">{fmt(totalUnpaid)}</span></>}>
+            <ModulePageHeader title="Hóa đơn hàng tháng" description={<>Tổng chưa thu: <span
+                className="font-mono text-red-500">{fmt(totalUnpaid)}</span></>}>
                 {(activeTab === "invoices" ? canCreateInvoice : canCreateReceipt) && <button
                     onClick={
                         activeTab === "invoices"
@@ -516,7 +523,8 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
             </ModulePageHeader>
 
             {error && (
-                <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div role="alert"
+                     className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                     {error}
                 </div>
             )}
@@ -746,115 +754,115 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                             <span className="text-right">Phí rác</span>
                         </div>
                         {premises.filter((premise) => premise.premiseStatus === "Rented").map((premise) => {
-                                const premiseId = premise.premiseId
-                                const isSelected = createPremiseIds.includes(premiseId)
-                                const fees = createDetailFees[premiseId] ?? {
-                                    electricityFee: "",
-                                    waterFee: "",
-                                    garbageFee: "",
-                                }
-                                return (
-                                    <div
-                                        key={premiseId}
-                                        className="grid grid-cols-5 gap-3 items-center px-4 py-3 border-t border-gray-50"
-                                    >
-                    <label className="flex min-w-0 items-center gap-2 text-xs font-mono text-gray-500">
-                        <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(event) => {
-                                setCreatePremiseIds(event.target.checked
-                                    ? [...createPremiseIds, premiseId]
-                                    : createPremiseIds.filter((id) => id !== premiseId))
-                                if (event.target.checked) {
-                                    setCreateDetailFees({
-                                        ...createDetailFees,
-                                        [premiseId]: {electricityFee: "", waterFee: "", garbageFee: ""},
-                                    })
-                                }
-                            }}
-                        />
-                        <span className="truncate" title={`${premise.premiseName} · ${premiseId}`}>
+                            const premiseId = premise.premiseId
+                            const isSelected = createPremiseIds.includes(premiseId)
+                            const fees = createDetailFees[premiseId] ?? {
+                                electricityFee: "",
+                                waterFee: "",
+                                garbageFee: "",
+                            }
+                            return (
+                                <div
+                                    key={premiseId}
+                                    className="grid grid-cols-5 gap-3 items-center px-4 py-3 border-t border-gray-50"
+                                >
+                                    <label className="flex min-w-0 items-center gap-2 text-xs font-mono text-gray-500">
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={(event) => {
+                                                setCreatePremiseIds(event.target.checked
+                                                    ? [...createPremiseIds, premiseId]
+                                                    : createPremiseIds.filter((id) => id !== premiseId))
+                                                if (event.target.checked) {
+                                                    setCreateDetailFees({
+                                                        ...createDetailFees,
+                                                        [premiseId]: {electricityFee: "", waterFee: "", garbageFee: ""},
+                                                    })
+                                                }
+                                            }}
+                                        />
+                                        <span className="truncate" title={`${premise.premiseName} · ${premiseId}`}>
                             {premise.premiseName} · {premiseId}
                         </span>
-                    </label>
-                                        <div className="relative">
-                                            <input
-                                                className={`${inputCls} pr-12 bg-gray-100 text-gray-500 cursor-not-allowed text-right disabled:opacity-50`}
-                                                value={
-                                                    contracts.find((contract) => contract.contractId === invoiceForm.contractId)?.contractRentalPrice ?? 0
-                                                }
-                                                disabled={!isSelected}
-                                                readOnly
-                                            />
-                                            <span
-                                                className="absolute inset-y-0 right-2 flex items-center text-xs text-gray-400 pointer-events-none">
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            className={`${inputCls} pr-12 bg-gray-100 text-gray-500 cursor-not-allowed text-right disabled:opacity-50`}
+                                            value={
+                                                contracts.find((contract) => contract.contractId === invoiceForm.contractId)?.contractRentalPrice ?? 0
+                                            }
+                                            disabled={!isSelected}
+                                            readOnly
+                                        />
+                                        <span
+                                            className="absolute inset-y-0 right-2 flex items-center text-xs text-gray-400 pointer-events-none">
                         VND
                       </span>
-                                        </div>
-                                        <input
-                                            className={`${inputCls} text-right`}
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            required
-                                            value={fees.electricityFee}
-                                            disabled={!isSelected}
-                                            onChange={(event) => {
-                                                if (!isIntegerAmountInput(event.target.value)) return
-                                                setCreateDetailFees({
-                                                    ...createDetailFees,
-                                                    [premiseId]: {
-                                                        ...fees,
-                                                        electricityFee: event.target.value,
-                                                    },
-                                                })
-                                            }}
-                                            placeholder="Bắt buộc"
-                                        />
-                                        <input
-                                            className={`${inputCls} text-right`}
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            required
-                                            value={fees.waterFee}
-                                            disabled={!isSelected}
-                                            onChange={(event) => {
-                                                if (!isIntegerAmountInput(event.target.value)) return
-                                                setCreateDetailFees({
-                                                    ...createDetailFees,
-                                                    [premiseId]: {
-                                                        ...fees,
-                                                        waterFee: event.target.value,
-                                                    },
-                                                })
-                                            }}
-                                            placeholder="Bắt buộc"
-                                        />
-                                        <input
-                                            className={`${inputCls} text-right`}
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            required
-                                            value={fees.garbageFee}
-                                            disabled={!isSelected}
-                                            onChange={(event) => {
-                                                if (!isIntegerAmountInput(event.target.value)) return
-                                                setCreateDetailFees({
-                                                    ...createDetailFees,
-                                                    [premiseId]: {
-                                                        ...fees,
-                                                        garbageFee: event.target.value,
-                                                    },
-                                                })
-                                            }}
-                                            placeholder="Bắt buộc"
-                                        />
                                     </div>
-                                )
-                            })}
+                                    <input
+                                        className={`${inputCls} text-right`}
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        required
+                                        value={fees.electricityFee}
+                                        disabled={!isSelected}
+                                        onChange={(event) => {
+                                            if (!isIntegerAmountInput(event.target.value)) return
+                                            setCreateDetailFees({
+                                                ...createDetailFees,
+                                                [premiseId]: {
+                                                    ...fees,
+                                                    electricityFee: event.target.value,
+                                                },
+                                            })
+                                        }}
+                                        placeholder="Bắt buộc"
+                                    />
+                                    <input
+                                        className={`${inputCls} text-right`}
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        required
+                                        value={fees.waterFee}
+                                        disabled={!isSelected}
+                                        onChange={(event) => {
+                                            if (!isIntegerAmountInput(event.target.value)) return
+                                            setCreateDetailFees({
+                                                ...createDetailFees,
+                                                [premiseId]: {
+                                                    ...fees,
+                                                    waterFee: event.target.value,
+                                                },
+                                            })
+                                        }}
+                                        placeholder="Bắt buộc"
+                                    />
+                                    <input
+                                        className={`${inputCls} text-right`}
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        required
+                                        value={fees.garbageFee}
+                                        disabled={!isSelected}
+                                        onChange={(event) => {
+                                            if (!isIntegerAmountInput(event.target.value)) return
+                                            setCreateDetailFees({
+                                                ...createDetailFees,
+                                                [premiseId]: {
+                                                    ...fees,
+                                                    garbageFee: event.target.value,
+                                                },
+                                            })
+                                        }}
+                                        placeholder="Bắt buộc"
+                                    />
+                                </div>
+                            )
+                        })}
                     </div>
 
                     <div

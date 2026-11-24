@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Shared.Caching;
 using Shared.DIContainer;
 using Shared.Interfaces;
 using Shared.Logging;
-using Shared.Messaging;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;
 using TicketAndNotification.Infrastructure.Repository;
 using TicketAndNotification.Infrastructure.Repository.NotificationRepository;
@@ -42,7 +40,7 @@ namespace TicketAndNotification.Infrastructure.DIContainer
 
             #endregion
 
-            #region CACHE
+            #region CACHE/MESSAGING
 
             services.AddSharedHybridCache(configuration);
             services.AddSharedRabbitMq(configuration);

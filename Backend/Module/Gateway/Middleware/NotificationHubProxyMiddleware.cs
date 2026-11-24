@@ -5,6 +5,7 @@ namespace Gateway.Middleware
     public sealed class NotificationHubProxyMiddleware(RequestDelegate next)
     {
         private const string HubPath = "/hubs/notifications";
+
         private const string ModuleUrlKey = "ModuleUrls:TicketAndNotification";
 
         public async Task InvokeAsync(HttpContext context, ModuleProxyService proxyService)

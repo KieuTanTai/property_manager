@@ -15,12 +15,16 @@ namespace Identity.Infrastructure.Credentials
         ILogPool logPool) : IJwtAccessTokenValidator
     {
         private const string Module = "Identity";
+
         private const string Layer = "Infrastructure/Credentials";
 
-        private readonly JwtOptions _options = options.Value;
-        private readonly IRsaSigningKeyProvider _signingKeyProvider = signingKeyProvider;
-        private readonly ILogger<JwtAccessTokenValidator> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<JwtAccessTokenValidator> _logger = logger;
+
+        private readonly JwtOptions _options = options.Value;
+
+        private readonly IRsaSigningKeyProvider _signingKeyProvider = signingKeyProvider;
 
         public bool IsValid(string accessToken)
         {

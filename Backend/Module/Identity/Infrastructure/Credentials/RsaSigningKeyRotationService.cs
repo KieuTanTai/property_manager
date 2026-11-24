@@ -17,12 +17,13 @@ namespace Identity.Infrastructure.Credentials
 
         private readonly List<RsaSigningKey> _keys = [];
 
+        private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<RsaSigningKeyRotationService> _logger = logger;
+
         private readonly JwtOptions _options = options.Value;
 
         private readonly Lock _sync = new();
-        
-        private readonly ILogger<RsaSigningKeyRotationService> _logger = logger;
-        private readonly ILogPool _logPool = logPool;
 
         public override void Dispose()
         {

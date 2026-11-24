@@ -8,12 +8,16 @@ namespace Gateway.Middleware
         ILogPool logPool)
     {
         private const string Module = "Gateway";
+
         private const string Layer = "Middleware";
+
         private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(60);
 
-        private readonly RequestDelegate _next = next;
-        private readonly ILogger<RequestDeadlineMiddleware> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<RequestDeadlineMiddleware> _logger = logger;
+
+        private readonly RequestDelegate _next = next;
 
         public async Task InvokeAsync(HttpContext context)
         {

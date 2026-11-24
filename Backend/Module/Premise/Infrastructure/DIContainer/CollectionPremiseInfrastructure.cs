@@ -6,7 +6,6 @@ using Premise.Interfaces.IRepository.BusinessType;
 using Premise.Interfaces.IRepository.Location;
 using Premise.Interfaces.IRepository.Premise;
 using Premise.Interfaces.IRepository.Product;
-using Shared.Caching;
 using Shared.DIContainer;
 using Shared.Interfaces;
 using Shared.Logging;

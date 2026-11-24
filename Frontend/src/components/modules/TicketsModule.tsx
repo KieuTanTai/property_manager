@@ -522,7 +522,8 @@ export function TicketsModule({
                                            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <span>{notificationLoadError}</span>
                 {accountId && <button type="button" className={`${button} border border-red-200 bg-white`}
-                                       onClick={() => setNotificationReload((current) => current + 1)}>Thử tải lại</button>}
+                                      onClick={() => setNotificationReload((current) => current + 1)}>Thử tải
+                    lại</button>}
             </div>}
             <div className="mb-4 flex flex-wrap items-center gap-3">
                 <div className="flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
@@ -550,24 +551,26 @@ export function TicketsModule({
                 </label>
             </div>
             <div className="space-y-3">{loadingNotifications ?
-            <p className="py-10 text-center text-sm text-slate-500">Đang tải...</p> : visibleNotifications.map((item) =>
-                <article key={item.notificationId}
-                         className={`rounded-xl border bg-white p-5 ${item.notificationIsRead ? "border-slate-100" : "border-blue-200"}`}>
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                            <div className="mb-2 flex flex-wrap items-center gap-2"><span
-                                className="rounded-md bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">{notificationLabel[item.notificationType]}</span><span
-                                className="font-mono text-xs text-slate-400">{item.notificationId}</span><span
-                                className="text-xs text-slate-500">Người gửi {item.notificationSenderAccountId}</span>
+                <p className="py-10 text-center text-sm text-slate-500">Đang
+                    tải...</p> : visibleNotifications.map((item) =>
+                    <article key={item.notificationId}
+                             className={`rounded-xl border bg-white p-5 ${item.notificationIsRead ? "border-slate-100" : "border-blue-200"}`}>
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <div className="mb-2 flex flex-wrap items-center gap-2"><span
+                                    className="rounded-md bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">{notificationLabel[item.notificationType]}</span><span
+                                    className="font-mono text-xs text-slate-400">{item.notificationId}</span><span
+                                    className="text-xs text-slate-500">Người gửi {item.notificationSenderAccountId}</span>
+                                </div>
+                                <p className="text-sm text-slate-800">{item.notificationContent}</p><p
+                                className="mt-2 text-xs text-slate-500">{new Date(item.notificationCreatedAt).toLocaleString("vi-VN")}</p>
                             </div>
-                            <p className="text-sm text-slate-800">{item.notificationContent}</p><p
-                            className="mt-2 text-xs text-slate-500">{new Date(item.notificationCreatedAt).toLocaleString("vi-VN")}</p></div>
-                        {item.notificationIsRead ? <span className="text-xs text-slate-400">Đã đọc</span> :
-                            <button className={`${button} bg-slate-900 text-white`} disabled={saving}
-                                    onClick={() => markRead(item)}>Đánh dấu đã đọc</button>}</div>
-                </article>)}{!loadingNotifications && !notificationLoadError && visibleNotifications.length === 0 &&
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không
-                có thông báo.</p>}</div>
+                            {item.notificationIsRead ? <span className="text-xs text-slate-400">Đã đọc</span> :
+                                <button className={`${button} bg-slate-900 text-white`} disabled={saving}
+                                        onClick={() => markRead(item)}>Đánh dấu đã đọc</button>}</div>
+                    </article>)}{!loadingNotifications && !notificationLoadError && visibleNotifications.length === 0 &&
+                <p className="rounded-xl border border-dashed border-slate-300 bg-white py-10 text-center text-sm text-slate-500">Không
+                    có thông báo.</p>}</div>
             {!loadingNotifications && filteredNotifications.length > notificationPageSize && <nav
                 aria-label="Phân trang thông báo"
                 className="mt-4 flex justify-center border-t border-slate-100 px-3 py-3">
@@ -625,34 +628,37 @@ export function TicketsModule({
             </nav>}
         </>}
 
-        {modal === "notification" && canCreateNotification && <Modal title="Tạo thông báo" onClose={() => setModal(null)} wide>
-            <ProcessingForm processing={saving || loadingRecipientAccounts} onSubmit={createNotification}>
-                <FormField label="Loại thông báo">
-                    <select className={selectCls} value={notificationType}
-                            onChange={(event) => setNotificationType(event.target.value as NotificationType)}>
-                        {Object.entries(notificationLabel).map(([type, label]) =>
-                            <option key={type} value={type}>{label}</option>)}
-                    </select>
-                </FormField>
-                <FormField label="Nội dung thông báo">
+        {modal === "notification" && canCreateNotification &&
+            <Modal title="Tạo thông báo" onClose={() => setModal(null)} wide>
+                <ProcessingForm processing={saving || loadingRecipientAccounts} onSubmit={createNotification}>
+                    <FormField label="Loại thông báo">
+                        <select className={selectCls} value={notificationType}
+                                onChange={(event) => setNotificationType(event.target.value as NotificationType)}>
+                            {Object.entries(notificationLabel).map(([type, label]) =>
+                                <option key={type} value={type}>{label}</option>)}
+                        </select>
+                    </FormField>
+                    <FormField label="Nội dung thông báo">
                     <textarea className={inputCls} required maxLength={255} rows={4}
                               value={notificationContent}
                               onChange={(event) => setNotificationContent(event.target.value)}
                               placeholder="Nhập nội dung (tối đa 255 ký tự)"/>
-                </FormField>
-                <fieldset className="mb-5">
-                    <legend className="mb-2 text-sm font-medium text-slate-700">Vai trò người nhận</legend>
-                    <p className="mb-3 text-xs text-slate-500">
-                        Chỉ tài khoản thuộc các vai trò được phép dưới đây mới có thể được chọn.
-                    </p>
-                    {loadingRecipientAccounts ? <p role="status" className="text-sm text-slate-500">Đang tải tài khoản...</p>
-                        : recipientAccountsError ? <p role="alert" className="text-sm text-red-700">{recipientAccountsError}</p>
-                            : <div className="grid gap-2 sm:grid-cols-2">
-                                {allowedRecipientRoles.map((role) => {
-                                    const count = accountsByRecipientRole[role]?.length ?? 0
-                                    const checked = selectedRecipientRoles.includes(role)
-                                    return <label key={role}
-                                                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${count ? "border-slate-200" : "border-slate-100 text-slate-400"}`}>
+                    </FormField>
+                    <fieldset className="mb-5">
+                        <legend className="mb-2 text-sm font-medium text-slate-700">Vai trò người nhận</legend>
+                        <p className="mb-3 text-xs text-slate-500">
+                            Chỉ tài khoản thuộc các vai trò được phép dưới đây mới có thể được chọn.
+                        </p>
+                        {loadingRecipientAccounts ?
+                            <p role="status" className="text-sm text-slate-500">Đang tải tài khoản...</p>
+                            : recipientAccountsError ?
+                                <p role="alert" className="text-sm text-red-700">{recipientAccountsError}</p>
+                                : <div className="grid gap-2 sm:grid-cols-2">
+                                    {allowedRecipientRoles.map((role) => {
+                                        const count = accountsByRecipientRole[role]?.length ?? 0
+                                        const checked = selectedRecipientRoles.includes(role)
+                                        return <label key={role}
+                                                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${count ? "border-slate-200" : "border-slate-100 text-slate-400"}`}>
                                         <span className="flex items-center gap-2">
                                             <input type="checkbox" checked={checked} disabled={count === 0}
                                                    onChange={(event) => setSelectedRecipientRoles((current) =>
@@ -661,25 +667,26 @@ export function TicketsModule({
                                                            : current.filter((item) => item !== role))}/>
                                             {notificationRoleLabel[role]}
                                         </span>
-                                        <span className="text-xs text-slate-500">{count} tài khoản</span>
-                                    </label>
-                                })}
-                            </div>}
-                    <p className="mt-2 text-xs text-slate-500">
-                        Tổng người nhận: {recipientAccountIds.length} tài khoản
-                    </p>
-                </fieldset>
-                <div className="flex justify-end gap-2">
-                    <button type="button" className={`${button} border border-slate-200`}
-                            onClick={() => setModal(null)}>Hủy</button>
-                    <button className={`${button} bg-blue-600 text-white`}
-                            disabled={saving || loadingRecipientAccounts || !!recipientAccountsError
-                                || !notificationContent.trim() || recipientAccountIds.length === 0}>
-                        {saving ? "Đang gửi..." : "Gửi thông báo"}
-                    </button>
-                </div>
-            </ProcessingForm>
-        </Modal>}
+                                            <span className="text-xs text-slate-500">{count} tài khoản</span>
+                                        </label>
+                                    })}
+                                </div>}
+                        <p className="mt-2 text-xs text-slate-500">
+                            Tổng người nhận: {recipientAccountIds.length} tài khoản
+                        </p>
+                    </fieldset>
+                    <div className="flex justify-end gap-2">
+                        <button type="button" className={`${button} border border-slate-200`}
+                                onClick={() => setModal(null)}>Hủy
+                        </button>
+                        <button className={`${button} bg-blue-600 text-white`}
+                                disabled={saving || loadingRecipientAccounts || !!recipientAccountsError
+                                    || !notificationContent.trim() || recipientAccountIds.length === 0}>
+                            {saving ? "Đang gửi..." : "Gửi thông báo"}
+                        </button>
+                    </div>
+                </ProcessingForm>
+            </Modal>}
 
         {modal === "tickets" && <Modal title="Tạo ticket" onClose={() => setModal(null)}>
             <ProcessingForm processing={saving} onSubmit={createTicket}>

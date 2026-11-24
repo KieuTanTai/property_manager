@@ -28,11 +28,11 @@ namespace Contract.Application
 
         private readonly IContractRepository _contractRepository = contractRepository;
 
-        private readonly IContractPremiseSyncClient _premiseSyncClient = premiseSyncClient;
-
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<ContractApplication> _logger = logger;
+
+        private readonly IContractPremiseSyncClient _premiseSyncClient = premiseSyncClient;
 
         private readonly IRegulationRepository _regulationRepository = regulationRepository;
 

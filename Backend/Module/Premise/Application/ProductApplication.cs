@@ -209,10 +209,8 @@ namespace Premise.Application
             var associations = await _productBusinessTypeRepository.GetTrackedByProductIdAsync(
                 productId, cancellationToken);
             foreach (var association in associations)
-            {
                 await _productBusinessTypeRepository.DeleteAsync(
                     productId, association.BusinessTypeId, cancellationToken);
-            }
 
             await _productRepository.DeleteAsync(productId, cancellationToken);
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);

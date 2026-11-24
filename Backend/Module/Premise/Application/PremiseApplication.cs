@@ -713,9 +713,9 @@ namespace Premise.Application
             foreach (var rental in rentals)
             {
                 var premise = await _premiseRepository.GetTrackedByIdAsync(
-                    rental.PremiseId, cancellationToken)
-                    ?? throw new KeyNotFoundException(
-                        $"Premise linked to contract {contractId} was not found: {rental.PremiseId}.");
+                                  rental.PremiseId, cancellationToken)
+                              ?? throw new KeyNotFoundException(
+                                  $"Premise linked to contract {contractId} was not found: {rental.PremiseId}.");
 
                 if (premise.PremiseStatus != EPremiseStatus.Maintenance)
                 {

@@ -1,15 +1,14 @@
 using Contract.Infrastructure.Persistence.DbContext;
 using Contract.Infrastructure.Repository;
-using Contract.Infrastructure.Services;
 using Contract.Infrastructure.Repository.ContactRepository;
 using Contract.Infrastructure.Repository.ContractRepository;
 using Contract.Infrastructure.Repository.InvoiceRepository;
 using Contract.Infrastructure.Repository.ReceiptRepository;
 using Contract.Infrastructure.Repository.RegulationRepository;
+using Contract.Infrastructure.Services;
 using Contract.Interfaces.IRepository;
 using Contract.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
-using Shared.Caching;
 using Shared.DIContainer;
 using Shared.Interfaces;
 using Shared.Logging;

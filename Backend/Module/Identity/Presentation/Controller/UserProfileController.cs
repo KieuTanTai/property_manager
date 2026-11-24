@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Identity.Interfaces;
 using Identity.Interfaces.IApplication;
 using Identity.Models.Profile;
@@ -6,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
 using Shared.ModelHelper;
 using Shared.Presentation.Controller;
-using System.Text.RegularExpressions;
 
 namespace Identity.Presentation.Controller
 {
@@ -26,18 +26,64 @@ namespace Identity.Presentation.Controller
 
         private readonly IUserProfileApplication _userProfileApplication = userProfileApplication;
 
+        #region GET
+
+        [RequireHttps]
+        [HttpGet]
+        public async Task<ActionResult<RecordProfileResponse>> GetProfileAsync([FromQuery] RecordGetProfileRequest requestDto, CancellationToken cancellationToken)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup request received.");
+            if (!IsValidGetProfileRequest(requestDto))
+            {
+                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup request rejected because its identifier is invalid.");
+                return BadRequest("A valid account id or 12-digit identity code is required.");
+            }
+            try
+            {
+                UserProfileModel? result;
+                if (requestDto.AccountId != null)
+                {
+                    result = await _userProfileApplication.GetProfileInfoAsync(requestDto.AccountId!.Value, cancellationToken);
+                }
+                else
+                {
+                    result = await _userProfileApplication.GetProfileInfoAsync(requestDto.IdentityCode!, cancellationToken);
+                }
+                var response = _apiHelper.MappingProfileResult(result);
+                return Ok(response);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup request was canceled.");
+                return BadRequest($"Operation canceled \n {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogLayerError(_logPool, Module, Layer, ex, "Profile lookup request failed.");
+                return BadRequest($"An error occurred \n {ex.Message}");
+            }
+        }
+
+        #endregion
+
         #region PRIVATE
 
-        private static bool IsValidIdentityCode(string? identityCode) =>
-            identityCode is { Length: 12 } && identityCode.All(char.IsDigit);
+        private static bool IsValidIdentityCode(string? identityCode)
+        {
+            return identityCode is { Length: 12 } && identityCode.All(char.IsDigit);
+        }
 
-        private static bool IsValidGetProfileRequest(RecordGetProfileRequest request) =>
-            request.AccountId.HasValue
+        private static bool IsValidGetProfileRequest(RecordGetProfileRequest request)
+        {
+            return request.AccountId.HasValue
                 ? request.AccountId.Value != Guid.Empty
                 : IsValidIdentityCode(request.IdentityCode);
+        }
 
-        private static bool IsValidCreateProfileRequest(RecordCreateBaseProfileRequest request) =>
-            request.AccountId != Guid.Empty && IsValidIdentityCode(request.IdentityCode);
+        private static bool IsValidCreateProfileRequest(RecordCreateBaseProfileRequest request)
+        {
+            return request.AccountId != Guid.Empty && IsValidIdentityCode(request.IdentityCode);
+        }
 
         private static bool TryCreateUpdatedProfile(
             RecordUpdateProfileRequest request,
@@ -52,21 +98,21 @@ namespace Identity.Presentation.Controller
                 return false;
             }
 
-            if (request.FirstName?.Length > 30 || request.LastName?.Length > 30 ||
-                request.Address?.Length > 255 || request.PhoneNumber?.Length > 50 ||
-                !Enum.IsDefined(request.UserGender))
+            if (request.FirstName?.Length > 30 || request.LastName?.Length > 30 || request.Address?.Length > 255 || request.PhoneNumber?.Length > 50 || !Enum.IsDefined(request.UserGender))
             {
                 error = "One or more profile fields are invalid.";
                 return false;
             }
 
-            if (request.DateOfBirth.HasValue && (request.DateOfBirth.Value > DateTimeOffset.UtcNow || request.DateOfBirth.Value < DateTimeOffset.UtcNow.AddYears(-100) 
+            if (request.DateOfBirth.HasValue
+                && (request.DateOfBirth.Value > DateTimeOffset.UtcNow
+                    || request.DateOfBirth.Value < DateTimeOffset.UtcNow.AddYears(-100)
                     || request.DateOfBirth.Value > DateTimeOffset.UtcNow.AddYears(-18)))
             {
                 error = "Date of birth cannot be in the future. It must be within the last 100 years and at least 18 years ago.";
                 return false;
             }
-            
+
             if (!TryNormalizePhoneNumber(request.PhoneNumber, out var normalizedPhone))
             {
                 error = "Phone number format is invalid.";
@@ -114,46 +160,6 @@ namespace Identity.Presentation.Controller
 
             normalizedPhone = cleaned;
             return true;
-        }
-
-        #endregion
-
-        #region GET
-
-        [RequireHttps]
-        [HttpGet]
-        public async Task<ActionResult<RecordProfileResponse>> GetProfileAsync([FromQuery] RecordGetProfileRequest requestDto, CancellationToken cancellationToken)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup request received.");
-            if (!IsValidGetProfileRequest(requestDto))
-            {
-                _logger.LogLayerWarning(_logPool, Module, Layer, "Profile lookup request rejected because its identifier is invalid.");
-                return BadRequest("A valid account id or 12-digit identity code is required.");
-            }
-            try
-            {
-                UserProfileModel? result;
-                if (requestDto.AccountId != null)
-                {
-                    result = await _userProfileApplication.GetProfileInfoAsync(requestDto.AccountId!.Value, cancellationToken);
-                }
-                else
-                {
-                    result = await _userProfileApplication.GetProfileInfoAsync(requestDto.IdentityCode!, cancellationToken);
-                }
-                var response = _apiHelper.MappingProfileResult(result);
-                return Ok(response);
-            }
-            catch (OperationCanceledException ex)
-            {
-                _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup request was canceled.");
-                return BadRequest($"Operation canceled \n {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogLayerError(_logPool, Module, Layer, ex, "Profile lookup request failed.");
-                return BadRequest($"An error occurred \n {ex.Message}");
-            }
         }
 
         #endregion

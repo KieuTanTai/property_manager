@@ -34,23 +34,25 @@ namespace Identity.Presentation.Controller
 
         #region PRIVATE
 
-        private bool IsValidCredentials(string email, string password) =>
-            _helper.IsEmailValid(email) && _helper.IsPasswordValid(password);
+        private bool IsValidCredentials(string email, string password)
+        {
+            return _helper.IsEmailValid(email) && _helper.IsPasswordValid(password);
+        }
 
-        private bool IsValidPasswordChange(RecordUpdateAccountPasswordRequest request) =>
-            IsValidCredentials(request.Email, request.OldPassword) &&
-            _helper.IsPasswordValid(request.NewPassword) &&
-            !string.Equals(request.OldPassword, request.NewPassword, StringComparison.Ordinal);
+        private bool IsValidPasswordChange(RecordUpdateAccountPasswordRequest request)
+        {
+            return IsValidCredentials(request.Email, request.OldPassword) && _helper.IsPasswordValid(request.NewPassword) && !string.Equals(request.OldPassword, request.NewPassword, StringComparison.Ordinal);
+        }
 
         private bool IsValidAccountModel(AccountModel account, bool requireId)
         {
-            return (!requireId || account.AccountId != Guid.Empty) &&
-                   _helper.IsEmailValid(account.AccountEmail) &&
-                   !string.IsNullOrWhiteSpace(account.AccountPassword) && account.AccountPassword.Length <= 255;
+            return (!requireId || account.AccountId != Guid.Empty) && _helper.IsEmailValid(account.AccountEmail) && !string.IsNullOrWhiteSpace(account.AccountPassword) && account.AccountPassword.Length <= 255;
         }
 
-        private bool AreValidAccountsForUpdate(IReadOnlyCollection<AccountModel>? accounts) =>
-            accounts is { Count: > 0 } && accounts.All(account => IsValidAccountModel(account, true));
+        private bool AreValidAccountsForUpdate(IReadOnlyCollection<AccountModel>? accounts)
+        {
+            return accounts is { Count: > 0 } && accounts.All(account => IsValidAccountModel(account, true));
+        }
 
         #endregion
 
@@ -296,7 +298,7 @@ namespace Identity.Presentation.Controller
         public async Task<IActionResult> ChangePasswordAsync([FromBody] RecordUpdateAccountPasswordRequest requestDto, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account password change request received.");
-            
+
             if (!IsValidPasswordChange(requestDto))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Password change request rejected because credentials are invalid.");
@@ -390,8 +392,7 @@ namespace Identity.Presentation.Controller
         [HttpDelete("delete")]
         public async Task<IActionResult> InactiveAccountAsync([FromBody] RecordInactiveAccountRequest requestDto, CancellationToken cancellationToken = default)
         {
-            if (!IsValidCredentials(requestDto.Email, requestDto.Password) ||
-                !string.Equals(requestDto.Password, requestDto.ConfirmPassword, StringComparison.Ordinal))
+            if (!IsValidCredentials(requestDto.Email, requestDto.Password) || !string.Equals(requestDto.Password, requestDto.ConfirmPassword, StringComparison.Ordinal))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Account deactivation request rejected by input validation.");
                 return BadRequest("A valid email and matching passwords are required.");

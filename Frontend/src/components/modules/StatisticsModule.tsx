@@ -285,7 +285,7 @@ export function StatisticsModule() {
         if (premise.premiseStatus === "Rented") group.rented += 1
         groups.set(premise.premiseLocationId, group)
         return groups
-    }, new Map<string, {id: string; name: string; total: number; rented: number}>()).values()]
+    }, new Map<string, { id: string; name: string; total: number; rented: number }>()).values()]
     const totalPremiseArea = premises.reduce((total, premise) => {
         const area = Number.parseFloat(premise.premiseArea)
         return Number.isFinite(area) ? total + area : total
@@ -298,7 +298,8 @@ export function StatisticsModule() {
 
     return (
         <div>
-            <ModulePageHeader title="Thống kê & Phân tích" description="Dữ liệu tổng hợp theo thời gian thực — năm 2024"/>
+            <ModulePageHeader title="Thống kê & Phân tích"
+                              description="Dữ liệu tổng hợp theo thời gian thực — năm 2024"/>
 
             {/* Tab navigation */}
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 w-fit">
@@ -588,7 +589,8 @@ export function StatisticsModule() {
                             {premisesLoading
                                 ? <p className="py-6 text-center text-sm text-gray-400">Đang tải thống kê...</p>
                                 : premisesError
-                                    ? <p className="py-6 text-center text-sm text-gray-400">Không thể tải dữ liệu mặt bằng.</p>
+                                    ? <p className="py-6 text-center text-sm text-gray-400">Không thể tải dữ liệu mặt
+                                        bằng.</p>
                                     : <DistributionList items={premisesByStatus}/>}
                         </div>
                         <div
@@ -597,32 +599,34 @@ export function StatisticsModule() {
                             {premisesLoading
                                 ? <p className="py-6 text-center text-sm text-gray-400">Đang tải thống kê...</p>
                                 : premisesError
-                                    ? <p className="py-6 text-center text-sm text-gray-400">Không thể tải dữ liệu mặt bằng.</p>
+                                    ? <p className="py-6 text-center text-sm text-gray-400">Không thể tải dữ liệu mặt
+                                        bằng.</p>
                                     : premisesByLocation.length === 0
-                                        ? <p className="py-6 text-center text-sm text-gray-400">Chưa có dữ liệu mặt bằng.</p>
+                                        ? <p className="py-6 text-center text-sm text-gray-400">Chưa có dữ liệu mặt
+                                            bằng.</p>
                                         : <div className="mt-2 max-h-80 space-y-4 overflow-y-auto">
-                                {premisesByLocation.map((b) => (
-                                    <div key={b.id}>
-                                        <div className="flex justify-between items-center mb-1.5">
+                                            {premisesByLocation.map((b) => (
+                                                <div key={b.id}>
+                                                    <div className="flex justify-between items-center mb-1.5">
                       <span className="text-xs font-medium text-gray-700 truncate max-w-[200px]">
                         {b.name}
                       </span>
-                                            <span className="text-xs font-mono font-semibold text-gray-500">
+                                                        <span className="text-xs font-mono font-semibold text-gray-500">
                         {b.rented}/{b.total}
                       </span>
-                                        </div>
-                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full rounded-full bg-blue-500 transition-all"
-                                                style={{width: `${(b.rented / b.total) * 100}%`}}
-                                            />
-                                        </div>
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            {Math.round((b.rented / b.total) * 100)}% lấp đầy
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>}
+                                                    </div>
+                                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full rounded-full bg-blue-500 transition-all"
+                                                            style={{width: `${(b.rented / b.total) * 100}%`}}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 mt-1">
+                                                        {Math.round((b.rented / b.total) * 100)}% lấp đầy
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>}
                         </div>
                     </div>
 
@@ -632,10 +636,18 @@ export function StatisticsModule() {
                         <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 w-fit">
                             {([
                                 {status: "all" as const, label: "Tất cả", count: premises.length},
-                                {status: "available" as const, label: "Còn trống", count: premiseStatusCounts.available},
+                                {
+                                    status: "available" as const,
+                                    label: "Còn trống",
+                                    count: premiseStatusCounts.available
+                                },
                                 {status: "rented" as const, label: "Đang thuê", count: premiseStatusCounts.rented},
                                 {status: "reserved" as const, label: "Đã đặt cọc", count: premiseStatusCounts.reserved},
-                                {status: "maintenance" as const, label: "Bảo trì", count: premiseStatusCounts.maintenance},
+                                {
+                                    status: "maintenance" as const,
+                                    label: "Bảo trì",
+                                    count: premiseStatusCounts.maintenance
+                                },
                             ]).map(({status, label, count}) => (
                                 <button
                                     key={status}
@@ -693,8 +705,8 @@ export function StatisticsModule() {
                                     header: "Địa chỉ",
                                     cellClassName: "max-w-48 truncate text-xs text-gray-400",
                                     render: (premise) => (locations.find((location) =>
-                                        location.locationId === premise.premiseLocationId
-                                    )?.locationAddress ?? premise.premiseLocation?.locationAddress
+                                            location.locationId === premise.premiseLocationId
+                                        )?.locationAddress ?? premise.premiseLocation?.locationAddress
                                         ?? "Chưa xác định địa chỉ").split(",")[0],
                                 },
                                 {

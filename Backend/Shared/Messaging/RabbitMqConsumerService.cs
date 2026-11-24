@@ -3,8 +3,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using Shared.Messaging.Options;
 using Shared.Interfaces.Messaging;
+using Shared.Messaging.Options;
 
 namespace Shared.Messaging
 {
@@ -19,7 +19,10 @@ namespace Shared.Messaging
             var handlersByQueue = handlers.ToDictionary(handler => handler.QueueName);
             foreach (var queue in options.Value.Queues)
             {
-                if (!handlersByQueue.TryGetValue(queue.Name, out var handler)) continue;
+                if (!handlersByQueue.TryGetValue(queue.Name, out var handler))
+                {
+                    continue;
+                }
                 var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
                 await channel.ExchangeDeclareAsync(queue.Exchange, options.Value.Exchanges.Single(x => x.Name == queue.Exchange).Type,
                     true, cancellationToken: stoppingToken);
@@ -27,8 +30,7 @@ namespace Shared.Messaging
                 foreach (var routingKey in queue.RoutingKeys)
                     await channel.QueueBindAsync(queue.Name, queue.Exchange, routingKey, cancellationToken: stoppingToken);
                 var consumer = new AsyncEventingBasicConsumer(channel);
-                consumer.ReceivedAsync += async (_, ea) =>
-                {
+                consumer.ReceivedAsync += async (_, ea) => {
                     try
                     {
                         await handler.HandleAsync(ea.Body, stoppingToken);

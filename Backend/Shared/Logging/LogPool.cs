@@ -5,8 +5,10 @@ namespace Shared.Logging
 {
     public sealed class LogPool(IHostEnvironment environment) : ILogPool
     {
-        private readonly SemaphoreSlim _flushLock = new(1, 1);
         private readonly object _entriesLock = new();
+
+        private readonly SemaphoreSlim _flushLock = new(1, 1);
+
         private Queue<LogEntry> _entries = new();
 
         public void Add(
@@ -118,7 +120,7 @@ namespace Shared.Logging
             CancellationToken cancellationToken)
         {
             const int maxAttempts = 30;
-            for (var attempt = 0; ; attempt++)
+            for (var attempt = 0;; attempt++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 try

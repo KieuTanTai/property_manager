@@ -9,7 +9,7 @@ namespace Gateway.Presentation.Controller
 
         [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD")]
         [Route("{**path}")]
-        public async Task<IActionResult> Forward(CancellationToken cancellationToken)
+        public async Task<IActionResult> Forward(string path, CancellationToken cancellationToken)
         {
             await proxyService.ForwardAsync(HttpContext, ModuleUrlKey);
             return new EmptyResult();

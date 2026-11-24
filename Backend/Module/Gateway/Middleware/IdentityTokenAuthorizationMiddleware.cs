@@ -11,12 +11,16 @@ namespace Gateway.Middleware
         ILogPool logPool)
     {
         private const string Module = "Gateway";
+
         private const string Layer = "Middleware";
 
-        private readonly RequestDelegate _next = next;
-        private readonly IIdentityTokenAuthorizationService _tokenAuthorizationService = tokenAuthorizationService;
-        private readonly ILogger<IdentityTokenAuthorizationMiddleware> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<IdentityTokenAuthorizationMiddleware> _logger = logger;
+
+        private readonly RequestDelegate _next = next;
+
+        private readonly IIdentityTokenAuthorizationService _tokenAuthorizationService = tokenAuthorizationService;
 
         public async Task InvokeAsync(HttpContext context)
         {
@@ -70,9 +74,9 @@ namespace Gateway.Middleware
 
         private static bool IsPublicEndpoint(string method, PathString path)
         {
-            if (path.Equals("/api/account/login", StringComparison.OrdinalIgnoreCase) ||
-                path.Equals("/api/account/register", StringComparison.OrdinalIgnoreCase) ||
-                path.Equals("/api/account/session-instance", StringComparison.OrdinalIgnoreCase))
+            if (path.Equals("/api/account/login", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/api/account/register", StringComparison.OrdinalIgnoreCase)
+                || path.Equals("/api/account/session-instance", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -82,9 +86,9 @@ namespace Gateway.Middleware
                 return false;
             }
 
-            return path.Equals("/api/contact", StringComparison.OrdinalIgnoreCase) ||
-                   path.StartsWithSegments("/api/premise", StringComparison.OrdinalIgnoreCase) ||
-                   path.StartsWithSegments("/api/location", StringComparison.OrdinalIgnoreCase);
+            return path.Equals("/api/contact", StringComparison.OrdinalIgnoreCase)
+                   || path.StartsWithSegments("/api/premise", StringComparison.OrdinalIgnoreCase)
+                   || path.StartsWithSegments("/api/location", StringComparison.OrdinalIgnoreCase);
         }
 
         private static async Task RejectAsync(HttpContext context, int statusCode, string message)
