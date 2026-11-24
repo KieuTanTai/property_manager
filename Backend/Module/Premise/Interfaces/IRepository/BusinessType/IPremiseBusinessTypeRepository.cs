@@ -30,6 +30,5 @@ namespace Premise.Interfaces.IRepository.BusinessType
         Task<IReadOnlyList<PremiseBusinessTypeModel>> GetTrackedByBusinessTypeIdAsync(
             Guid businessTypeId,
             CancellationToken cancellationToken = default);
-
     }
 }

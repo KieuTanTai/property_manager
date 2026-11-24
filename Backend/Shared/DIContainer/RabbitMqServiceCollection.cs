@@ -29,7 +29,7 @@ namespace Shared.DIContainer
                     UserName = options.UserName,
                     Password = options.Password,
                     VirtualHost = options.VirtualHost,
-                    
+
                     ClientProvidedName = "SharedMessagingClient",
                     AutomaticRecoveryEnabled = true
                 };

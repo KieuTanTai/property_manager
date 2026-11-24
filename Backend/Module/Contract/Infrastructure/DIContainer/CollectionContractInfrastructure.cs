@@ -58,8 +58,7 @@ namespace Contract.Infrastructure.DIContainer
                 .Configure(options => options.SecureSocketOptions =
                     configuration["Email:SecureSocketOptions"] ?? options.SecureSocketOptions);
             services.AddOptions<PremiseSyncOptions>()
-                .Configure(options =>
-                {
+                .Configure(options => {
                     options.Premise = configuration["ModuleUrls:Premise"] ?? options.Premise;
                     options.ApiKey = Environment.GetEnvironmentVariable("INTERNAL_GATEWAY_API_KEY")
                                      ?? configuration["InternalApi:Key"]

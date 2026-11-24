@@ -14,12 +14,12 @@ namespace Shared.Presentation.Controller
         string layer)
         : ControllerBase, IAsyncActionFilter
     {
-        protected string Module { get; } = module;
-        protected string Layer { get; } = layer;
+        private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger _logger = logger;
 
-        private readonly ILogPool _logPool = logPool;
+        protected string Module { get; } = module;
+        protected string Layer { get; } = layer;
 
         [NonAction]
         public async Task OnActionExecutionAsync(
@@ -34,7 +34,7 @@ namespace Shared.Presentation.Controller
             try
             {
                 var executedContext = await next();
-                if (executedContext is { Exception: { } exception, ExceptionHandled: false })
+                if (executedContext is { Exception: {} exception, ExceptionHandled: false })
                 {
                     _logger.LogLayerError(_logPool, Module, Layer, exception,
                         $"Request failed for {actionName}.");

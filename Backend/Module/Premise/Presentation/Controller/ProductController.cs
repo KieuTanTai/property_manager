@@ -16,8 +16,9 @@ namespace Premise.Presentation.Controller
         ILogger<ProductController> logger,
         ILogPool logPool) : CustomControllerBase(logger, logPool, "Premise", "Presentation/Controller")
     {
-        private readonly IProductApplication _productApplication = productApplication;
         private readonly IBusinessTypeApplication _businessTypeApplication = businessTypeApplication;
+
+        private readonly IProductApplication _productApplication = productApplication;
 
 
         [HttpGet]

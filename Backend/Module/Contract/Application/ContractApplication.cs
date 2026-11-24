@@ -54,7 +54,7 @@ namespace Contract.Application
                 await _contractRegulationRepository.AddRangeAsync([
                     .. regulations.Select(regulation => new ContractRegulationModel(regulation.RegulationId,
                         contract.ContractId))
-                    ], cancellationToken);
+                ], cancellationToken);
             }
 
             await SaveChangesOrThrowAsync("create", cancellationToken);
@@ -85,7 +85,7 @@ namespace Contract.Application
                     await _contractRegulationRepository.AddRangeAsync([
                         .. regulations.Select(regulation => new ContractRegulationModel(regulation.RegulationId,
                             contract.ContractId))
-                        ], cancellationToken);
+                    ], cancellationToken);
                 }
             }
 

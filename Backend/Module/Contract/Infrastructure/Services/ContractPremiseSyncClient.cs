@@ -1,5 +1,5 @@
-using Contract.Interfaces.Services;
 using Contract.Infrastructure.Services.Options;
+using Contract.Interfaces.Services;
 using Microsoft.Extensions.Options;
 using Shared.Logging;
 
@@ -12,7 +12,9 @@ namespace Contract.Infrastructure.Services
         ILogPool logPool) : IContractPremiseSyncClient
     {
         private const string Module = "Contract";
+
         private const string Layer = "Infrastructure/Services";
+
         private readonly PremiseSyncOptions _options = options.Value;
 
         public async Task ReleasePremisesAsync(

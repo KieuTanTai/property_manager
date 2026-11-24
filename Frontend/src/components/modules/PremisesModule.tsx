@@ -188,6 +188,7 @@ export function PremisesModule({
     const [isLoadingBusinessTypes, setIsLoadingBusinessTypes] = useState(true)
     const [businessTypeError, setBusinessTypeError] = useState<string | null>(null)
     const [whitelistProducts, setWhitelistProducts] = useState<WhitelistProduct[]>([])
+    const [selectedCatalogProductIds, setSelectedCatalogProductIds] = useState<string[]>([])
     const [isLoadingProducts, setIsLoadingProducts] = useState(false)
     const [isSavingProduct, setIsSavingProduct] = useState(false)
     const [productError, setProductError] = useState<string | null>(null)
@@ -200,10 +201,15 @@ export function PremisesModule({
     const [catalogProductForm, setCatalogProductForm] = useState({name: "", description: ""})
     const [isSavingCatalogProduct, setIsSavingCatalogProduct] = useState(false)
     const [editingProductId, setEditingProductId] = useState<string | null>(null)
-    const [selectedCatalogProductId, setSelectedCatalogProductId] = useState<string | null>(null)
-    const [isProductSuggestionsOpen, setIsProductSuggestionsOpen] = useState(false)
-    const [activeProductSuggestionIndex, setActiveProductSuggestionIndex] = useState(-1)
     const productLoadSequence = useRef(0)
+    const premiseBusinessTypesLoadSequence = useRef(0)
+    const [premiseBusinessTypeProducts, setPremiseBusinessTypeProducts] = useState<{
+        businessTypeId: string
+        businessTypeName: string
+        products: ProductResponse[]
+    }[]>([])
+    const [isLoadingPremiseBusinessTypes, setIsLoadingPremiseBusinessTypes] = useState(false)
+    const [premiseBusinessTypesError, setPremiseBusinessTypesError] = useState<string | null>(null)
     const [activeSubTab, setActiveSubTab] = useState<PremisesSubTab>("locations")
     const canAddInActiveTab = activeSubTab === "locations"
         ? canCreateLocation
@@ -250,20 +256,20 @@ export function PremisesModule({
 
     const normalizedProductQuery = normalizeProductSearch(productName.trim())
     const linkedProductIds = new Set(whitelistProducts.map((product) => product.productId))
-    const productSuggestions = normalizedProductQuery && !editingProductId
-        ? productCatalog
-            .filter((product) =>
-                !linkedProductIds.has(product.productId) &&
-                normalizeProductSearch(product.productName).includes(normalizedProductQuery),
-            )
-            .slice(0, 8)
-        : []
+    const filteredCatalogProducts = productCatalog
+        .filter((product) => !linkedProductIds.has(product.productId))
+        .filter((product) => !normalizedProductQuery ||
+            normalizeProductSearch(product.productName).includes(normalizedProductQuery))
+        .sort((left, right) => left.productName.localeCompare(right.productName, "vi"))
 
-    const selectProductSuggestion = (product: ProductResponse) => {
-        setSelectedCatalogProductId(product.productId)
-        setProductName(product.productName)
-        setProductDescription(product.productDescription ?? "")
-        setIsProductSuggestionsOpen(false)
+    const selectedCatalogProducts = selectedCatalogProductIds
+        .map((id) => productCatalog.find((product) => product.productId === id))
+        .filter((product): product is ProductResponse => Boolean(product))
+
+    const toggleCatalogProduct = (productId: string) => {
+        setSelectedCatalogProductIds((current) => current.includes(productId)
+            ? current.filter((id) => id !== productId)
+            : [...current, productId])
     }
 
     const filtered =
@@ -428,6 +434,33 @@ export function PremisesModule({
         setPendingImageDeletionIds([])
         setPremiseIsEditing(false)
         setModal("view")
+        const loadSequence = ++premiseBusinessTypesLoadSequence.current
+        setPremiseBusinessTypeProducts([])
+        setPremiseBusinessTypesError(null)
+        setIsLoadingPremiseBusinessTypes(true)
+        void premiseApi.getBusinessTypesByPremise(p.id)
+            .then(async (assignedBusinessTypes) => {
+                const groupedProducts = await Promise.all(assignedBusinessTypes.map(async (businessType) => ({
+                    businessTypeId: businessType.businessTypeId,
+                    businessTypeName: businessType.name,
+                    products: await premiseApi.getProductsByBusinessType(businessType.businessTypeId),
+                })))
+                if (loadSequence === premiseBusinessTypesLoadSequence.current) {
+                    setPremiseBusinessTypeProducts(groupedProducts)
+                }
+            })
+            .catch((error: unknown) => {
+                if (loadSequence === premiseBusinessTypesLoadSequence.current) {
+                    setPremiseBusinessTypesError(
+                        error instanceof Error ? error.message : "Không tải được cấu hình kinh doanh của mặt bằng.",
+                    )
+                }
+            })
+            .finally(() => {
+                if (loadSequence === premiseBusinessTypesLoadSequence.current) {
+                    setIsLoadingPremiseBusinessTypes(false)
+                }
+            })
     }
 
     const startEditingPremise = () => {
@@ -752,21 +785,22 @@ export function PremisesModule({
     }
 
     const handleAddWhitelistProduct = async () => {
+        if (!selectedBusinessType) return
+        if (!editingProductId && selectedCatalogProductIds.length === 0) return
         const name = productName.trim()
-        if (!name || !selectedBusinessType) return
-        if (name.length > 100 || productDescription.trim().length > 255) {
+        if (editingProductId && (!name || name.length > 100 || productDescription.trim().length > 255)) {
             setProductError("Tên sản phẩm tối đa 100 ký tự; mô tả tối đa 255 ký tự.")
             return
         }
 
-        const body: ProductRequest = {
-            productName: name,
-            productDescription: productDescription.trim() || null,
-        }
         setIsSavingProduct(true)
         setProductError(null)
         try {
             if (editingProductId) {
+                const body: ProductRequest = {
+                    productName: name,
+                    productDescription: productDescription.trim() || null,
+                }
                 const updated = await premiseApi.updateProduct(editingProductId, body)
                 setProductCatalog((current) =>
                     current.map((product) =>
@@ -780,38 +814,22 @@ export function PremisesModule({
                             : product,
                     ),
                 )
-            } else if (selectedCatalogProductId) {
-                const selectedProduct = productCatalog.find(
-                    (product) => product.productId === selectedCatalogProductId,
-                )
-                if (!selectedProduct) {
-                    throw new Error("Sản phẩm đã chọn không còn trong danh sách. Vui lòng chọn lại.")
-                }
-                await premiseApi.addProductBusinessType(
-                    selectedProduct.productId,
-                    selectedBusinessType.businessTypeId,
-                )
-                setWhitelistProducts((current) => [
-                    ...current,
-                    toWhitelistProduct(selectedProduct, selectedBusinessType.businessTypeId),
-                ])
             } else {
-                const created = await premiseApi.createProductForBusinessType({
-                    ...body,
-                    businessTypeId: selectedBusinessType.businessTypeId,
-                })
-                setProductCatalog((current) => [...current, created])
+                const productsToAdd = selectedCatalogProducts.filter(
+                    (product) => !linkedProductIds.has(product.productId),
+                )
+                await Promise.all(productsToAdd.map((product) =>
+                    premiseApi.addProductBusinessType(product.productId, selectedBusinessType.businessTypeId),
+                ))
                 setWhitelistProducts((current) => [
                     ...current,
-                    toWhitelistProduct(created, selectedBusinessType.businessTypeId),
+                    ...productsToAdd.map((product) => toWhitelistProduct(product, selectedBusinessType.businessTypeId)),
                 ])
             }
             setProductName("")
             setProductDescription("")
             setEditingProductId(null)
-            setSelectedCatalogProductId(null)
-            setIsProductSuggestionsOpen(false)
-            setActiveProductSuggestionIndex(-1)
+            setSelectedCatalogProductIds([])
         } catch (error) {
             setProductError(error instanceof Error ? error.message : "Không lưu được sản phẩm.")
         } finally {
@@ -821,8 +839,7 @@ export function PremisesModule({
 
     const handleEditWhitelistProduct = (product: WhitelistProduct) => {
         setEditingProductId(product.productId)
-        setSelectedCatalogProductId(null)
-        setIsProductSuggestionsOpen(false)
+        setSelectedCatalogProductIds([])
         setProductName(product.name)
         setProductDescription(product.description ?? "")
         setProductError(null)
@@ -841,7 +858,6 @@ export function PremisesModule({
             )
             if (editingProductId === productId) {
                 setEditingProductId(null)
-                setSelectedCatalogProductId(null)
                 setProductName("")
                 setProductDescription("")
             }
@@ -989,9 +1005,7 @@ export function PremisesModule({
                             setProductName("")
                             setProductDescription("")
                             setEditingProductId(null)
-                            setSelectedCatalogProductId(null)
-                            setIsProductSuggestionsOpen(false)
-                            setActiveProductSuggestionIndex(-1)
+                            setSelectedCatalogProductIds([])
                             setProductError(null)
                             setIsLoadingProducts(true)
                             setWhitelistProducts([])
@@ -1239,9 +1253,10 @@ export function PremisesModule({
 
             {businessModal === "view" && selectedBusinessType && (
                 <Modal
-                    title={`Chi tiết loại mặt hàng: ${selectedBusinessType.name}`}
+                    title={`${selectedBusinessType.name}`}
                     onClose={() => setBusinessModal(null)}
                     wide
+                    compact
                 >
                     <div className="grid grid-cols-2 gap-0 -mx-6 -my-5">
                         <div className="p-6 border-r border-gray-100">
@@ -1401,161 +1416,105 @@ export function PremisesModule({
                                     sản phẩm
                 </span>
                             </div>
-                            <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 mb-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    <FormField label="Tên sản phẩm">
-                                        <div className="relative">
+                            <div className="rounded-xl border border-gray-200 bg-slate-50 p-4 mb-4">
+                                {editingProductId ? (
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <FormField label="Tên sản phẩm">
                                             <input
                                                 className={inputCls}
                                                 value={productName}
-                                                role="combobox"
-                                                aria-autocomplete="list"
-                                                aria-expanded={isProductSuggestionsOpen && Boolean(normalizedProductQuery)}
-                                                aria-controls="product-suggestions"
-                                                aria-activedescendant={
-                                                    isProductSuggestionsOpen && productSuggestions[activeProductSuggestionIndex]
-                                                        ? `product-suggestion-${activeProductSuggestionIndex}`
-                                                        : undefined
-                                                }
-                                                onFocus={() => setIsProductSuggestionsOpen(true)}
-                                                onBlur={() => setIsProductSuggestionsOpen(false)}
-                                                onChange={(event) => {
-                                                    if (selectedCatalogProductId) setProductDescription("")
-                                                    setProductName(event.target.value)
-                                                    setSelectedCatalogProductId(null)
-                                                    setIsProductSuggestionsOpen(true)
-                                                    setActiveProductSuggestionIndex(-1)
-                                                }}
-                                                onKeyDown={(event) => {
-                                                    if (event.key === "Escape") {
-                                                        setIsProductSuggestionsOpen(false)
-                                                    } else if (event.key === "ArrowDown" && productSuggestions.length > 0) {
-                                                        event.preventDefault()
-                                                        setIsProductSuggestionsOpen(true)
-                                                        setActiveProductSuggestionIndex((index) =>
-                                                            index < 0 ? 0 : (index + 1) % productSuggestions.length,
-                                                        )
-                                                    } else if (event.key === "ArrowUp" && productSuggestions.length > 0) {
-                                                        event.preventDefault()
-                                                        setIsProductSuggestionsOpen(true)
-                                                        setActiveProductSuggestionIndex((index) =>
-                                                            index <= 0
-                                                                ? productSuggestions.length - 1
-                                                                : index - 1,
-                                                        )
-                                                    } else if (
-                                                        event.key === "Enter" &&
-                                                        isProductSuggestionsOpen &&
-                                                        productSuggestions[activeProductSuggestionIndex]
-                                                    ) {
-                                                        event.preventDefault()
-                                                        selectProductSuggestion(productSuggestions[activeProductSuggestionIndex])
-                                                    }
-                                                }}
-                                                placeholder="VD: Cà phê, cà pháo..."
                                                 maxLength={100}
+                                                onChange={(event) => setProductName(event.target.value)}
+                                                autoFocus
                                             />
-                                            {isProductSuggestionsOpen && normalizedProductQuery && (
-                                                <div
-                                                    id="product-suggestions"
-                                                    role="listbox"
-                                                    className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
-                                                >
-                                                    {isLoadingProductCatalog ? (
-                                                        <p className="px-3 py-2 text-xs text-gray-500">
-                                                            Đang tải danh sách sản phẩm...
-                                                        </p>
-                                                    ) : productSuggestions.length > 0 ? (
-                                                        productSuggestions.map((product, index) => (
-                                                            <button
-                                                                key={product.productId}
-                                                                id={`product-suggestion-${index}`}
-                                                                type="button"
-                                                                role="option"
-                                                                aria-selected={index === activeProductSuggestionIndex}
-                                                                className={`block w-full px-3 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none ${
-                                                                    index === activeProductSuggestionIndex
-                                                                        ? "bg-blue-50"
-                                                                        : ""
-                                                                }`}
-                                                                onMouseDown={(event) => event.preventDefault()}
-                                                                onClick={() => selectProductSuggestion(product)}
-                                                            >
-                                <span className="block text-sm font-medium text-gray-800">
-                                  {product.productName}
-                                </span>
-                                                                {product.productDescription && (
-                                                                    <span
-                                                                        className="block truncate text-xs text-gray-500">
-                                    {product.productDescription}
-                                  </span>
-                                                                )}
-                                                            </button>
-                                                        ))
-                                                    ) : (
-                                                        <p className="px-3 py-2 text-xs text-gray-500">
-                                                            Không tìm thấy sản phẩm phù hợp.
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            )}
+                                        </FormField>
+                                        <FormField label="Mô tả sản phẩm">
+                                            <input
+                                                className={inputCls}
+                                                value={productDescription}
+                                                maxLength={255}
+                                                onChange={(event) => setProductDescription(event.target.value)}
+                                            />
+                                        </FormField>
+                                        <div className="sm:col-span-2 flex justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingProductId(null)
+                                                    setProductName("")
+                                                    setProductDescription("")
+                                                }}
+                                                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-600 hover:bg-white"
+                                            >Hủy
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleAddWhitelistProduct()}
+                                                disabled={!productName.trim() || isSavingProduct}
+                                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-40"
+                                            >{isSavingProduct ? "Đang lưu..." : "Lưu sản phẩm"}</button>
                                         </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <FormField label="Tìm và chọn sản phẩm có sẵn">
+                                            <input
+                                                className={inputCls}
+                                                value={productName}
+                                                onChange={(event) => setProductName(event.target.value)}
+                                                placeholder="Tìm theo tên sản phẩm..."
+                                                aria-label="Tìm sản phẩm trong danh mục"
+                                            />
+                                        </FormField>
                                         {productCatalogError && (
-                                            <p role="alert" className="mt-1 text-xs text-red-600">
-                                                {productCatalogError}
-                                            </p>
+                                            <p role="alert"
+                                               className="mb-2 text-xs text-red-600">{productCatalogError}</p>
                                         )}
-                                    </FormField>
-                                    <FormField label="Mô tả sản phẩm">
-                                        <input
-                                            className={`${inputCls} ${
-                                                selectedCatalogProductId ? "bg-gray-100" : ""
-                                            }`}
-                                            maxLength={255}
-                                            value={productDescription}
-                                            readOnly={Boolean(selectedCatalogProductId)}
-                                            title={
-                                                selectedCatalogProductId
-                                                    ? "Mô tả của sản phẩm có sẵn. Đổi tên để tạo sản phẩm mới."
-                                                    : undefined
-                                            }
-                                            onChange={(event) =>
-                                                setProductDescription(event.target.value)
-                                            }
-                                            placeholder="Mô tả phạm vi sản phẩm được phép"
-                                        />
-                                    </FormField>
-                                </div>
-                                <div className="flex items-center justify-between -mt-1">
-                  <span className="text-xs text-gray-400">
-                    {productDescription.length}/255 ký tự
-                  </span>
-                                    <button
-                                        onClick={handleAddWhitelistProduct}
-                                        disabled={!productName.trim() || isSavingProduct}
-                                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40"
-                                    >
-                                        {isSavingProduct
-                                            ? "Đang lưu..."
-                                            : editingProductId
-                                                ? "Lưu sản phẩm"
-                                                : "Thêm sản phẩm"}
-                                    </button>
-                                </div>
-                                {editingProductId && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditingProductId(null)
-                                            setSelectedCatalogProductId(null)
-                                            setProductName("")
-                                            setProductDescription("")
-                                            setIsProductSuggestionsOpen(false)
-                                        }}
-                                        className="mt-2 text-xs text-gray-500 hover:text-gray-700"
-                                    >
-                                        Hủy chỉnh sửa
-                                    </button>
+                                        <div
+                                            className="max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                                            {isLoadingProductCatalog ? (
+                                                <p className="px-3 py-6 text-center text-sm text-gray-500">Đang tải danh
+                                                    mục sản phẩm...</p>
+                                            ) : productCatalog.length === 0 ? (
+                                                <p className="px-3 py-6 text-center text-sm text-gray-500">Danh mục chưa
+                                                    có sản phẩm. Hãy tạo sản phẩm trước trong tab Sản phẩm.</p>
+                                            ) : filteredCatalogProducts.length === 0 ? (
+                                                <p className="px-3 py-6 text-center text-sm text-gray-500">Không tìm
+                                                    thấy sản phẩm chưa được thêm phù hợp.</p>
+                                            ) : filteredCatalogProducts.map((product) => (
+                                                <label
+                                                    key={product.productId}
+                                                    className="flex cursor-pointer items-start gap-3 border-b border-gray-100 px-3 py-2.5 last:border-0 hover:bg-blue-50"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedCatalogProductIds.includes(product.productId)}
+                                                        onChange={() => toggleCatalogProduct(product.productId)}
+                                                        className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="min-w-0 flex-1">
+                                                        <span
+                                                            className="block text-sm font-medium text-gray-800">{product.productName}</span>
+                                                        {product.productDescription && <span
+                                                            className="block truncate text-xs text-gray-500">{product.productDescription}</span>}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                            <span className="text-xs text-gray-500">
+                                                {selectedCatalogProductIds.length
+                                                    ? `Đã chọn ${selectedCatalogProductIds.length} sản phẩm`
+                                                    : "Chọn một hoặc nhiều sản phẩm để thêm vào loại mặt hàng này."}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleAddWhitelistProduct()}
+                                                disabled={selectedCatalogProductIds.length === 0 || isSavingProduct}
+                                                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                            >{isSavingProduct ? "Đang thêm..." : `Thêm ${selectedCatalogProductIds.length || ""} sản phẩm`}</button>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                             {productError && (
@@ -1609,7 +1568,7 @@ export function PremisesModule({
                                                         void handleDeleteWhitelistProduct(product.productId)
                                                     }
                                                 }}
-                                                className="text-xs text-gray-300 hover:text-red-500 transition-colors"
+                                                className="text-xs text-red-500 hover:text-red-700 transition-colors"
                                             >
                                                 Gỡ ngành hàng
                                             </button>
@@ -1806,139 +1765,190 @@ export function PremisesModule({
             {/* View Modal */}
             {modal === "view" && selectedPremise && !premiseIsEditing && (
                 <Modal
-                    title={`Chi tiết: ${selectedPremise.name}`}
+                    title={`${selectedPremise.name}`}
                     onClose={() => setModal(null)}
+                    wide
+                    compact
                     panelClassName={premiseStatusSurface[selectedPremise.status]}
                 >
-                    <div className="space-y-3">
-                        {premiseMedia.some(
-                            (media) => media.premiseMediaPremiseId === selectedPremise.id,
-                        ) && (
-                            <div className="-mx-6 -mt-5 mb-4">
-                                <div className="relative h-56 overflow-hidden bg-gray-900">
-                                    <img
-                                        src={
-                                            premiseMedia.filter(
-                                                (media) => media.premiseMediaPremiseId === selectedPremise.id,
-                                            )[activeMediaIndex].premiseMediaImageUrl
-                                        }
-                                        alt=""
-                                        aria-hidden="true"
-                                        className="absolute inset-0 w-full h-full object-cover object-center scale-110 blur-lg opacity-50"
-                                    />
-                                    <img
-                                        src={
-                                            premiseMedia.filter(
-                                                (media) => media.premiseMediaPremiseId === selectedPremise.id,
-                                            )[activeMediaIndex].premiseMediaImageUrl
-                                        }
-                                        alt={`${selectedPremise.name} — ảnh ${activeMediaIndex + 1}`}
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => setIsImageFullscreen(true)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === "Enter" || event.key === " ") {
-                                                event.preventDefault()
-                                                setIsImageFullscreen(true)
+                    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
+                        <div className="space-y-3">
+                            {premiseMedia.some(
+                                (media) => media.premiseMediaPremiseId === selectedPremise.id,
+                            ) && (
+                                <div className="-mx-6 -mt-5 mb-4">
+                                    <div className="relative h-56 overflow-hidden bg-gray-900">
+                                        <img
+                                            src={
+                                                premiseMedia.filter(
+                                                    (media) => media.premiseMediaPremiseId === selectedPremise.id,
+                                                )[activeMediaIndex].premiseMediaImageUrl
                                             }
-                                        }}
-                                        className="relative w-full h-full object-contain object-center cursor-zoom-in"
-                                    />
-                                    {premiseMedia.filter(
-                                        (media) => media.premiseMediaPremiseId === selectedPremise.id,
-                                    ).length > 1 && (
-                                        <>
-                                            <button
-                                                onClick={() => {
-                                                    const count = premiseMedia.filter(
-                                                        (media) =>
-                                                            media.premiseMediaPremiseId === selectedPremise.id,
-                                                    ).length
-                                                    setActiveMediaIndex(
-                                                        (activeMediaIndex - 1 + count) % count,
-                                                    )
-                                                }}
-                                                aria-label="Ảnh trước"
-                                                className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-gray-950/70 text-white text-xl leading-none hover:bg-gray-950 transition-colors"
-                                            >
-                                                ‹
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    const count = premiseMedia.filter(
-                                                        (media) =>
-                                                            media.premiseMediaPremiseId === selectedPremise.id,
-                                                    ).length
-                                                    setActiveMediaIndex((activeMediaIndex + 1) % count)
-                                                }}
-                                                aria-label="Ảnh tiếp theo"
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-gray-950/70 text-white text-xl leading-none hover:bg-gray-950 transition-colors"
-                                            >
-                                                ›
-                                            </button>
-                                        </>
-                                    )}
-                                    <div
-                                        className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-gray-950/60 to-transparent"/>
-                                    <span
-                                        className="absolute right-3 bottom-3 rounded-full bg-gray-950/70 px-2.5 py-1 text-xs font-semibold text-white">
-                    {activeMediaIndex + 1} /{" "}
-                                        {
-                                            premiseMedia.filter(
-                                                (media) => media.premiseMediaPremiseId === selectedPremise.id,
-                                            ).length
-                                        }
-                  </span>
-                                </div>
-                                <div className="flex justify-center gap-1.5 mt-3 px-6">
-                                    {premiseMedia
-                                        .filter(
+                                            alt=""
+                                            aria-hidden="true"
+                                            className="absolute inset-0 w-full h-full object-cover object-center scale-110 blur-lg opacity-50"
+                                        />
+                                        <img
+                                            src={
+                                                premiseMedia.filter(
+                                                    (media) => media.premiseMediaPremiseId === selectedPremise.id,
+                                                )[activeMediaIndex].premiseMediaImageUrl
+                                            }
+                                            alt={`${selectedPremise.name} — ảnh ${activeMediaIndex + 1}`}
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => setIsImageFullscreen(true)}
+                                            onKeyDown={(event) => {
+                                                if (event.key === "Enter" || event.key === " ") {
+                                                    event.preventDefault()
+                                                    setIsImageFullscreen(true)
+                                                }
+                                            }}
+                                            className="relative w-full h-full object-contain object-center cursor-zoom-in"
+                                        />
+                                        {premiseMedia.filter(
                                             (media) => media.premiseMediaPremiseId === selectedPremise.id,
-                                        )
-                                        .map((media, index) => (
-                                            <button
-                                                key={media.premiseMediaId}
-                                                onClick={() => setActiveMediaIndex(index)}
-                                                aria-label={`Xem ảnh ${index + 1}`}
-                                                className={`h-1.5 rounded-full transition-all ${
-                                                    index === activeMediaIndex
-                                                        ? "w-6 bg-blue-600"
-                                                        : "w-1.5 bg-gray-300 hover:bg-gray-400"
-                                                }`}
-                                            />
-                                        ))}
+                                        ).length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={() => {
+                                                        const count = premiseMedia.filter(
+                                                            (media) =>
+                                                                media.premiseMediaPremiseId === selectedPremise.id,
+                                                        ).length
+                                                        setActiveMediaIndex(
+                                                            (activeMediaIndex - 1 + count) % count,
+                                                        )
+                                                    }}
+                                                    aria-label="Ảnh trước"
+                                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-gray-950/70 text-white text-xl leading-none hover:bg-gray-950 transition-colors"
+                                                >
+                                                    ‹
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        const count = premiseMedia.filter(
+                                                            (media) =>
+                                                                media.premiseMediaPremiseId === selectedPremise.id,
+                                                        ).length
+                                                        setActiveMediaIndex((activeMediaIndex + 1) % count)
+                                                    }}
+                                                    aria-label="Ảnh tiếp theo"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-gray-950/70 text-white text-xl leading-none hover:bg-gray-950 transition-colors"
+                                                >
+                                                    ›
+                                                </button>
+                                            </>
+                                        )}
+                                        <div
+                                            className="absolute inset-x-0 bottom-0 h-12 bg-linear-to-t from-gray-950/60 to-transparent"/>
+                                        <span
+                                            className="absolute right-3 bottom-3 rounded-full bg-gray-950/70 px-2.5 py-1 text-xs font-semibold text-white">
+                    {activeMediaIndex + 1} /{" "}
+                                            {
+                                                premiseMedia.filter(
+                                                    (media) => media.premiseMediaPremiseId === selectedPremise.id,
+                                                ).length
+                                            }
+                  </span>
+                                    </div>
+                                    <div className="flex justify-center gap-1.5 mt-3 px-6">
+                                        {premiseMedia
+                                            .filter(
+                                                (media) => media.premiseMediaPremiseId === selectedPremise.id,
+                                            )
+                                            .map((media, index) => (
+                                                <button
+                                                    key={media.premiseMediaId}
+                                                    onClick={() => setActiveMediaIndex(index)}
+                                                    aria-label={`Xem ảnh ${index + 1}`}
+                                                    className={`h-1.5 rounded-full transition-all ${
+                                                        index === activeMediaIndex
+                                                            ? "w-6 bg-blue-600"
+                                                            : "w-1.5 bg-gray-300 hover:bg-gray-400"
+                                                    }`}
+                                                />
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-white/70 rounded-lg p-3">
+                                    <p className="text-xs text-gray-400 mb-1">ID</p>
+                                    <p className="text-sm font-mono font-medium">{selectedPremise.id}</p>
+                                </div>
+                                <div className="bg-white/70 rounded-lg p-3">
+                                    <p className="text-xs text-gray-400 mb-1">Diện tích</p>
+                                    <p className="text-sm font-mono font-medium">{selectedPremise.area}</p>
+                                </div>
+                                <div className="bg-white/70 rounded-lg p-3">
+                                    <p className="text-xs text-gray-400 mb-1">Tầng / Vị trí</p>
+                                    <p className="text-sm font-medium">
+                                        Tầng {selectedPremise.floor} - {selectedPremise.position}
+                                    </p>
+                                </div>
+                                <div className="bg-white/70 rounded-lg p-3">
+                                    <p className="text-xs text-gray-400 mb-1">Trạng thái</p>
+                                    <PremiseStatusBadge status={selectedPremise.status}/>
                                 </div>
                             </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white/70 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">ID</p>
-                                <p className="text-sm font-mono font-medium">{selectedPremise.id}</p>
+                                <p className="text-xs text-gray-400 mb-1">Địa chỉ</p>
+                                <p className="text-sm">{selectedPremise.location}</p>
                             </div>
                             <div className="bg-white/70 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">Diện tích</p>
-                                <p className="text-sm font-mono font-medium">{selectedPremise.area}</p>
+                                <p className="text-xs text-gray-400 mb-1">Mô tả</p>
+                                <p className="text-sm text-gray-600">{selectedPremise.description}</p>
                             </div>
-                            <div className="bg-white/70 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">Tầng / Vị trí</p>
-                                <p className="text-sm font-medium">
-                                    Tầng {selectedPremise.floor} - {selectedPremise.position}
+                        </div>
+                        <section className="min-w-0 rounded-xl border border-white/70 bg-white/70 p-4">
+                            <div className="mb-3">
+                                <h4 className="text-sm font-semibold text-gray-800">Ngành hàng và sản phẩm được
+                                    phép</h4>
+                                <p className="mt-1 text-xs text-gray-500">Danh sách ngành hàng đã cấu hình cho mặt bằng
+                                    và các sản phẩm được phép kinh doanh.</p>
+                            </div>
+                            {isLoadingPremiseBusinessTypes ? (
+                                <p className="py-4 text-center text-sm text-gray-500">Đang tải cấu hình kinh
+                                    doanh...</p>
+                            ) : premiseBusinessTypesError ? (
+                                <p role="alert"
+                                   className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{premiseBusinessTypesError}</p>
+                            ) : premiseBusinessTypeProducts.length === 0 ? (
+                                <p className="rounded-lg border border-dashed border-gray-300 bg-white/60 px-3 py-4 text-center text-sm text-gray-500">
+                                    Chưa có business type được cấu hình cho mặt bằng này.
                                 </p>
-                            </div>
-                            <div className="bg-white/70 rounded-lg p-3">
-                                <p className="text-xs text-gray-400 mb-1">Trạng thái</p>
-                                <PremiseStatusBadge status={selectedPremise.status}/>
-                            </div>
-                        </div>
-                        <div className="bg-white/70 rounded-lg p-3">
-                            <p className="text-xs text-gray-400 mb-1">Địa chỉ</p>
-                            <p className="text-sm">{selectedPremise.location}</p>
-                        </div>
-                        <div className="bg-white/70 rounded-lg p-3">
-                            <p className="text-xs text-gray-400 mb-1">Mô tả</p>
-                            <p className="text-sm text-gray-600">{selectedPremise.description}</p>
-                        </div>
-                        <div className="flex justify-end gap-2 pt-1">
+                            ) : (
+                                <div className="space-y-3">
+                                    {premiseBusinessTypeProducts.map((businessType) => (
+                                        <div key={businessType.businessTypeId}
+                                             className="rounded-lg border border-gray-100 bg-white p-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <p className="text-sm font-semibold text-gray-800">{businessType.businessTypeName}</p>
+                                                <span
+                                                    className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                    {businessType.products.length} sản phẩm
+                                                </span>
+                                            </div>
+                                            {businessType.products.length ? (
+                                                <ul className="mt-2 flex flex-wrap gap-2">
+                                                    {businessType.products.map((product) => (
+                                                        <li key={product.productId}
+                                                            className="rounded-md bg-gray-50 px-2.5 py-1 text-xs text-gray-700">
+                                                            {product.productName}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p className="mt-2 text-xs text-gray-500">Chưa có sản phẩm được phép cho
+                                                    business type này.</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                        <div className="lg:col-span-2 flex justify-end gap-2 border-t border-white/60 pt-4">
                             {canUpdatePremise && <button
                                 type="button"
                                 onClick={() => void handleDeletePremise()}
@@ -1969,7 +1979,7 @@ export function PremisesModule({
                     role="dialog"
                     aria-modal="true"
                     aria-label={`Ảnh ${activeMediaIndex + 1} của mặt bằng ${selectedPremise.name}`}
-                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4"
+                    className="fixed inset-0 z-60 flex items-center justify-center bg-black/95 p-4"
                     onClick={() => setIsImageFullscreen(false)}
                 >
                     <button

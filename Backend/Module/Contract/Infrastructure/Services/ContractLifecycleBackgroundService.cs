@@ -11,10 +11,14 @@ namespace Contract.Infrastructure.Services
         ILogPool logPool) : BackgroundService
     {
         private const string Module = "Contract";
+
         private const string Layer = "Infrastructure/Services";
-        private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-        private readonly ILogger<ContractLifecycleBackgroundService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
         private readonly ILogPool _logPool = logPool ?? throw new ArgumentNullException(nameof(logPool));
+
+        private readonly ILogger<ContractLifecycleBackgroundService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        private readonly IServiceScopeFactory _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
 
         private readonly HashSet<Guid> _synchronizedContracts = [];
 

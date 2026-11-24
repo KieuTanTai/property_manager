@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using MySql.EntityFrameworkCore.Extensions;
 using Premise.Models.Business;
 using Premise.Models.Premise;
+using Shared.Enum;
 
 namespace Premise.Infrastructure.Persistence.Configuration
 {
@@ -31,7 +32,7 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasConversion<string>()
                 .HasMaxLength(20);
 
-            entity.HasQueryFilter(premise => premise.PremiseStatus != Shared.Enum.EPremiseStatus.Deleted);
+            entity.HasQueryFilter(premise => premise.PremiseStatus != EPremiseStatus.Deleted);
 
             entity.Property(premise => premise.PremisePosition)
                 .HasColumnName("premise_position")

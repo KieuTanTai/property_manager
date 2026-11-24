@@ -1,13 +1,10 @@
 import {useEffect, useState} from "react"
-import {
-    MOCK_ACCOUNT_MONTHLY,
-    MOCK_CONTRACT_MONTHLY,
-    MOCK_MONTHLY_REVENUE,
-    MOCK_VIOLATION_MONTHLY
-} from "../../mocks/statistics"
+import {MOCK_CONTRACT_MONTHLY, MOCK_MONTHLY_REVENUE, MOCK_VIOLATION_MONTHLY} from "../../mocks/statistics"
 import {BaseTable, ContractStatusBadge, InvoiceStatusBadge, ModulePageHeader, PremiseStatusBadge} from "./shared"
-import {ACCOUNTS, CONTRACTS, INVOICES, VIOLATIONS} from "../../mocks/shared"
+import {CONTRACTS, INVOICES, VIOLATIONS} from "../../mocks/shared"
 import {fmt} from "../../scripts/format"
+import {identityApi} from "@/api/identity"
+import type {AccountModel} from "@/types/identity"
 import {premiseApi} from "@/api/premise"
 import type {LocationModel, PremiseModel, PremiseStatus} from "../premises/types"
 
@@ -137,6 +134,11 @@ export function StatisticsModule() {
     const [premisesLoading, setPremisesLoading] = useState(false)
     const [premisesError, setPremisesError] = useState<string | null>(null)
     const [premisesReload, setPremisesReload] = useState(0)
+    const [accounts, setAccounts] = useState<AccountModel[]>([])
+    const [accountsLoading, setAccountsLoading] = useState(false)
+    const [accountsError, setAccountsError] = useState<string | null>(null)
+    const [accountsReload, setAccountsReload] = useState(0)
+    const [accountSearch, setAccountSearch] = useState("")
 
     useEffect(() => {
         if (activeTab !== "premises") return
@@ -161,6 +163,29 @@ export function StatisticsModule() {
             isCurrent = false
         }
     }, [activeTab, premisesReload])
+
+    useEffect(() => {
+        if (activeTab !== "accounts") return
+
+        let isCurrent = true
+        setAccountsLoading(true)
+        setAccountsError(null)
+        void identityApi.getAllAccountsForStatistics()
+            .then((items) => {
+                if (isCurrent) setAccounts(items)
+            })
+            .catch((cause: unknown) => {
+                if (isCurrent) {
+                    setAccountsError(cause instanceof Error ? cause.message : "Không thể tải thống kê tài khoản.")
+                }
+            })
+            .finally(() => {
+                if (isCurrent) setAccountsLoading(false)
+            })
+        return () => {
+            isCurrent = false
+        }
+    }, [activeTab, accountsReload])
 
     const tabs = [
         {id: "finance" as const, label: "Tài chính"},
@@ -232,31 +257,55 @@ export function StatisticsModule() {
     const violationUnresolved = VIOLATIONS.filter((v) => !v.resolved).length
     const totalPenalty = VIOLATIONS.reduce((s, v) => s + v.penaltyAmount, 0)
 
-    const accountsByRole = [
-        {
-            name: "Super Admin",
-            value: ACCOUNTS.filter((a) => a.role === "SUPER_ADMIN").length,
-            color: "bg-violet-500",
-        },
-        {
-            name: "Manager",
-            value: ACCOUNTS.filter((a) => a.role === "MANAGER").length,
-            color: "bg-blue-500",
-        },
-        {
-            name: "Staff",
-            value: ACCOUNTS.filter((a) => a.role === "STAFF").length,
-            color: "bg-emerald-500",
-        },
-        {
-            name: "Tenant",
-            value: ACCOUNTS.filter((a) => a.role === "TENANT").length,
-            color: "bg-amber-500",
-        },
-    ]
+    const totalAccounts = accounts.length
+    const activeAccounts = accounts.filter((account) => account.accountIsActive).length
+    const accountHasRole = (account: AccountModel, roleCode: string) =>
+        account.roles.some((role) => role.roleCode.toLowerCase() === roleCode.toLowerCase())
+    const tenantAccounts = accounts.filter((account) => accountHasRole(account, "Customer")).length
+    const internalRoleCodes = new Set(["inspector", "manager", "admin"])
+    const isInternalHighLevelAccount = (account: AccountModel) =>
+        account.roles.some((role) => internalRoleCodes.has(role.roleCode.toLowerCase()))
+    const operationalAccounts = accounts.filter(isInternalHighLevelAccount).length
+    const roleCounts = new Map<string, { name: string; value: number }>()
+    for (const account of accounts) {
+        if (account.roles.length === 0) {
+            const current = roleCounts.get("UNASSIGNED")
+            roleCounts.set("UNASSIGNED", {name: "Chưa gán vai trò", value: (current?.value ?? 0) + 1})
+            continue
+        }
+        for (const role of account.roles) {
+            const current = roleCounts.get(role.roleCode)
+            roleCounts.set(role.roleCode, {name: role.roleName || role.roleCode, value: (current?.value ?? 0) + 1})
+        }
+    }
+    const roleColors = ["bg-violet-500", "bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-cyan-500"]
+    const accountsByRole = [...roleCounts.values()]
+        .sort((left, right) => right.value - left.value)
+        .map((item, index) => ({...item, color: roleColors[index % roleColors.length]}))
 
-    const totalAccounts = ACCOUNTS.length
-    const activeAccounts = ACCOUNTS.filter((a) => a.active).length
+    const currentMonth = new Date()
+    const recentMonths = Array.from({length: 3}, (_, index) => {
+        const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 2 + index, 1)
+        const count = accounts.filter((account) => {
+            const createdAt = new Date(account.accountCreatedAt)
+            return !Number.isNaN(createdAt.getTime()) &&
+                createdAt.getFullYear() === monthStart.getFullYear() &&
+                createdAt.getMonth() === monthStart.getMonth()
+        }).length
+        return {
+            month: monthStart.toLocaleDateString("vi-VN", {month: "long", year: "numeric"}),
+            count,
+        }
+    })
+    const normalizedAccountSearch = accountSearch.trim().toLocaleLowerCase("vi")
+    const filteredAccounts = accounts.filter((account) => {
+        const fullName = [account.userProfile?.userProfileFirstName, account.userProfile?.userProfileLastName]
+            .filter(Boolean).join(" ")
+        const roles = account.roles.map((role) => `${role.roleName} ${role.roleCode}`).join(" ")
+        return !normalizedAccountSearch ||
+            `${fullName} ${account.accountEmail} ${roles}`.toLocaleLowerCase("vi").includes(normalizedAccountSearch)
+    })
+    const internalAccounts = filteredAccounts.filter(isInternalHighLevelAccount)
     const premiseStatusCounts: Record<PremiseStatus, number> = {
         rented: premises.filter((premise) => premise.premiseStatus === "Rented").length,
         available: premises.filter((premise) => premise.premiseStatus === "Available").length,
@@ -299,7 +348,7 @@ export function StatisticsModule() {
     return (
         <div>
             <ModulePageHeader title="Thống kê & Phân tích"
-                              description="Dữ liệu tổng hợp theo thời gian thực — năm 2024"/>
+                              description="Tổng hợp số liệu theo từng phân hệ"/>
 
             {/* Tab navigation */}
             <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 w-fit">
@@ -437,67 +486,77 @@ export function StatisticsModule() {
             {/* ── Accounts ── */}
             {activeTab === "accounts" && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-4 gap-4">
+                    <p className="text-xs text-gray-500">Số liệu tài khoản được tải trực tiếp từ Identity API.</p>
+                    {accountsError && (
+                        <div role="alert"
+                             className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            <span>{accountsError}</span>
+                            <button
+                                type="button"
+                                onClick={() => setAccountsReload((current) => current + 1)}
+                                className="rounded-lg border border-red-200 bg-white px-3 py-2 font-medium hover:bg-red-100"
+                            >Thử tải lại
+                            </button>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         <KPICard
                             label="Tổng tài khoản"
-                            value={String(totalAccounts)}
-                            sub="Tất cả vai trò"
+                            value={accountsLoading ? "…" : accountsError ? "—" : String(totalAccounts)}
+                            sub="Tất cả tài khoản trong hệ thống"
                             color="bg-blue-500"
                         />
                         <KPICard
                             label="Đang hoạt động"
-                            value={String(activeAccounts)}
-                            sub={`${Math.round((activeAccounts / totalAccounts) * 100)}% tổng số`}
-                            trend={{val: "2 mới tháng này", up: true}}
+                            value={accountsLoading ? "…" : accountsError ? "—" : String(activeAccounts)}
+                            sub={accountsError ? "Không có dữ liệu" : totalAccounts ? `${Math.round((activeAccounts / totalAccounts) * 100)}% tổng số` : "Chưa có tài khoản"}
                             color="bg-emerald-500"
                         />
                         <KPICard
                             label="Khách thuê"
-                            value={String(ACCOUNTS.filter((a) => a.role === "TENANT").length)}
-                            sub="Tài khoản thuê"
+                            value={accountsLoading ? "…" : accountsError ? "—" : String(tenantAccounts)}
+                            sub="Có vai trò Customer"
                             color="bg-amber-400"
                         />
                         <KPICard
                             label="Nhân viên vận hành"
-                            value="4"
-                            sub="Kỹ thuật + Thanh tra"
+                            value={accountsLoading ? "…" : accountsError ? "—" : String(operationalAccounts)}
+                            sub="Inspector, Manager hoặc Admin"
                             color="bg-violet-500"
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                         <div
-                            className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                            <SectionHeading title="Phân bổ vai trò"/>
-                            <DistributionList items={accountsByRole}/>
+                            className="rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                            <SectionHeading title="Phân bổ vai trò" sub="Tài khoản được đếm theo từng vai trò"/>
+                            {accountsLoading ? (
+                                <p className="py-8 text-center text-sm text-gray-400">Đang tải tài khoản...</p>
+                            ) : accountsError ? (
+                                <p className="py-8 text-center text-sm text-gray-400">Không có dữ liệu để phân bổ.</p>
+                            ) : accountsByRole.length ? (
+                                <DistributionList items={accountsByRole}/>
+                            ) : (
+                                <p className="py-8 text-center text-sm text-gray-400">Chưa có dữ liệu tài khoản.</p>
+                            )}
                         </div>
                         <div
-                            className="col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                            className="rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] xl:col-span-2">
                             <SectionHeading
-                                title="Đăng ký tài khoản mới theo tháng"
-                                sub="Tháng 1 → 9 năm 2024"
+                                title="Đăng ký tài khoản mới"
+                                sub="3 tháng gần nhất"
                             />
                             <div
-                                className="grid grid-cols-3 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                                className="grid grid-cols-2 rounded-lg bg-gray-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
                                 <span>Tháng</span>
                                 <span className="text-right">Đăng ký mới</span>
-                                <span className="text-right">Hủy khoản</span>
                             </div>
                             <div className="divide-y divide-gray-100">
-                                {MOCK_ACCOUNT_MONTHLY.map((row) => (
-                                    <div
-                                        key={row.month}
-                                        className="grid grid-cols-3 px-4 py-3 hover:bg-gray-50/50 transition-colors"
-                                    >
-                    <span className="text-xs font-semibold text-gray-700">
-                      {row.month}
-                    </span>
-                                        <span className="text-xs font-mono font-semibold text-blue-600 text-right">
-                      {row.moiDangKy}
-                    </span>
-                                        <span className="text-xs font-mono font-semibold text-red-500 text-right">
-                      {row.huyKhoan}
-                    </span>
+                                {recentMonths.map((row) => (
+                                    <div key={row.month} className="grid grid-cols-2 px-4 py-3 hover:bg-gray-50/50">
+                                        <span className="text-xs font-semibold text-gray-700">{row.month}</span>
+                                        <span
+                                            className="text-right font-mono text-xs font-semibold text-blue-600">{accountsLoading || accountsError ? "—" : row.count}</span>
                                     </div>
                                 ))}
                             </div>
@@ -505,39 +564,67 @@ export function StatisticsModule() {
                     </div>
 
                     <div
-                        className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                        <SectionHeading title="Danh sách tài khoản" sub="Tất cả vai trò"/>
-                        <div className="overflow-hidden">
-                            <div
-                                className="grid grid-cols-5 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                                <span className="col-span-1">Họ tên</span>
-                                <span className="col-span-1">Email</span>
-                                <span className="col-span-1">Vai trò</span>
-                                <span className="col-span-1">Ngày tạo</span>
-                                <span className="col-span-1">Trạng thái</span>
+                        className="rounded-2xl border border-gray-100 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                                <h2 className="text-base font-bold text-gray-900"
+                                    style={{fontFamily: "Open Sans, sans-serif"}}>Tài khoản nội bộ cấp cao</h2>
+                                <p className="mt-0.5 text-xs text-gray-400">{accountsLoading ? "Đang tải..." : `${internalAccounts.length} tài khoản · không gồm Customer và Employee`}</p>
                             </div>
-                            {ACCOUNTS.map((a) => (
+                            <input
+                                type="search"
+                                value={accountSearch}
+                                onChange={(event) => setAccountSearch(event.target.value)}
+                                placeholder="Tìm tên, email hoặc vai trò nội bộ"
+                                aria-label="Tìm tài khoản nội bộ cấp cao"
+                                className="w-full max-w-sm rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                            />
+                        </div>
+                        <div className="overflow-x-auto">
+                            <div className="min-w-[760px]">
                                 <div
-                                    key={a.id}
-                                    className="grid grid-cols-5 px-4 py-3 border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
-                                >
-                  <span className="text-xs font-semibold text-gray-900">
-                    {a.name}
-                  </span>
-                                    <span className="text-xs text-gray-500">{a.email}</span>
-                                    <span className="text-xs font-medium text-gray-700">
-                    {a.role}
-                  </span>
-                                    <span className="text-xs text-gray-400">{a.createdAt}</span>
-                                    <span
-                                        className={`text-xs font-semibold ${
-                                            a.active ? "text-emerald-600" : "text-gray-400"
-                                        }`}
-                                    >
-                    {a.active ? "Hoạt động" : "Vô hiệu"}
-                  </span>
+                                    className="grid grid-cols-5 rounded-lg bg-gray-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                    <span>Họ tên</span>
+                                    <span>Email</span>
+                                    <span>Vai trò</span>
+                                    <span>Ngày tạo</span>
+                                    <span>Trạng thái</span>
                                 </div>
-                            ))}
+                                {accountsLoading ? (
+                                    <p className="py-12 text-center text-sm text-gray-400">Đang tải dữ liệu tài
+                                        khoản...</p>
+                                ) : accountsError ? (
+                                    <p className="py-12 text-center text-sm text-gray-400">Không tải được dữ liệu tài
+                                        khoản.</p>
+                                ) : internalAccounts.length ? internalAccounts.map((account) => {
+                                    const fullName = [account.userProfile?.userProfileFirstName, account.userProfile?.userProfileLastName]
+                                        .filter(Boolean).join(" ")
+                                    const createdAt = new Date(account.accountCreatedAt)
+                                    return (
+                                        <div key={account.accountId}
+                                             className="grid grid-cols-5 items-center border-b border-gray-50 px-4 py-3 last:border-0 hover:bg-gray-50/50">
+                                            <span className="truncate pr-3 text-xs font-semibold text-gray-900"
+                                                  title={fullName || account.accountEmail}>{fullName || "Chưa có hồ sơ"}</span>
+                                            <span className="truncate pr-3 text-xs text-gray-500"
+                                                  title={account.accountEmail}>{account.accountEmail}</span>
+                                            <span className="flex flex-wrap gap-1 pr-3">
+                                                {account.roles.length ? account.roles.map((role) => (
+                                                    <span key={role.roleId}
+                                                          className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">{role.roleName || role.roleCode}</span>
+                                                )) : <span className="text-xs text-gray-400">Chưa gán</span>}
+                                            </span>
+                                            <span
+                                                className="text-xs text-gray-500">{Number.isNaN(createdAt.getTime()) ? "—" : createdAt.toLocaleDateString("vi-VN")}</span>
+                                            <span
+                                                className={`text-xs font-semibold ${account.accountIsActive ? "text-emerald-600" : "text-gray-400"}`}>
+                                                {account.accountIsActive ? "Hoạt động" : "Vô hiệu"}
+                                            </span>
+                                        </div>
+                                    )
+                                }) : (
+                                    <p className="py-12 text-center text-sm text-gray-400">{accounts.length ? "Không tìm thấy tài khoản nội bộ cấp cao phù hợp." : "Chưa có tài khoản trong hệ thống."}</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -21,15 +21,24 @@ export type {
 } from "@/types/identity"
 
 type ApiProfile = {
-    identityCode: string
-    accountId: string
-    firstName: string | null
-    lastName: string | null
-    dateOfBirth: string | null
-    gender: UserProfileModel["userProfileGender"]
-    phoneNumber: string | null
-    address: string | null
-    avatarUrl: string | null
+    identityCode?: string
+    accountId?: string
+    firstName?: string | null
+    lastName?: string | null
+    dateOfBirth?: string | null
+    gender?: UserProfileModel["userProfileGender"]
+    phoneNumber?: string | null
+    address?: string | null
+    avatarUrl?: string | null
+    userProfileId?: string
+    userProfileAccountId?: string
+    userProfileFirstName?: string | null
+    userProfileLastName?: string | null
+    userProfileDateOfBirth?: string | null
+    userProfileGender?: UserProfileModel["userProfileGender"]
+    userProfilePhoneNumber?: string | null
+    userProfileAddress?: string | null
+    userProfileAvatarUrl?: string | null
 }
 type ApiAccount = Omit<AccountModel, "userProfile"> & { userProfile: ApiProfile | null }
 
@@ -91,6 +100,18 @@ export const identityApi = {
             }
             throw error
         }
+    },
+    async getAllAccountsForStatistics() {
+        const accounts: AccountModel[] = []
+        let cursor: string | null = null
+        let hasMore = true
+        while (hasMore) {
+            const page = await this.getAccountsPageByStatus(cursor, 100, "all")
+            accounts.push(...page.items)
+            cursor = page.nextCursor
+            hasMore = page.isHasMore && cursor !== null
+        }
+        return accounts
     },
     getAllRolesWithPermissions() {
         return request<RoleModel[]>("/authorization/roles")
@@ -202,14 +223,14 @@ export const identityApi = {
 
 function toProfileModel(profile: ApiProfile): UserProfileModel {
     return {
-        userProfileId: profile.identityCode,
-        userProfileAccountId: profile.accountId,
-        userProfileFirstName: profile.firstName,
-        userProfileLastName: profile.lastName,
-        userProfileDateOfBirth: profile.dateOfBirth,
-        userProfileGender: profile.gender,
-        userProfilePhoneNumber: profile.phoneNumber,
-        userProfileAddress: profile.address,
-        userProfileAvatarUrl: profile.avatarUrl,
+        userProfileId: profile.userProfileId ?? profile.identityCode ?? "",
+        userProfileAccountId: profile.userProfileAccountId ?? profile.accountId ?? "",
+        userProfileFirstName: profile.userProfileFirstName ?? profile.firstName ?? null,
+        userProfileLastName: profile.userProfileLastName ?? profile.lastName ?? null,
+        userProfileDateOfBirth: profile.userProfileDateOfBirth ?? profile.dateOfBirth ?? null,
+        userProfileGender: profile.userProfileGender ?? profile.gender ?? null,
+        userProfilePhoneNumber: profile.userProfilePhoneNumber ?? profile.phoneNumber ?? null,
+        userProfileAddress: profile.userProfileAddress ?? profile.address ?? null,
+        userProfileAvatarUrl: profile.userProfileAvatarUrl ?? profile.avatarUrl ?? null,
     }
 }

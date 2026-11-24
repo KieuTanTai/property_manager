@@ -1,4 +1,3 @@
-using Premise.Models.Business;
 using Premise.Models.Product;
 
 namespace Premise.Interfaces.IApplication

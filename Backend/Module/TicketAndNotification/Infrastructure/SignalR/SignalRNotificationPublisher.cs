@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
+using Shared.Logging;
 using TicketAndNotification.Interfaces.Services;
 using TicketAndNotification.Models.Notification;
-using Shared.Logging;
 
 namespace TicketAndNotification.Infrastructure.SignalR
 {
@@ -11,6 +11,7 @@ namespace TicketAndNotification.Infrastructure.SignalR
         ILogPool logPool) : INotificationRealtimePublisher
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Infrastructure/SignalR";
 
         public async Task PublishToRecipientAsync(

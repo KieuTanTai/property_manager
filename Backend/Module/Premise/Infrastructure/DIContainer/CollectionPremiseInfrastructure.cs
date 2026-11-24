@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Premise.Infrastructure.Persistence.DbContext;
 using Premise.Infrastructure.Options;
+using Premise.Infrastructure.Persistence.DbContext;
 using Premise.Infrastructure.Repository;
 using Premise.Infrastructure.Repository.PremiseRepository;
 using Premise.Interfaces.IRepository.BusinessType;

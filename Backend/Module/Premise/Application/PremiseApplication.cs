@@ -691,7 +691,7 @@ namespace Premise.Application
             {
                 throw new ArgumentException("Contract id is required.", nameof(contractId));
             }
-            
+
             var rentedPremises = await _rentedPremiseRepository.GetByContractIdAsync(contractId, cancellationToken);
             if (rentedPremises.Count == 0)
             {

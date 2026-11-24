@@ -20,7 +20,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<PremiseBusinessTypeRepository> _logger = logger;
-        
+
         private void Validate(PremiseBusinessTypeModel entity)
         {
             ArgumentNullException.ThrowIfNull(entity);

@@ -18,7 +18,7 @@ export function BusinessTypesTab({
             columns={[
                 {
                     key: "id",
-                    header: "Business Type ID (UUID v7)",
+                    header: "ID",
                     cellClassName: "max-w-52 truncate px-4 py-3 font-mono text-xs text-gray-500",
                     render: (item) => <span title={item.businessTypeId}>{item.businessTypeId}</span>
                 },

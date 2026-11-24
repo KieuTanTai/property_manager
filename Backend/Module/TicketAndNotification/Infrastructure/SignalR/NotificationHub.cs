@@ -11,6 +11,7 @@ namespace TicketAndNotification.Infrastructure.SignalR
         ILogPool logPool) : Hub
     {
         private const string Module = "TicketAndNotification";
+
         private const string Layer = "Infrastructure/SignalR";
 
         public const string Route = "/hubs/notifications";

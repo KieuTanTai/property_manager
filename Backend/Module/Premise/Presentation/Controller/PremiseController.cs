@@ -22,9 +22,11 @@ namespace Premise.Presentation.Controller
         ILogger<PremiseController> logger,
         ILogPool logPool) : CustomControllerBase(logger, logPool, "Premise", "Presentation/Controller")
     {
-        private readonly IPremiseApplication _premiseApplication = premiseApplication;
         private readonly IBusinessTypeApplication _businessTypeApplication = businessTypeApplication;
+
         private readonly InternalApiOptions _internalApiOptions = internalApiOptions.Value;
+
+        private readonly IPremiseApplication _premiseApplication = premiseApplication;
 
         [HttpDelete("rental-sync/{contractId:guid}")]
         public async Task<IActionResult> ReleaseContractPremisesAsync(

@@ -80,7 +80,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             return await _db.Premises.FirstOrDefaultAsync(premise => premise.PremiseId == id,
                 cancellationToken);
         }
-        
+
         public async Task<List<PremiseModel>> GetTrackedByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked premises by ids.");
@@ -105,7 +105,6 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 "Premise lookup rejected because the premise was not found by name.");
             throw exception;
-
         }
 
         public async Task<PremiseModel> GetTrackedPremiseByNameAsync(string premiseName,
@@ -122,7 +121,6 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerError(_logPool, Module, Layer, exception,
                 "Tracked premise lookup rejected because the premise was not found by name.");
             throw exception;
-
         }
 
         public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)

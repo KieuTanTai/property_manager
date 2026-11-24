@@ -1,9 +1,9 @@
+using Contract.Infrastructure.Services.Options;
 using Contract.Interfaces.Services;
 using MailKit.Net.Smtp;
 using MailKit.Security;
-using MimeKit;
 using Microsoft.Extensions.Options;
-using Contract.Infrastructure.Services.Options;
+using MimeKit;
 using Shared.Logging;
 
 namespace Contract.Infrastructure.Services
@@ -14,7 +14,9 @@ namespace Contract.Infrastructure.Services
         ILogPool logPool) : IEmailSender
     {
         private const string Module = "Contract";
+
         private const string Layer = "Infrastructure/Services";
+
         private readonly EmailOptions _options = options.Value;
 
         public async Task<string> SendAsync(

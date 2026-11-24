@@ -111,7 +111,7 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
     const [accounts, setAccounts] = useState<AccountModel[]>([])
     const [roles, setRoles] = useState<RoleModel[]>([])
     const [permissions, setPermissions] = useState<PermissionModel[]>([])
-    const [status, setStatus] = useState<"all" | "active" | "inactive">("active")
+    const [status, setStatus] = useState<"all" | "active" | "inactive">("all")
     const [search, setSearch] = useState("")
     const [debouncedSearch, setDebouncedSearch] = useState("")
     const updateDebouncedSearch = useMemo(() => debounce(setDebouncedSearch, APP_SETTINGS.debounceDelayMs), [])
@@ -437,9 +437,9 @@ export function AccountsModule({currentAccountId, roleCodes = [], permissionCode
                         <label className="text-sm text-slate-600" htmlFor="account-status">Trạng thái</label>
                         <select id="account-status" className={selectCls} value={status}
                                 onChange={(event) => setStatus(event.target.value as typeof status)}>
+                            <option value="all">Tất cả</option>
                             <option value="active">Đang hoạt động</option>
                             <option value="inactive">Đã vô hiệu hóa</option>
-                            <option value="all">Tất cả</option>
                         </select>
                     </div>
                     <div className="flex items-center gap-2 whitespace-nowrap">

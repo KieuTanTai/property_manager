@@ -8,7 +8,6 @@ using Identity.Infrastructure.Repository.RoleRepository;
 using Identity.Infrastructure.Repository.UserProfileRepository;
 using Identity.Interfaces.Credentials;
 using Identity.Interfaces.IRepository;
-using Identity.Models.Account;
 using Identity.Models.Permission;
 using Identity.Models.Role;
 using Microsoft.EntityFrameworkCore;

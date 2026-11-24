@@ -1,8 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Shared.Interfaces;
 using Shared.Logging;
-using TicketAndNotification.Interfaces.Repository;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;
+using TicketAndNotification.Interfaces.Repository;
 using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
@@ -21,6 +20,39 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<NotificationRecipientRepository> _logger = logger;
+
+        #region DELETE
+
+        public async Task DeleteAsync(Guid firstForeignId, Guid secondForeignId,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer,
+                "Deleting notification recipient association by notification and account id.");
+            if (firstForeignId == Guid.Empty || secondForeignId == Guid.Empty)
+            {
+                var exception = new ArgumentException(
+                    "Notification id and account id are required.", nameof(firstForeignId));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Notification recipient deletion rejected because an id is missing.");
+                throw exception;
+            }
+
+            var recipient = await GetByIdsAsync(firstForeignId, secondForeignId, cancellationToken);
+            if (recipient is null)
+            {
+                var exception = new InvalidOperationException(
+                    "Notification recipient association was not found.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Notification recipient association was not found for deletion.");
+                throw exception;
+            }
+
+            _db.NotificationRecipients.Remove(recipient);
+            _logger.LogLayerInformation(_logPool, Module, Layer,
+                "Notification recipient association staged for deletion.");
+        }
+
+        #endregion
 
         #region POST
 
@@ -124,39 +156,6 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
             return await _db.NotificationRecipients.AnyAsync(recipient =>
                     recipient.NotificationId == firstForeignId && recipient.AccountId == secondForeignId,
                 cancellationToken);
-        }
-
-        #endregion
-
-        #region DELETE
-
-        public async Task DeleteAsync(Guid firstForeignId, Guid secondForeignId,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Deleting notification recipient association by notification and account id.");
-            if (firstForeignId == Guid.Empty || secondForeignId == Guid.Empty)
-            {
-                var exception = new ArgumentException(
-                    "Notification id and account id are required.", nameof(firstForeignId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Notification recipient deletion rejected because an id is missing.");
-                throw exception;
-            }
-
-            var recipient = await GetByIdsAsync(firstForeignId, secondForeignId, cancellationToken);
-            if (recipient is null)
-            {
-                var exception = new InvalidOperationException(
-                    "Notification recipient association was not found.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Notification recipient association was not found for deletion.");
-                throw exception;
-            }
-
-            _db.NotificationRecipients.Remove(recipient);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Notification recipient association staged for deletion.");
         }
 
         #endregion

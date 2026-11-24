@@ -3,7 +3,6 @@ using Contract.Interfaces.IRepository;
 using Contract.Models.Contact;
 using Shared.Interfaces;
 using Shared.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace Contract.Application
 {
@@ -14,12 +13,16 @@ namespace Contract.Application
         ILogPool logPool) : IContactInfoApplication
     {
         private const string Module = "Contract";
+
         private const string Layer = "Application";
+
         private readonly IContactInfoRepository _contactInfoRepository = contactInfoRepository;
 
-        private readonly IUnitOfWork _unitOfWork = unitOfWork;
-        private readonly ILogger<ContactInfoApplication> _logger = logger;
         private readonly ILogPool _logPool = logPool;
+
+        private readonly ILogger<ContactInfoApplication> _logger = logger;
+
+        private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         public Task<IReadOnlyList<ContactInfoModel>> GetAllAsync(
             CancellationToken cancellationToken = default)

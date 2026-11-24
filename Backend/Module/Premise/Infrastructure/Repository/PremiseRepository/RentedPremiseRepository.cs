@@ -20,7 +20,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<RentedPremiseRepository> _logger = logger;
-        
+
         private void Validate(RentedPremiseModel entity)
         {
             ArgumentNullException.ThrowIfNull(entity);
@@ -142,8 +142,6 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerInformation(_logPool, Module, Layer,
                 "Rented premise range staged for creation.");
         }
-
-
 
         #endregion
     }

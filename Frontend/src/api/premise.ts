@@ -31,6 +31,13 @@ export type BusinessTypeRequest = {
     businessTypeIsActive: boolean
 }
 
+export type PremiseBusinessTypeResponse = {
+    businessTypeId: string
+    name: string
+    description: string | null
+    isActive: boolean
+}
+
 export type PublicPremise = {
     id: string
     name: string
@@ -75,7 +82,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         throw new Error(detail || `Premise API trả về HTTP ${response.status}.`)
     }
     if (response.status === 204) return undefined as T
-    return response.json() as Promise<T>
+    return await response.json() as Promise<T>
 }
 
 export const premiseApi = {
@@ -159,12 +166,6 @@ export const premiseApi = {
             body: JSON.stringify(body),
         })
     },
-    createProductForBusinessType(body: ProductRequest & { businessTypeId: string }) {
-        return request<ProductResponse>("/Product/with-business-type", {
-            method: "POST",
-            body: JSON.stringify(body),
-        })
-    },
     updateProduct(productId: string, body: ProductRequest) {
         return request<ProductResponse>(`/Product/${encodeURIComponent(productId)}`, {
             method: "PUT",
@@ -190,6 +191,11 @@ export const premiseApi = {
     },
     getImages(premiseId: string) {
         return request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premiseId)}/images`)
+    },
+    getBusinessTypesByPremise(premiseId: string) {
+        return request<PremiseBusinessTypeResponse[]>(
+            `/Premise/${encodeURIComponent(premiseId)}/business-types`,
+        )
     },
     createPremise(body: PremiseRequest) {
         return request<PremiseModel>("/Premise", {method: "POST", body: JSON.stringify(body)})

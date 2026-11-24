@@ -127,7 +127,7 @@ namespace Premise.Application
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Deleting location.");
             var location = await _locationRepository.GetTrackedByIdAsync(locationId, cancellationToken)
-                ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
+                           ?? throw new KeyNotFoundException($"Location not found: {locationId}.");
 
             if (await _locationRepository.HasPremisesAsync(locationId, cancellationToken))
             {

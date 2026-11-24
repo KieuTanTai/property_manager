@@ -21,7 +21,7 @@ namespace Premise.Interfaces.IRepository.Premise
         Task<PremiseModel> GetTrackedPremiseByNameAsync(string premiseName, CancellationToken cancellationToken = default);
 
         Task<List<PremiseModel>> GetTrackedByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
-        
+
         Task<PremiseModel?> GetPremiseAndNavigationByIdAsync(Guid id, bool isGetLocation = true, bool isGetMedia = false,
             bool isGetBusinessTypes = false, CancellationToken cancellationToken = default);
 

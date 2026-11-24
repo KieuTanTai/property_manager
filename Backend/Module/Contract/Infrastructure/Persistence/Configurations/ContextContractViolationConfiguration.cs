@@ -47,7 +47,7 @@ namespace Contract.Infrastructure.Persistence.Configurations
                 .HasColumnName("violation_is_resolved")
                 .HasDefaultValue(false)
                 .IsRequired();
-            
+
             entity.HasIndex(violation => violation.ViolationContent)
                 .HasDatabaseName("idx_contract_violation_content")
                 .HasPrefixLength(20);

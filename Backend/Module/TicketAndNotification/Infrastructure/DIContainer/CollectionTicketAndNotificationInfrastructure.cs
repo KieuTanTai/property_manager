@@ -9,7 +9,6 @@ using TicketAndNotification.Infrastructure.Repository.TicketRepository;
 using TicketAndNotification.Infrastructure.SignalR;
 using TicketAndNotification.Interfaces.Repository;
 using TicketAndNotification.Interfaces.Services;
-using TicketAndNotification.Models.Notification;
 
 namespace TicketAndNotification.Infrastructure.DIContainer
 {
