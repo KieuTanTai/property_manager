@@ -77,9 +77,9 @@ namespace Identity.Infrastructure.DIContainer
             services.AddScoped<IAccountRepository, AccountRepository>();
             services.AddScoped<IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid>, RoleRepository>();
             services.AddScoped<IBaseAuthorizationRepository<PermissionModel, ESystemPermissionCode, Guid>, PermissionRepository>();
-            services.AddScoped<IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid>, AccountAdditionalPermissionRepository>();
-            services.AddScoped<IBaseAssociativeRepository<AccountRoleModel, Guid>, AccountRoleRepository>();
-            services.AddScoped<IBaseAssociativeRepository<RolePermissionModel, Guid>, RolePermissionRepository>();
+            services.AddScoped<IAccountAdditionalPermissionRepository, AccountAdditionalPermissionRepository>();
+            services.AddScoped<IAccountRoleRepository, AccountRoleRepository>();
+            services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
             services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
             #endregion

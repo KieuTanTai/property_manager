@@ -16,7 +16,7 @@ namespace Identity.Application
     public class AccountApplication(
         IUnitOfWork unitOfWork,
         IAccountRepository accountRepository,
-        IBaseAssociativeRepository<AccountRoleModel, Guid> accountRoleRepository,
+        IAccountRoleRepository accountRoleRepository,
         IAuthorizationApplication roleApplication,
         IIdentityHelper<AccountModel> accountHelper,
         IMappingHelper apiHelper,
@@ -34,7 +34,7 @@ namespace Identity.Application
 
         private readonly IAccountRepository _accountRepository = accountRepository;
 
-        private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
+        private readonly IAccountRoleRepository _accountRoleRepository = accountRoleRepository;
 
         private readonly IMappingHelper _apiHelper = apiHelper;
 

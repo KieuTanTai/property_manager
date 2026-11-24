@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 using TicketAndNotification.Interfaces.Application;
 using TicketAndNotification.Models.Notification;
 using TicketAndNotification.Presentation.Record.NotificationRecipient;
@@ -11,12 +12,8 @@ namespace TicketAndNotification.Presentation.Controller
     public class NotificationRecipientController(
         INotificationRecipientApplication recipientApplication,
         ILogger<NotificationRecipientController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "TicketAndNotification", "Presentation/Controller")
     {
-        private const string Module = "TicketAndNotification";
-
-        private const string Layer = "Presentation/Controller";
-
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<NotificationRecipientController> _logger = logger;

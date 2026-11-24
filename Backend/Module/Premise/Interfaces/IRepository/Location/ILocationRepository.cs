@@ -5,8 +5,6 @@ namespace Premise.Interfaces.IRepository.Location
 {
     public interface ILocationRepository : IBaseReadRepository<LocationModel, Guid>, IBaseUpsertRepository<LocationModel>
     {
-        Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
-
         Task<bool> HasPremisesAsync(Guid id, CancellationToken cancellationToken = default);
 
         Task<long> CountTotalAsync(CancellationToken cancellationToken = default);

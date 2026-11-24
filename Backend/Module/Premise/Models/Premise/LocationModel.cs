@@ -26,11 +26,18 @@ namespace Premise.Models.Premise
 
         public DateTime LocationUpdatedAt { get; private set; } = DateTime.Now;
 
+        public bool LocationIsDeleted { get; private set; }
+
         #region Setter
 
         public void SetLocationAddress(string address)
         {
             LocationAddress = ModelFieldGuard.Required(address, 255, nameof(address));
+        }
+
+        public void MarkDeleted()
+        {
+            LocationIsDeleted = true;
         }
 
         #endregion

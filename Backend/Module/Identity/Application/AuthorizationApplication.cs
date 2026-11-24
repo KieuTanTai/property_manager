@@ -13,9 +13,9 @@ namespace Identity.Application
         IUnitOfWork unitOfWork,
         IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid> roleRepository,
         IBaseAuthorizationRepository<PermissionModel, ESystemPermissionCode, Guid> permissionRepository,
-        IBaseAssociativeRepository<RolePermissionModel, Guid> rolePermissionRepository,
-        IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> accountAdditionalPermissionRepository,
-        IBaseAssociativeRepository<AccountRoleModel, Guid> accountRoleRepository,
+        IRolePermissionRepository rolePermissionRepository,
+        IAccountAdditionalPermissionRepository accountAdditionalPermissionRepository,
+        IAccountRoleRepository accountRoleRepository,
         ILogger<AuthorizationApplication> logger,
         ILogPool logPool) : IAuthorizationApplication
     {
@@ -23,10 +23,10 @@ namespace Identity.Application
 
         private const string Layer = "Application";
 
-        private readonly IBaseAssociativeRepository<AccountAdditionalPermissionModel, Guid> _accountAdditionalPermissionRepository = accountAdditionalPermissionRepository;
+        private readonly IAccountAdditionalPermissionRepository _accountAdditionalPermissionRepository = accountAdditionalPermissionRepository;
 
 
-        private readonly IBaseAssociativeRepository<AccountRoleModel, Guid> _accountRoleRepository = accountRoleRepository;
+        private readonly IAccountRoleRepository _accountRoleRepository = accountRoleRepository;
 
         private readonly ILogPool _logPool = logPool;
 
@@ -34,7 +34,7 @@ namespace Identity.Application
 
         private readonly IBaseAuthorizationRepository<PermissionModel, ESystemPermissionCode, Guid> _permissionRepository = permissionRepository;
 
-        private readonly IBaseAssociativeRepository<RolePermissionModel, Guid> _rolePermissionRepository = rolePermissionRepository;
+        private readonly IRolePermissionRepository _rolePermissionRepository = rolePermissionRepository;
 
         private readonly IBaseAuthorizationRepository<RoleModel, ESystemRoleCode, Guid> _roleRepository = roleRepository;
 
@@ -218,7 +218,7 @@ namespace Identity.Application
                 var (permissionsToRemove, permissionsToAdd) = await UpdateAssociativeTableAsync(
                     roleModel.RoleId,
                     permissionIds,
-                    _rolePermissionRepository.GetBySecondForeignIdAsync,
+                    _rolePermissionRepository.GetByPermissionIdAsync,
                     association => !permissionIds.Contains(association.PermissionId),
                     (permissionId, association) => permissionId == association.PermissionId,
                     cancellationToken);
@@ -250,7 +250,7 @@ namespace Identity.Application
                 var (rolesToRemove, rolesToAdd) = await UpdateAssociativeTableAsync(
                     accountId,
                     roleIds,
-                    _accountRoleRepository.GetByFirstForeignIdAsync,
+                    _accountRoleRepository.GetByAccountIdAsync,
                     association => !roleIds.Contains(association.RoleId),
                     (roleId, association) => roleId == association.RoleId,
                     cancellationToken);
@@ -401,7 +401,7 @@ namespace Identity.Application
                     await UpdateAssociativeTableAsync(
                         accountId,
                         permissionIds,
-                        _accountAdditionalPermissionRepository.GetBySecondForeignIdAsync,
+                        _accountAdditionalPermissionRepository.GetByPermissionIdAsync,
                         association => !permissionIds.Contains(association.PermissionId),
                         (permissionId, association) => permissionId == association.PermissionId,
                         cancellationToken);

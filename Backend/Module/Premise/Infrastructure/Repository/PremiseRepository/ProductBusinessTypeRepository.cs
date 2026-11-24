@@ -13,14 +13,14 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
     {
         private const string Module = "Premise";
 
-        private const string Layer = "Infrastructures/Repository/ProductBusinessTypeRepository";
+        private const string Layer = "Infrastructure/Repository/ProductBusinessTypeRepository";
 
         private readonly PremiseDbContext _db = context;
 
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<ProductBusinessTypeRepository> _logger = logger;
-
+        
         private void Validate(ProductBusinessTypeModel entity)
         {
             ArgumentNullException.ThrowIfNull(entity);
@@ -159,8 +159,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 "Product business type association staged for creation.");
         }
 
-        public async Task AddRangeAsync(
-            IEnumerable<ProductBusinessTypeModel> entities,
+        public async Task AddRangeAsync(List<ProductBusinessTypeModel> entities,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,

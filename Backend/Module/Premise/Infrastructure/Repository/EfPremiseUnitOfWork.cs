@@ -17,10 +17,10 @@ namespace Premise.Infrastructure.Repository
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            _logger.LogLayerDebug(_logPool, "Premise", "Infrastructures/Repository",
+            _logger.LogLayerDebug(_logPool, "Premise", "Infrastructure/Repository",
                 "Saving Premise unit of work changes.");
             var affectedRows = await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogLayerInformation(_logPool, "Premise", "Infrastructures/Repository",
+            _logger.LogLayerInformation(_logPool, "Premise", "Infrastructure/Repository",
                 "Premise unit of work changes saved.");
             return affectedRows;
         }

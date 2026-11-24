@@ -13,7 +13,7 @@ namespace Contract.Presentation.Controller
     public class ContractController(
         IContractApplication contractApplication,
         ILogger<ContractController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Contract", "Presentation/Controller")
     {
         private readonly IContractApplication _contractApplication = contractApplication;
 

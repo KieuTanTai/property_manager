@@ -7,7 +7,8 @@ builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
 builder.Services.AddPremiseInfrastructureCollection(builder.Configuration, builder.Environment);
 builder.Services.AddPremiseApplicationCollection();
-builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 if (builder.Environment.IsDevelopment())
 {

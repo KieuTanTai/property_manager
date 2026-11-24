@@ -68,10 +68,6 @@ namespace Premise.Interfaces.IApplication
             Guid premiseId,
             CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<BusinessTypeModel>> GetBusinessTypesAsync(
-            Guid premiseId,
-            CancellationToken cancellationToken = default);
-
         Task<PremiseBusinessTypeModel> AddBusinessTypeAsync(
             Guid premiseId,
             Guid businessTypeId,

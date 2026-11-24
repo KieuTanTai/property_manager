@@ -51,11 +51,10 @@ namespace Contract.Application
 
             if (regulations.Count > 0)
             {
-                await _contractRegulationRepository.AddRangeAsync(
-                [
+                await _contractRegulationRepository.AddRangeAsync([
                     .. regulations.Select(regulation => new ContractRegulationModel(regulation.RegulationId,
                         contract.ContractId))
-                ], cancellationToken);
+                    ], cancellationToken);
             }
 
             await SaveChangesOrThrowAsync("create", cancellationToken);
@@ -80,14 +79,13 @@ namespace Contract.Application
             if (regulationIds is not null)
             {
                 regulations = await ResolveRegulationsAsync(regulationIds, false, cancellationToken);
-                await _contractRegulationRepository.DeleteByFirstForeignIdAsync(contract.ContractId, cancellationToken);
+                await _contractRegulationRepository.DeleteByContractIdAsync(contract.ContractId, cancellationToken);
                 if (regulations.Count > 0)
                 {
-                    await _contractRegulationRepository.AddRangeAsync(
-                    [
+                    await _contractRegulationRepository.AddRangeAsync([
                         .. regulations.Select(regulation => new ContractRegulationModel(regulation.RegulationId,
                             contract.ContractId))
-                    ], cancellationToken);
+                        ], cancellationToken);
                 }
             }
 
@@ -118,7 +116,7 @@ namespace Contract.Application
             catch (HttpRequestException exception)
             {
                 _logger.LogError(exception,
-                    "Contract {ContractId} was terminated but its premises could not be released; reconciliation will retry.",
+                    "Contract {ContractId} was terminated but its premises could not be released; reconciliation will retry",
                     contractId);
                 throw new InvalidOperationException(
                     "Contract was terminated, but its premises could not be released. The lifecycle worker will retry.",
@@ -127,7 +125,7 @@ namespace Contract.Application
             catch (InvalidOperationException exception)
             {
                 _logger.LogError(exception,
-                    "Contract {ContractId} was terminated but premise release is not configured; reconciliation will retry.",
+                    "Contract {ContractId} was terminated but premise release is not configured; reconciliation will retry",
                     contractId);
                 throw new InvalidOperationException(
                     "Contract was terminated, but premise release is not configured. The lifecycle worker will retry.",

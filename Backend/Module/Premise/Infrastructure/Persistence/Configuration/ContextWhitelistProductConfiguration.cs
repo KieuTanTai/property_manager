@@ -25,6 +25,13 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasColumnName("whitelist_product_description")
                 .HasMaxLength(255);
 
+            entity.Property(whitelistProduct => whitelistProduct.WhitelistProductIsDeleted)
+                .HasColumnName("is_deleted")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            // entity.HasQueryFilter(whitelistProduct => !whitelistProduct.WhitelistProductIsDeleted);
+
             entity.Property(whitelistProduct => whitelistProduct.WhitelistProductCreatedAt)
                 .HasColumnName("whitelist_product_created_at")
                 .HasColumnType("timestamp")

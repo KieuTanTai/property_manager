@@ -1,3 +1,4 @@
+using Identity.Interfaces.IRepository;
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Models.Role;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ namespace Identity.Infrastructure.Repository.RoleRepository
     public class RolePermissionRepository(
         IdentityDbContext context,
         ILogger<RolePermissionRepository> logger,
-        ILogPool logPool) : IBaseAssociativeRepository<RolePermissionModel, Guid>
+        ILogPool logPool) : IRolePermissionRepository
     {
         private const string Module = "Identity";
 
@@ -124,13 +125,13 @@ namespace Identity.Infrastructure.Repository.RoleRepository
             return await _db.RolePermissions.AsNoTracking().ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<RolePermissionModel>> GetByFirstForeignIdAsync(Guid firstForeignId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<RolePermissionModel>> GetByRoleIdAsync(Guid firstForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading role permission associations by first foreign id.");
             return await _db.RolePermissions.AsNoTracking().Where(rolePermission => rolePermission.RoleId == firstForeignId).ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<RolePermissionModel>> GetBySecondForeignIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<RolePermissionModel>> GetByPermissionIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading role permission associations by second foreign id.");
             return await _db.RolePermissions.AsNoTracking().Where(rolePermission => rolePermission.PermissionId == secondForeignId).ToListAsync(cancellationToken);

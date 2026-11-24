@@ -17,7 +17,7 @@ namespace Contract.Presentation.Controller
         IEmailSender emailSender,
         IIdentityHelper<SendConsultationRequest> identityHelper,
         ILogger<ContactController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Contract", "Presentation/Controller")
     {
         private readonly IContactInfoApplication _contactInfoApplication = contactInfoApplication;
 

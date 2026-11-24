@@ -1,8 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Contract.Infrastructure.DIContainer;
-using Contract.Infrastructure.Services;
-using Contract.Interfaces.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,8 +24,6 @@ builder.Services.AddRateLimiter(options => options.AddPolicy("consultation-email
 
 builder.Services.AddContractInfrastructureCollection(builder.Configuration, builder.Environment);
 builder.Services.AddContractApplicationCollection(builder.Configuration);
-builder.Services.AddHttpClient<IContractPremiseSyncClient, ContractPremiseSyncClient>();
-builder.Services.AddHostedService<ContractLifecycleBackgroundService>();
 
 if (builder.Environment.IsDevelopment())
 {

@@ -38,6 +38,8 @@ namespace Premise.Models.Product
 
         public DateTime WhitelistProductUpdatedAt { get; private set; } = DateTime.Now;
 
+        public bool WhitelistProductIsDeleted { get; private set; }
+
         #region Setter
 
         public void SetWhitelistProductName(string name)
@@ -58,6 +60,11 @@ namespace Premise.Models.Product
         public void SetWhitelistProductDescription(string description)
         {
             WhitelistProductDescription = ModelFieldGuard.Required(description, 255, nameof(description));
+        }
+
+        public void MarkDeleted()
+        {
+            WhitelistProductIsDeleted = true;
         }
 
         #endregion

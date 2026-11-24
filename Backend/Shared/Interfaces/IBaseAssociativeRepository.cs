@@ -4,12 +4,6 @@ namespace Shared.Interfaces
     {
         Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<T>> GetByFirstForeignIdAsync(TTypeId firstForeignId,
-            CancellationToken cancellationToken = default);
-
-        Task<IReadOnlyList<T>> GetBySecondForeignIdAsync(TTypeId secondForeignId,
-            CancellationToken cancellationToken = default);
-
         Task<T?> GetByIdsAsync(TTypeId firstForeignId, TTypeId secondForeignId,
             CancellationToken cancellationToken = default);
 
@@ -20,13 +14,5 @@ namespace Shared.Interfaces
 
         Task AddRangeAsync(List<T> entities, CancellationToken cancellationToken = default);
 
-        Task DeleteByFirstForeignIdAsync(TTypeId firstForeignId,
-            CancellationToken cancellationToken = default);
-
-        Task DeleteBySecondForeignIdAsync(TTypeId secondForeignId,
-            CancellationToken cancellationToken = default);
-
-        Task DeleteAsync(TTypeId firstForeignId, TTypeId secondForeignId,
-            CancellationToken cancellationToken = default);
     }
 }

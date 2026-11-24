@@ -15,7 +15,7 @@ namespace Identity.Presentation.Controller
     public class AuthorizationController(
         IAuthorizationApplication authorizationApplication,
         ILogger<AuthorizationController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Identity", "Presentation/Controller")
     {
         private readonly IAuthorizationApplication _authorizationApplication = authorizationApplication;
 

@@ -13,7 +13,7 @@ namespace Contract.Presentation.Controller
     public class ReceiptController(
         IReceiptApplication receiptApplication,
         ILogger<ReceiptController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Contract", "Presentation/Controller")
     {
         private readonly ILogPool _logPool = logPool;
 

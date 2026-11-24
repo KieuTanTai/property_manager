@@ -33,7 +33,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<ContractRegulationModel>> GetByFirstForeignIdAsync(Guid contractId,
+        public async Task<IReadOnlyList<ContractRegulationModel>> GetByContractIdAsync(Guid contractId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
@@ -43,7 +43,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<ContractRegulationModel>> GetBySecondForeignIdAsync(Guid regulationId,
+        public async Task<IReadOnlyList<ContractRegulationModel>> GetByRegulationIdAsync(Guid regulationId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
@@ -134,7 +134,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
 
         #region DELETE
 
-        public async Task DeleteByFirstForeignIdAsync(Guid contractId,
+        public async Task DeleteByContractIdAsync(Guid contractId,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
@@ -149,27 +149,6 @@ namespace Contract.Infrastructure.Repository.ContractRepository
 
             var associations = await _db.ContractRegulations
                 .Where(association => association.ContractId == contractId)
-                .ToListAsync(cancellationToken);
-            _db.ContractRegulations.RemoveRange(associations);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Contract regulation associations staged for deletion.");
-        }
-
-        public async Task DeleteBySecondForeignIdAsync(Guid regulationId,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Loading contract regulation associations by regulation id for deletion.");
-            if (regulationId == Guid.Empty)
-            {
-                var exception = new ArgumentException("Regulation id is required.", nameof(regulationId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Contract regulation deletion rejected because the regulation id is missing.");
-                throw exception;
-            }
-
-            var associations = await _db.ContractRegulations
-                .Where(association => association.RegulationId == regulationId)
                 .ToListAsync(cancellationToken);
             _db.ContractRegulations.RemoveRange(associations);
             _logger.LogLayerInformation(_logPool, Module, Layer,

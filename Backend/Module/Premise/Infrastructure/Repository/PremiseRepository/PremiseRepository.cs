@@ -16,7 +16,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
     {
         private const string Module = "Premise";
 
-        private const string Layer = "Infrastructures/Repository/PremiseRepository";
+        private const string Layer = "Infrastructure/Repository/PremiseRepository";
 
         private readonly PremiseDbContext _db = context;
 
@@ -25,35 +25,6 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         private readonly ILogger<PremiseRepository> _logger = logger;
 
         #region DELETE
-
-        public async Task DeleteAsync(PremiseModel premise, CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise deletion.");
-            var hasRental = await _db.RentedPremiseModels.AnyAsync(
-                rental => rental.PremiseId == premise.PremiseId,
-                cancellationToken);
-            if (hasRental)
-            {
-                var exception = new InvalidOperationException(
-                    $"Premise cannot be deleted while it is linked to a rental contract: {premise.PremiseId}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Premise deletion rejected because it is linked to a rental contract.");
-                throw exception;
-            }
-
-            var businessTypeLinks = await _db.PremiseBusinessTypes
-                .Where(link => link.PremiseId == premise.PremiseId)
-                .ToListAsync(cancellationToken);
-            _db.PremiseBusinessTypes.RemoveRange(businessTypeLinks);
-
-            var premiseMedia = await _db.PremiseMedias
-                .Where(media => media.PremiseMediaPremiseId == premise.PremiseId)
-                .ToListAsync(cancellationToken);
-            _db.PremiseMedias.RemoveRange(premiseMedia);
-
-            _db.Premises.Remove(premise);
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Premise staged for deletion.");
-        }
 
         public async Task DeletePremiseBusinessTypesByPremiseIdAsync(Guid premiseId, CancellationToken cancellationToken = default)
         {
@@ -109,6 +80,16 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             return await _db.Premises.FirstOrDefaultAsync(premise => premise.PremiseId == id,
                 cancellationToken);
         }
+        
+        public async Task<List<PremiseModel>> GetTrackedByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+        {
+            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked premises by ids.");
+            var result = await _db.Premises
+                .Where(premise => ids.Contains(premise.PremiseId))
+                .ToListAsync(cancellationToken);
+            _logger.LogLayerInformation(_logPool, Module, Layer, $"Loaded tracked premises: {result.Count}.");
+            return result;
+        }
 
         public async Task<PremiseModel> GetPremiseByNameAsync(string premiseName,
             CancellationToken cancellationToken = default)
@@ -116,15 +97,15 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading premise by name.");
             var premise = await _db.Premises.AsNoTracking()
                 .FirstOrDefaultAsync(premise => premise.PremiseName == premiseName, cancellationToken);
-            if (premise is null)
+            if (premise is not null)
             {
-                var exception = new InvalidOperationException("PremiseModel not found!");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Premise lookup rejected because the premise was not found by name.");
-                throw exception;
+                return premise;
             }
+            var exception = new InvalidOperationException("PremiseModel not found!");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Premise lookup rejected because the premise was not found by name.");
+            throw exception;
 
-            return premise;
         }
 
         public async Task<PremiseModel> GetTrackedPremiseByNameAsync(string premiseName,
@@ -133,15 +114,15 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading tracked premise by name.");
             var premise = await _db.Premises.FirstOrDefaultAsync(
                 premise => premise.PremiseName == premiseName, cancellationToken);
-            if (premise is null)
+            if (premise is not null)
             {
-                var exception = new InvalidOperationException("PremiseModel not found!");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Tracked premise lookup rejected because the premise was not found by name.");
-                throw exception;
+                return premise;
             }
+            var exception = new InvalidOperationException("PremiseModel not found!");
+            _logger.LogLayerError(_logPool, Module, Layer, exception,
+                "Tracked premise lookup rejected because the premise was not found by name.");
+            throw exception;
 
-            return premise;
         }
 
         public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
@@ -265,7 +246,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise creation.");
             if (string.IsNullOrWhiteSpace(premiseModel.PremiseName))
             {
-                var exception = new ArgumentException("PremiseModel name is required.", nameof(premiseModel.PremiseName));
+                var exception = new ArgumentException("PremiseModel name is required.", nameof(premiseModel));
                 _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Premise creation rejected because the premise name is missing.");
                 throw exception;
@@ -302,7 +283,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing premise update.");
             if (premiseModel.PremiseId == Guid.Empty)
             {
-                var exception = new ArgumentException("PremiseModel id is required.", nameof(premiseModel.PremiseId));
+                var exception = new ArgumentException("PremiseModel id is required.", nameof(premiseModel));
                 _logger.LogLayerError(_logPool, Module, Layer, exception,
                     "Premise update rejected because the premise id is missing.");
                 throw exception;

@@ -13,14 +13,14 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
     {
         private const string Module = "Premise";
 
-        private const string Layer = "Infrastructures/Repository/RentedPremiseRepository";
+        private const string Layer = "Infrastructure/Repository/RentedPremiseRepository";
 
         private readonly PremiseDbContext _db = context;
 
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<RentedPremiseRepository> _logger = logger;
-
+        
         private void Validate(RentedPremiseModel entity)
         {
             ArgumentNullException.ThrowIfNull(entity);
@@ -112,8 +112,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             _logger.LogLayerInformation(_logPool, Module, Layer, "Rented premise staged for creation.");
         }
 
-        public async Task AddRangeAsync(
-            IEnumerable<RentedPremiseModel> entities,
+        public async Task AddRangeAsync(List<RentedPremiseModel> entities,
             CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing rented premise range creation.");
@@ -123,14 +122,20 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             foreach (var rental in rentals)
             {
                 Validate(rental);
-                if (!keys.Add((rental.ContractId, rental.PremiseId)) || await ExistsAsync(rental.ContractId, rental.PremiseId, cancellationToken))
+                var existed = await ExistsAsync(rental.ContractId, rental.PremiseId, cancellationToken);
+                if (!existed)
                 {
-                    var exception = new InvalidOperationException(
-                        $"Rented premise already exists: {rental.ContractId}, {rental.PremiseId}.");
-                    _logger.LogLayerError(_logPool, Module, Layer, exception,
-                        "Rented premise range creation rejected because it contains an existing association.");
-                    throw exception;
+                    var added = keys.Add((rental.ContractId, rental.PremiseId));
+                    if (added)
+                    {
+                        continue;
+                    }
                 }
+                var exception = new InvalidOperationException(
+                    $"Rented premise already exists: {rental.ContractId}, {rental.PremiseId}.");
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Rented premise range creation rejected because it contains an existing association.");
+                throw exception;
             }
 
             await _db.RentedPremiseModels.AddRangeAsync(rentals, cancellationToken);
@@ -138,27 +143,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 "Rented premise range staged for creation.");
         }
 
-        public async Task DeleteAsync(
-            Guid contractId,
-            Guid premiseId,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing rented premise deletion.");
-            var rental = await _db.RentedPremiseModels.FirstOrDefaultAsync(
-                item => item.ContractId == contractId && item.PremiseId == premiseId,
-                cancellationToken);
-            if (rental is null)
-            {
-                var exception = new InvalidOperationException(
-                    $"Rented premise not found: {contractId}, {premiseId}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Rented premise deletion rejected because the association was not found.");
-                throw exception;
-            }
 
-            _db.RentedPremiseModels.Remove(rental);
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Rented premise staged for deletion.");
-        }
 
         #endregion
     }

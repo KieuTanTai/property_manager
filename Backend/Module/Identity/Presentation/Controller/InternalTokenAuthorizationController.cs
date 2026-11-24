@@ -4,6 +4,7 @@ using Identity.Interfaces.Credentials;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
 using Shared.Persistence.Record.Auth;
+using Shared.Presentation.Controller;
 
 namespace Identity.Presentation.Controller
 {
@@ -13,12 +14,8 @@ namespace Identity.Presentation.Controller
         IJwtAccessTokenValidator tokenValidator,
         IConfiguration configuration,
         ILogger<InternalTokenAuthorizationController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Identity", "Presentation/Controller")
     {
-        private const string Module = "Identity";
-
-        private const string Layer = "Presentation/Controller";
-
         private const string GatewayKeyHeader = "X-Internal-Gateway-Key";
 
         private readonly ILogPool _logPool = logPool;

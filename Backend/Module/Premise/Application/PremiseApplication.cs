@@ -259,16 +259,12 @@ namespace Premise.Application
             PremiseModel premise,
             CancellationToken cancellationToken = default)
         {
-            if (premise is null)
-            {
-                var exception = new ArgumentNullException(nameof(premise));
-                _logger.LogLayerError(
-                    _logPool, Module, Layer, exception,
-                    "Premise creation rejected because the premise is null.");
-                throw exception;
-            }
-
             _logger.LogLayerDebug(_logPool, Module, Layer, "Adding premise.");
+
+            if (premise.PremiseStatus == EPremiseStatus.Deleted)
+            {
+                throw new ArgumentException("A premise cannot be created as deleted.", nameof(premise));
+            }
 
             if (premise.PremiseLocationId == Guid.Empty)
             {
@@ -307,15 +303,6 @@ namespace Premise.Application
             PremiseModel premise,
             CancellationToken cancellationToken = default)
         {
-            if (premise is null)
-            {
-                var exception = new ArgumentNullException(nameof(premise));
-                _logger.LogLayerError(
-                    _logPool, Module, Layer, exception,
-                    "Premise update rejected because the premise is null.");
-                throw exception;
-            }
-
             if (premise.PremiseId == Guid.Empty)
             {
                 var exception = new ArgumentException("Premise id is required.", nameof(premise));
@@ -323,6 +310,11 @@ namespace Premise.Application
                     _logPool, Module, Layer, exception,
                     "Premise update rejected because the id is missing.");
                 throw exception;
+            }
+
+            if (premise.PremiseStatus == EPremiseStatus.Deleted)
+            {
+                throw new ArgumentException("Use the delete operation to delete a premise.", nameof(premise));
             }
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Updating premise.");
@@ -340,7 +332,7 @@ namespace Premise.Application
             if (premise.PremiseLocationId == Guid.Empty)
             {
                 var exception = new ArgumentException(
-                    "Location id is required.", nameof(premise.PremiseLocationId));
+                    "Location id is required.", nameof(premise));
                 _logger.LogLayerError(
                     _logPool, Module, Layer, exception,
                     "Premise update rejected because the location id is missing.");
@@ -415,7 +407,17 @@ namespace Premise.Application
             }
 
             _logger.LogLayerDebug(_logPool, Module, Layer, "Deleting premise.");
-            await _premiseRepository.DeleteAsync(premise, cancellationToken);
+
+            var rentals = await _rentedPremiseRepository.GetByPremiseIdAsync(
+                premiseId, cancellationToken);
+            if (rentals.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Premise cannot be deleted while it is linked to a rental contract: {premiseId}.");
+            }
+
+            premise.SetPremiseStatus(EPremiseStatus.Deleted);
+            await _premiseRepository.UpdateAsync(premise, cancellationToken);
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectedRows == 0)
             {
@@ -424,7 +426,7 @@ namespace Premise.Application
                 throw exception;
             }
 
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Premise deleted.");
+            _logger.LogLayerInformation(_logPool, Module, Layer, "Premise soft-deleted.");
         }
 
         public async Task<PremiseMediaModel> AddImageAsync(
@@ -600,24 +602,6 @@ namespace Premise.Application
             return await _premiseMediaRepository.GetByPremiseIdAsync(premiseId, cancellationToken);
         }
 
-        public async Task<IReadOnlyList<BusinessTypeModel>> GetBusinessTypesAsync(
-            Guid premiseId,
-            CancellationToken cancellationToken = default)
-        {
-            await EnsurePremiseExistsAsync(premiseId, cancellationToken);
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading premise business types.");
-            var associations = await _premiseBusinessTypeRepository.GetByPremiseIdAsync(
-                premiseId, cancellationToken);
-            if (associations.Count == 0)
-            {
-                return [];
-            }
-
-            return await _businessTypeRepository.GetByIdsAsync(
-                associations.Select(association => association.BusinessTypeId),
-                cancellationToken);
-        }
-
         public async Task<PremiseBusinessTypeModel> AddBusinessTypeAsync(
             Guid premiseId,
             Guid businessTypeId,
@@ -707,29 +691,28 @@ namespace Premise.Application
             {
                 throw new ArgumentException("Contract id is required.", nameof(contractId));
             }
-
-            var rentals = await _rentedPremiseRepository.GetByContractIdAsync(
-                contractId, cancellationToken);
-            foreach (var rental in rentals)
+            
+            var rentedPremises = await _rentedPremiseRepository.GetByContractIdAsync(contractId, cancellationToken);
+            if (rentedPremises.Count == 0)
             {
-                var premise = await _premiseRepository.GetTrackedByIdAsync(
-                                  rental.PremiseId, cancellationToken)
-                              ?? throw new KeyNotFoundException(
-                                  $"Premise linked to contract {contractId} was not found: {rental.PremiseId}.");
-
-                if (premise.PremiseStatus != EPremiseStatus.Maintenance)
-                {
-                    premise.SetPremiseStatus(EPremiseStatus.Available);
-                }
-
-                await _rentedPremiseRepository.DeleteAsync(
-                    contractId, rental.PremiseId, cancellationToken);
+                _logger.LogLayerWarning(_logPool, Module, Layer, $"No premises to release for contract {contractId}.");
+                throw new InvalidOperationException($"No premises to release for contract {contractId}.");
             }
-
-            if (rentals.Count > 0)
+            var premiseIds = rentedPremises.Select(rp => rp.PremiseId).ToList();
+            var premises = await _premiseRepository.GetTrackedByIdsAsync(premiseIds, cancellationToken);
+            if (premises.Count == 0)
             {
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                _logger.LogLayerWarning(_logPool, Module, Layer, $"No premises found to release for contract {contractId}.");
+                throw new InvalidOperationException($"No premises found to release for contract {contractId}.");
             }
+            premises =
+            [
+                .. premises.Where(premise => premise.PremiseStatus != EPremiseStatus.Maintenance
+                                             && premise.PremiseStatus != EPremiseStatus.Available
+                                             && premise.PremiseStatus != EPremiseStatus.Deleted)
+            ];
+            foreach (var premise in premises)
+                premise.SetPremiseStatus(EPremiseStatus.Available);
         }
 
         private async Task EnsurePremiseExistsAsync(

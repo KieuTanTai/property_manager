@@ -12,7 +12,7 @@ namespace Contract.Presentation.Controller
     public class ViolationController(
         IViolationApplication violationApplication,
         ILogger<ViolationController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, "Contract", "Presentation/Controller")
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Contract", "Presentation/Controller")
     {
         private readonly ILogPool _logPool = logPool;
 

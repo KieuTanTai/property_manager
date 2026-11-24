@@ -13,7 +13,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
     {
         private const string Module = "Premise";
 
-        private const string Layer = "Infrastructures/Repository/WhitelistProductRepository";
+        private const string Layer = "Infrastructure/Repository/WhitelistProductRepository";
 
         private readonly PremiseDbContext _db = context;
 
@@ -211,26 +211,6 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
                 "Whitelist product staged for update.");
         }
 
-        public async Task DeleteAsync(
-            Guid id,
-            CancellationToken cancellationToken = default)
-        {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException("Product id is required.", nameof(id));
-            }
-
-            var product = await _db.WhitelistProducts.FirstOrDefaultAsync(
-                item => item.WhitelistProductId == id,
-                cancellationToken);
-            if (product is null)
-            {
-                throw new KeyNotFoundException($"Product not found: {id}.");
-            }
-
-            _db.WhitelistProducts.Remove(product);
-        }
-
         public void UpdateRange(
             IEnumerable<WhitelistProductModel> entities,
             CancellationToken cancellationToken = default)
@@ -240,14 +220,15 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
             foreach (var product in products)
             {
                 Validate(product);
-                if (product.WhitelistProductId == Guid.Empty)
+                if (product.WhitelistProductId != Guid.Empty)
                 {
-                    var exception = new ArgumentException(
-                        "WhitelistProductModel id is required.", nameof(entities));
-                    _logger.LogLayerError(_logPool, Module, Layer, exception,
-                        "Whitelist product range update rejected because an id is missing.");
-                    throw exception;
+                    continue;
                 }
+                var exception = new ArgumentException(
+                    "WhitelistProductModel id is required.", nameof(entities));
+                _logger.LogLayerError(_logPool, Module, Layer, exception,
+                    "Whitelist product range update rejected because an id is missing.");
+                throw exception;
             }
 
             _db.WhitelistProducts.UpdateRange(products);

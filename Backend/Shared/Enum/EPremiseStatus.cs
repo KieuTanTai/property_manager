@@ -8,6 +8,8 @@ namespace Shared.Enum
 
         Available,
 
-        Maintenance
+        Maintenance,
+
+        Deleted
     }
 }

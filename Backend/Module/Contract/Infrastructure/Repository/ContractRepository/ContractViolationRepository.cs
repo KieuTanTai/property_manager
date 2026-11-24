@@ -30,7 +30,7 @@ namespace Contract.Infrastructure.Repository.ContractRepository
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Preparing contract violation deletion.");
-            var violation = await GetByIdAsync(violationId, cancellationToken);
+            var violation = await GetTrackedByIdAsync(violationId, cancellationToken);
             if (violation is null)
             {
                 throw new InvalidOperationException(
@@ -41,9 +41,9 @@ namespace Contract.Infrastructure.Repository.ContractRepository
                 throw new InvalidOperationException(
                     $"Cannot delete resolved contract violation {violationId}.");
             }
-            _db.ContractViolations.Remove(violation);
+            _db.Entry(violation).Property<bool>("IsDeleted").CurrentValue = true;
             _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Contract violation staged for deletion.");
+                "Contract violation staged for soft deletion.");
         }
 
         #endregion

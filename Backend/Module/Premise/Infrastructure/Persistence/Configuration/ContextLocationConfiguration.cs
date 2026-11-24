@@ -21,6 +21,13 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasConversion<string>()
                 .IsRequired();
 
+            entity.Property(location => location.LocationIsDeleted)
+                .HasColumnName("is_deleted")
+                .HasDefaultValue(false)
+                .IsRequired();
+
+            // entity.HasQueryFilter(location => !location.LocationIsDeleted);
+
             entity.Property(location => location.LocationCreatedAt)
                 .HasColumnName("location_created_at")
                 .HasColumnType("timestamp")

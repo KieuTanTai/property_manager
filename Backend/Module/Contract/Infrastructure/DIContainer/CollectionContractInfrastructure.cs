@@ -6,6 +6,7 @@ using Contract.Infrastructure.Repository.InvoiceRepository;
 using Contract.Infrastructure.Repository.ReceiptRepository;
 using Contract.Infrastructure.Repository.RegulationRepository;
 using Contract.Infrastructure.Services;
+using Contract.Infrastructure.Services.Options;
 using Contract.Interfaces.IRepository;
 using Contract.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
@@ -52,7 +53,21 @@ namespace Contract.Infrastructure.DIContainer
 
             services.AddSingleton<ILogPool, LogPool>();
 
+            services.AddOptions<EmailOptions>()
+                .Bind(configuration.GetSection(EmailOptions.SectionName))
+                .Configure(options => options.SecureSocketOptions =
+                    configuration["Email:SecureSocketOptions"] ?? options.SecureSocketOptions);
+            services.AddOptions<PremiseSyncOptions>()
+                .Configure(options =>
+                {
+                    options.Premise = configuration["ModuleUrls:Premise"] ?? options.Premise;
+                    options.ApiKey = Environment.GetEnvironmentVariable("INTERNAL_GATEWAY_API_KEY")
+                                     ?? configuration["InternalApi:Key"]
+                                     ?? string.Empty;
+                });
             services.AddScoped<IEmailSender, SmtpEmailSender>();
+            services.AddHttpClient<IContractPremiseSyncClient, ContractPremiseSyncClient>();
+            services.AddHostedService<ContractLifecycleBackgroundService>();
 
             #endregion
 

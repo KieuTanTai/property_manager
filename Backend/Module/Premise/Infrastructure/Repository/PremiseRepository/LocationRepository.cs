@@ -13,7 +13,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
     {
         private const string Module = "Premise";
 
-        private const string Layer = "Infrastructures/Repository/LocationRepository";
+        private const string Layer = "Infrastructure/Repository/LocationRepository";
 
         private readonly PremiseDbContext _db = context;
 
@@ -121,31 +121,6 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
         {
             var locationModels = entities.ToList();
             _db.Locations.UpdateRange(locationModels);
-        }
-
-        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Preparing location deletion.");
-            if (id == Guid.Empty)
-            {
-                var exception = new ArgumentException("Location id is required.", nameof(id));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Location deletion rejected because the id is missing.");
-                throw exception;
-            }
-
-            var location = await _db.Locations.FirstOrDefaultAsync(
-                item => item.LocationId == id, cancellationToken);
-            if (location is null)
-            {
-                var exception = new InvalidOperationException($"Location not found: {id}.");
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Location deletion rejected because it was not found.");
-                throw exception;
-            }
-
-            _db.Locations.Remove(location);
-            _logger.LogLayerInformation(_logPool, Module, Layer, "Location staged for deletion.");
         }
 
         public async Task<bool> HasPremisesAsync(Guid id, CancellationToken cancellationToken = default)

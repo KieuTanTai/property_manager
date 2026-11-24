@@ -4,6 +4,7 @@ using Payment.Models.Payment;
 using Payment.Presentation.Record.Payment;
 using Payment.Utils.Enum;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 
 namespace Payment.Presentation.Controller
 {
@@ -12,12 +13,8 @@ namespace Payment.Presentation.Controller
     public class PaymentController(
         IPaymentApplication paymentApplication,
         ILogger<PaymentController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Payment", "Presentation/Controller")
     {
-        private const string Module = "Payment";
-
-        private const string Layer = "Presentation/Controller";
-
         private readonly IPaymentApplication _paymentApplication = paymentApplication;
 
         private readonly ILogger<PaymentController> _logger = logger;

@@ -101,13 +101,13 @@ namespace Contract.Infrastructure.Repository.ContactRepository
                 throw new InvalidOperationException("Contact info not found.");
             }
 
-            _db.ContactInfos.Remove(entity);
+            _db.Entry(entity).Property<bool>("IsDeleted").CurrentValue = true;
         }
 
         private async Task EnsureUniqueAsync(ContactInfoModel entity,
             CancellationToken cancellationToken)
         {
-            var duplicate = await _db.ContactInfos.AnyAsync(contactInfo =>
+            var duplicate = await _db.ContactInfos.IgnoreQueryFilters().AnyAsync(contactInfo =>
                 contactInfo.ContactInfoId != entity.ContactInfoId && (contactInfo.ContactInfoEmail == entity.ContactInfoEmail || contactInfo.ContactInfoPhone == entity.ContactInfoPhone), cancellationToken);
             if (duplicate)
             {

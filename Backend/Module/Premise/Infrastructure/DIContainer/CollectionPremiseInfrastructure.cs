@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Premise.Infrastructure.Persistence.DbContext;
+using Premise.Infrastructure.Options;
 using Premise.Infrastructure.Repository;
 using Premise.Infrastructure.Repository.PremiseRepository;
 using Premise.Interfaces.IRepository.BusinessType;
@@ -48,6 +49,10 @@ namespace Premise.Infrastructure.DIContainer
             #region LOGGING
 
             services.AddSingleton<ILogPool, LogPool>();
+            services.AddOptions<InternalApiOptions>()
+                .Bind(configuration.GetSection(InternalApiOptions.SectionName))
+                .Configure(options => options.Key =
+                    Environment.GetEnvironmentVariable("INTERNAL_GATEWAY_API_KEY") ?? options.Key);
 
             #endregion
 

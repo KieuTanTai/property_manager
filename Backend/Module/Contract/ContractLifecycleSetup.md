@@ -19,6 +19,8 @@ generate and save one random key; both services will read it automatically when 
 ```powershell
 $key = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
 dotnet user-secrets set "InternalApi:Key" $key --project Backend\Module\Contract\Contract.csproj
+
+Both Contract and Premise prefer the machine environment variable `INTERNAL_GATEWAY_API_KEY` when it is set. Otherwise, each module uses `InternalApi:Key` from its configuration (including User Secrets/appsettings). Set the same value in both modules.
 ```
 
 Configure the Contract service with the Premise service's reachable base URL:

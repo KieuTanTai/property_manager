@@ -16,7 +16,7 @@ namespace Identity.Presentation.Controller
         IUserProfileApplication userProfileApplication,
         IMappingHelper apiHelper,
         ILogger<ProfileController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Identity", "Presentation/Controller")
     {
         private readonly IMappingHelper _apiHelper = apiHelper;
 

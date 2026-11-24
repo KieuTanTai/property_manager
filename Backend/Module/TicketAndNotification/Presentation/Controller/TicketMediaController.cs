@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Shared.Logging;
+using Shared.Presentation.Controller;
 using TicketAndNotification.Interfaces.Application;
 using TicketAndNotification.Models.Ticket;
 using TicketAndNotification.Presentation.Record.TicketMedia;
@@ -11,12 +12,8 @@ namespace TicketAndNotification.Presentation.Controller
     public class TicketMediaController(
         ITicketMediaApplication ticketMediaApplication,
         ILogger<TicketMediaController> logger,
-        ILogPool logPool) : ControllerBase
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "TicketAndNotification", "Presentation/Controller")
     {
-        private const string Module = "TicketAndNotification";
-
-        private const string Layer = "Presentation/Controller";
-
         private readonly ILogPool _logPool = logPool;
 
         private readonly ILogger<TicketMediaController> _logger = logger;

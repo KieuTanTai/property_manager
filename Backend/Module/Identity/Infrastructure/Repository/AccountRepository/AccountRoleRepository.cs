@@ -1,3 +1,4 @@
+using Identity.Interfaces.IRepository;
 using Identity.Infrastructure.Persistence.DbContext;
 using Identity.Models.Account;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ namespace Identity.Infrastructure.Repository.AccountRepository
     public class AccountRoleRepository(
         IdentityDbContext context,
         ILogger<AccountRoleRepository> logger,
-        ILogPool logPool) : IBaseAssociativeRepository<AccountRoleModel, Guid>
+        ILogPool logPool) : IAccountRoleRepository
     {
         private const string Module = "Identity";
 
@@ -123,13 +124,13 @@ namespace Identity.Infrastructure.Repository.AccountRepository
             return await _db.AccountRoles.AsNoTracking().ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<AccountRoleModel>> GetByFirstForeignIdAsync(Guid firstForeignId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<AccountRoleModel>> GetByAccountIdAsync(Guid firstForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role associations by account.");
             return await _db.AccountRoles.AsNoTracking().Where(ar => ar.AccountId == firstForeignId).ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<AccountRoleModel>> GetBySecondForeignIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<AccountRoleModel>> GetByRoleIdAsync(Guid secondForeignId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Loading account role associations by role.");
             return await _db.AccountRoles.AsNoTracking().Where(ar => ar.RoleId == secondForeignId).ToListAsync(cancellationToken);

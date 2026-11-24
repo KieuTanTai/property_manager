@@ -9,7 +9,7 @@ namespace TicketAndNotification.Application
 {
     public class NotificationRecipientApplication(
         IUnitOfWork unitOfWork,
-        IBaseAssociativeRepository<NotificationRecipientModel, Guid> recipientRepository,
+        INotificationRecipientRepository recipientRepository,
         INotificationRepository notificationRepository,
         INotificationRealtimePublisher notificationPublisher,
         ILogger<NotificationRecipientApplication> logger,
@@ -27,7 +27,7 @@ namespace TicketAndNotification.Application
 
         private readonly INotificationRepository _notificationRepository = notificationRepository;
 
-        private readonly IBaseAssociativeRepository<NotificationRecipientModel, Guid> _recipientRepository = recipientRepository;
+        private readonly INotificationRecipientRepository _recipientRepository = recipientRepository;
 
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
@@ -43,7 +43,7 @@ namespace TicketAndNotification.Application
             Guid notificationId,
             CancellationToken cancellationToken = default)
         {
-            return _recipientRepository.GetByFirstForeignIdAsync(
+            return _recipientRepository.GetByNotificationIdAsync(
                 notificationId, cancellationToken);
         }
 
@@ -51,7 +51,7 @@ namespace TicketAndNotification.Application
             Guid accountId,
             CancellationToken cancellationToken = default)
         {
-            return _recipientRepository.GetBySecondForeignIdAsync(accountId, cancellationToken);
+            return _recipientRepository.GetByAccountIdAsync(accountId, cancellationToken);
         }
 
         public Task<NotificationRecipientModel?> GetByIdAsync(
@@ -96,12 +96,11 @@ namespace TicketAndNotification.Application
                     "Notification recipient batch creation rejected because the collection is empty.");
                 throw exception;
             }
-            recipientModels.ForEach(recipientModel => ThrowIfInvalidNotificationRecipientModel(recipientModel));
+            recipientModels.ForEach(ThrowIfInvalidNotificationRecipientModel);
 
             _logger.LogLayerDebug(_logPool, Module, Layer,
                 "Notification recipient range creation operation started.");
-            await _recipientRepository.AddRangeAsync(
-                recipientModels, cancellationToken);
+            await _recipientRepository.AddRangeAsync(recipientModels, cancellationToken);
             var affectedRows = await SaveChangesOrThrowAsync(cancellationToken);
             await PublishNotificationsAsync(recipientModels, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer,

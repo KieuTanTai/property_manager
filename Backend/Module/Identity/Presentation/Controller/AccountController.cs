@@ -18,7 +18,7 @@ namespace Identity.Presentation.Controller
         IIdentityHelper<AccountModel> helper,
         IMappingHelper apiHelper,
         ILogger<AccountController> logger,
-        ILogPool logPool) : CustomControllerBase(logPool, "Identity", "Presentation/Controller")
+        ILogPool logPool) : CustomControllerBase(logger, logPool, "Identity", "Presentation/Controller")
     {
         private static readonly string SessionInstanceId = Guid.NewGuid().ToString("N");
 

@@ -1,11 +1,11 @@
 using Premise.Models.Business;
+using Shared.Interfaces;
 
 namespace Premise.Interfaces.IRepository.BusinessType
 {
-    public interface IPremiseBusinessTypeRepository
+    public interface IPremiseBusinessTypeRepository : IBaseAssociativeRepository<PremiseBusinessTypeModel, Guid>
     {
-        Task<IReadOnlyList<PremiseBusinessTypeModel>> GetAllAsync(
-            CancellationToken cancellationToken = default);
+        Task DeleteAsync(Guid premiseId, Guid businessTypeId, CancellationToken cancellationToken = default);
 
         Task<IReadOnlyList<PremiseBusinessTypeModel>> GetByPremiseIdAsync(
             Guid premiseId,
@@ -31,27 +31,5 @@ namespace Premise.Interfaces.IRepository.BusinessType
             Guid businessTypeId,
             CancellationToken cancellationToken = default);
 
-        Task<PremiseBusinessTypeModel?> GetByIdsAsync(
-            Guid premiseId,
-            Guid businessTypeId,
-            CancellationToken cancellationToken = default);
-
-        Task<bool> ExistsAsync(
-            Guid premiseId,
-            Guid businessTypeId,
-            CancellationToken cancellationToken = default);
-
-        Task AddAsync(
-            PremiseBusinessTypeModel entity,
-            CancellationToken cancellationToken = default);
-
-        Task AddRangeAsync(
-            IEnumerable<PremiseBusinessTypeModel> entities,
-            CancellationToken cancellationToken = default);
-
-        Task DeleteAsync(
-            Guid premiseId,
-            Guid businessTypeId,
-            CancellationToken cancellationToken = default);
     }
 }

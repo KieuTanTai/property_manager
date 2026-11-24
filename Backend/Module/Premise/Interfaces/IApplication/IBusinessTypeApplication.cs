@@ -7,6 +7,14 @@ namespace Premise.Interfaces.IApplication
         Task<IReadOnlyList<BusinessTypeModel>> GetAllAsync(
             CancellationToken cancellationToken = default);
 
+        Task<IReadOnlyList<BusinessTypeModel>> GetByPremiseIdAsync(
+            Guid premiseId,
+            CancellationToken cancellationToken = default);
+
+        Task<IReadOnlyList<BusinessTypeModel>> GetByProductIdAsync(
+            Guid productId,
+            CancellationToken cancellationToken = default);
+
         Task<BusinessTypeModel> AddAsync(
             string name,
             string? description,

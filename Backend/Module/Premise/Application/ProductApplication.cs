@@ -206,37 +206,22 @@ namespace Premise.Application
         {
             await EnsureProductExistsAsync(productId, cancellationToken);
 
+            var product = await _productRepository.GetTrackedByIdAsync(productId, cancellationToken)
+                          ?? throw new KeyNotFoundException($"Product not found: {productId}.");
+
             var associations = await _productBusinessTypeRepository.GetTrackedByProductIdAsync(
                 productId, cancellationToken);
             foreach (var association in associations)
                 await _productBusinessTypeRepository.DeleteAsync(
                     productId, association.BusinessTypeId, cancellationToken);
 
-            await _productRepository.DeleteAsync(productId, cancellationToken);
+            product.MarkDeleted();
+            await _productRepository.UpdateAsync(product, cancellationToken);
             var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
             if (affectedRows == 0)
             {
                 throw new InvalidOperationException("Failed to delete product.");
             }
-        }
-
-        public async Task<IReadOnlyList<BusinessTypeModel>> GetBusinessTypesAsync(
-            Guid productId,
-            CancellationToken cancellationToken = default)
-        {
-            await EnsureProductExistsAsync(productId, cancellationToken);
-
-            _logger.LogLayerDebug(_logPool, Module, Layer, "Loading product business types.");
-            var associations = await _productBusinessTypeRepository.GetByProductIdAsync(
-                productId, cancellationToken);
-            if (associations.Count == 0)
-            {
-                return [];
-            }
-
-            return await _businessTypeRepository.GetByIdsAsync(
-                associations.Select(association => association.BusinessTypeId),
-                cancellationToken);
         }
 
         public async Task<IReadOnlyList<WhitelistProductModel>> GetByBusinessTypeIdAsync(

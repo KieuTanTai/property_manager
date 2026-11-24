@@ -13,7 +13,7 @@ namespace Premise.Infrastructure.Repository.PremiseRepository
     {
         private const string Module = "Premise";
 
-        private const string Layer = "Infrastructures/Repository/PremiseMediaRepository";
+        private const string Layer = "Infrastructure/Repository/PremiseMediaRepository";
 
         private readonly PremiseDbContext _db = context;
 

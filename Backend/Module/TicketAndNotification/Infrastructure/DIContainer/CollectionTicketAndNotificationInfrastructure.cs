@@ -66,7 +66,7 @@ namespace TicketAndNotification.Infrastructure.DIContainer
             services.AddScoped<ITicketRepository, TicketRepository>();
             services.AddScoped<ITicketMediaRepository, TicketMediaRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
-            services.AddScoped<IBaseAssociativeRepository<NotificationRecipientModel, Guid>, NotificationRecipientRepository>();
+            services.AddScoped<INotificationRecipientRepository, NotificationRecipientRepository>();
 
             #endregion
 

@@ -30,10 +30,6 @@ namespace Premise.Interfaces.IApplication
             Guid productId,
             CancellationToken cancellationToken = default);
 
-        Task<IReadOnlyList<BusinessTypeModel>> GetBusinessTypesAsync(
-            Guid productId,
-            CancellationToken cancellationToken = default);
-
         Task<IReadOnlyList<WhitelistProductModel>> GetByBusinessTypeIdAsync(
             Guid businessTypeId,
             CancellationToken cancellationToken = default);

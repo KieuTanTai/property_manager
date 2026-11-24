@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Shared.Interfaces;
 using Shared.Logging;
+using TicketAndNotification.Interfaces.Repository;
 using TicketAndNotification.Infrastructure.Persistence.DbContext;
 using TicketAndNotification.Models.Notification;
 
@@ -9,7 +10,7 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
     public class NotificationRecipientRepository(
         TicketAndNotificationDbContext context,
         ILogger<NotificationRecipientRepository> logger,
-        ILogPool logPool) : IBaseAssociativeRepository<NotificationRecipientModel, Guid>
+        ILogPool logPool) : INotificationRecipientRepository
     {
         private const string Module = "TicketAndNotification";
 
@@ -84,23 +85,23 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
             return await _db.NotificationRecipients.AsNoTracking().ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<NotificationRecipientModel>> GetByFirstForeignIdAsync(
-            Guid firstForeignId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<NotificationRecipientModel>> GetByNotificationIdAsync(
+            Guid notificationId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Loading notification recipient associations by first foreign id.");
+                "Loading notification recipient associations by notification id.");
             return await _db.NotificationRecipients.AsNoTracking()
-                .Where(recipient => recipient.NotificationId == firstForeignId)
+                .Where(recipient => recipient.NotificationId == notificationId)
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<IReadOnlyList<NotificationRecipientModel>> GetBySecondForeignIdAsync(
-            Guid secondForeignId, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<NotificationRecipientModel>> GetByAccountIdAsync(
+            Guid accountId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Loading notification recipient associations by second foreign id.");
+                "Loading notification recipient associations by account id.");
             return await _db.NotificationRecipients.AsNoTracking()
-                .Where(recipient => recipient.AccountId == secondForeignId)
+                .Where(recipient => recipient.AccountId == accountId)
                 .ToListAsync(cancellationToken);
         }
 
@@ -128,48 +129,6 @@ namespace TicketAndNotification.Infrastructure.Repository.NotificationRepository
         #endregion
 
         #region DELETE
-
-        public async Task DeleteByFirstForeignIdAsync(Guid firstForeignId,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Deleting notification recipient associations by notification id.");
-            if (firstForeignId == Guid.Empty)
-            {
-                var exception = new ArgumentException("Notification id is required.", nameof(firstForeignId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Notification recipient deletion rejected because the notification id is missing.");
-                throw exception;
-            }
-
-            var recipients = await _db.NotificationRecipients
-                .Where(recipient => recipient.NotificationId == firstForeignId)
-                .ToListAsync(cancellationToken);
-            _db.NotificationRecipients.RemoveRange(recipients);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Notification recipient associations staged for deletion by notification id.");
-        }
-
-        public async Task DeleteBySecondForeignIdAsync(Guid secondForeignId,
-            CancellationToken cancellationToken = default)
-        {
-            _logger.LogLayerDebug(_logPool, Module, Layer,
-                "Deleting notification recipient associations by account id.");
-            if (secondForeignId == Guid.Empty)
-            {
-                var exception = new ArgumentException("Account id is required.", nameof(secondForeignId));
-                _logger.LogLayerError(_logPool, Module, Layer, exception,
-                    "Notification recipient deletion rejected because the account id is missing.");
-                throw exception;
-            }
-
-            var recipients = await _db.NotificationRecipients
-                .Where(recipient => recipient.AccountId == secondForeignId)
-                .ToListAsync(cancellationToken);
-            _db.NotificationRecipients.RemoveRange(recipients);
-            _logger.LogLayerInformation(_logPool, Module, Layer,
-                "Notification recipient associations staged for deletion by account id.");
-        }
 
         public async Task DeleteAsync(Guid firstForeignId, Guid secondForeignId,
             CancellationToken cancellationToken = default)
