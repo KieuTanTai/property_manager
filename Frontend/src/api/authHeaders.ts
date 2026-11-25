@@ -1,5 +1,17 @@
 const SESSION_KEY = "managerspace.session"
 
+export function getSessionAccessToken(): string | null {
+    if (typeof window === "undefined") return null
+    try {
+        const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null") as {
+            accessToken?: string
+        } | null
+        return session?.accessToken?.trim() || null
+    } catch {
+        return null
+    }
+}
+
 export function createApiHeaders(headers?: HeadersInit): Headers {
     const requestHeaders = new Headers(headers)
 

@@ -12,6 +12,7 @@
     "format": "oxfmt"
   },
   "dependencies": {
+    "@microsoft/signalr": "^11.0.0",
     "browser-image-compression": "^2.0.2",
     "lodash": "^4.18.1",
     "lodash.debounce": "^4.0.8",

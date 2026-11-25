@@ -15,6 +15,8 @@ import {APP_SETTINGS} from "@/config/appSettings"
 import {FormField, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
 import {ImageAttachments} from "./ImageAttachments"
 import {hasRole} from "@/utils/authorization"
+import {getSessionAccessToken} from "@/api/authHeaders"
+import {HubConnectionBuilder, LogLevel} from "@microsoft/signalr"
 
 const button = "rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
 const ticketTypes: TicketType[] = ["Review", "Complaint", "Violation", "Feedback"]
@@ -79,6 +81,12 @@ export function TicketsModule({
     const [ticketLoadError, setTicketLoadError] = useState<string | null>(null)
     const [notificationLoadError, setNotificationLoadError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
+    const [realtimeNotification, setRealtimeNotification] = useState<{
+        id: string
+        content: string
+        type: NotificationType
+        createdAt: string
+    } | null>(null)
     const [loadingNotifications, setLoadingNotifications] = useState(customerMode)
     const [notificationContent, setNotificationContent] = useState("")
     const [notificationType, setNotificationType] = useState<NotificationType>("Other")
@@ -98,6 +106,55 @@ export function TicketsModule({
         () => debounce(setDebouncedProfileId, APP_SETTINGS.debounceDelayMs),
         [],
     )
+
+    useEffect(() => {
+        if (!accountId) return
+
+        if (!getSessionAccessToken()) return
+
+        let disposed = false
+        const connection = new HubConnectionBuilder()
+            .withUrl("/hubs/notifications", {
+                accessTokenFactory: () => getSessionAccessToken() ?? "",
+            })
+            .withAutomaticReconnect()
+            .configureLogging(LogLevel.Warning)
+            .build()
+
+        connection.on("ReceiveNotification", (payload: {
+            notificationId?: string
+            notificationContent?: string
+            notificationType?: NotificationType
+            notificationCreatedAt?: string
+        }) => {
+            if (disposed) return
+            setRealtimeNotification({
+                id: payload.notificationId ?? "",
+                content: payload.notificationContent ?? "Bạn vừa nhận một thông báo mới.",
+                type: payload.notificationType ?? "Other",
+                createdAt: payload.notificationCreatedAt ?? new Date().toISOString(),
+            })
+            setNotificationReload((current) => current + 1)
+        })
+
+        void connection.start().catch((cause: unknown) => {
+            if (disposed) return
+            const detail = cause instanceof Error ? cause.message : "Không thể kết nối SignalR."
+            setNotificationLoadError(detail)
+        })
+
+        return () => {
+            disposed = true
+            connection.off("ReceiveNotification")
+            void connection.stop()
+        }
+    }, [accountId])
+
+    useEffect(() => {
+        if (!realtimeNotification) return
+        const timer = window.setTimeout(() => setRealtimeNotification(null), 7000)
+        return () => window.clearTimeout(timer)
+    }, [realtimeNotification])
 
     useEffect(() => () => updateDebouncedProfileId.cancel(), [updateDebouncedProfileId])
     useEffect(() => {
@@ -366,6 +423,37 @@ export function TicketsModule({
     }
 
     return <div>
+        {realtimeNotification && <aside
+            role="status"
+            aria-live="polite"
+            className="fixed right-6 top-20 z-[70] w-[min(380px,calc(100vw-3rem))] rounded-xl border border-blue-200 bg-white p-4 shadow-2xl"
+        >
+            <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+                    <span className="material-symbols-outlined text-xl" aria-hidden="true">notifications_active</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-bold text-slate-900">Bạn có thông báo mới</p>
+                        <button
+                            type="button"
+                            aria-label="Đóng thông báo popup"
+                            onClick={() => setRealtimeNotification(null)}
+                            className="text-lg leading-none text-slate-400 hover:text-slate-700"
+                        >
+                            &times;
+                        </button>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-700">{realtimeNotification.content}</p>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                        <span className="rounded-md bg-violet-50 px-2 py-1 font-semibold text-violet-700">
+                            {notificationLabel[realtimeNotification.type]}
+                        </span>
+                        <span>{new Date(realtimeNotification.createdAt).toLocaleString("vi-VN")}</span>
+                    </div>
+                </div>
+            </div>
+        </aside>}
         <ModulePageHeader
             title={customerMode ? "Thông báo của tôi" : "Yêu cầu"}
             description={customerMode
