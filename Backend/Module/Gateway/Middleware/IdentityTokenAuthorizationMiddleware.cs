@@ -11,6 +11,8 @@ namespace Gateway.Middleware
         ILogger<IdentityTokenAuthorizationMiddleware> logger,
         ILogPool logPool)
     {
+        private const string AuthenticatedAccountIdItemKey = "Gateway.AuthenticatedAccountId";
+
         private const string Module = "Gateway";
 
         private const string Layer = "Middleware";
@@ -37,15 +39,7 @@ namespace Gateway.Middleware
             }
 
             var authorizationHeader = context.Request.Headers.Authorization.ToString();
-            string accessToken;
-            if (authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            {
-                accessToken = authorizationHeader["Bearer ".Length..].Trim();
-            }
-            else
-            {
-                accessToken = context.Request.Query["access_token"].ToString().Trim();
-            }
+            var accessToken = authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? authorizationHeader["Bearer ".Length..].Trim() : context.Request.Query["access_token"].ToString().Trim();
 
             if (string.IsNullOrWhiteSpace(accessToken))
             {
@@ -90,6 +84,7 @@ namespace Gateway.Middleware
 
             context.Request.Headers["X-Authenticated-Account-Id"] = accountId;
             context.Request.Headers["X-Internal-Gateway-Key"] = gatewayApiKey;
+            context.Items[AuthenticatedAccountIdItemKey] = accountId;
             await _next(context);
         }
 
@@ -108,12 +103,8 @@ namespace Gateway.Middleware
             {
                 return sub.GetString();
             }
-            if (root.TryGetProperty("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
-                    out var nameIdentifier))
-            {
-                return nameIdentifier.GetString();
-            }
-            return null;
+            return root.TryGetProperty("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+                out var nameIdentifier) ? nameIdentifier.GetString() : null;
         }
 
         private static string PadBase64Url(string value)

@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react"
+import {useEffect, useRef, useState} from "react"
 import {BaseTable, FormField, inputCls, InvoiceStatusBadge, Modal, ModulePageHeader, selectCls,} from "./shared"
 import type {InvoiceStatus} from "@/types/modules.ts"
 import type {InvoiceDetail, InvoiceTab, MonthlyInvoice, Receipt, ReceiptPaymentMethod} from "@/types/invoices"
@@ -28,25 +28,25 @@ const toUiReceipt = (receipt: ReceiptModel): Receipt => ({
     receiptPaymentMethod: receipt.receiptPaymentMethod.toLowerCase() as ReceiptPaymentMethod,
 })
 
-async function loadInvoicesData(includeReceipts: boolean, includePremises: boolean) {
+async function loadInvoicesData(includeReceipts: boolean, includePremises: boolean, signal: AbortSignal) {
     const [receipts, contracts, premises] = await Promise.all([
-        includeReceipts ? contractApi.receipts() : Promise.resolve([]),
+        includeReceipts ? contractApi.receipts(signal) : Promise.resolve([]),
         (async () => {
             const results: ContractModel[] = []
             let cursor: string | null = null
             do {
-                const page = await contractApi.contracts(cursor)
+                const page = await contractApi.contracts(cursor, signal)
                 results.push(...page.items)
                 cursor = page.isHasMore ? page.nextCursor : null
             } while (cursor)
             return results
         })(),
-        includePremises ? premiseApi.getPremise() : Promise.resolve([]),
+        includePremises ? premiseApi.getPremise(signal) : Promise.resolve([]),
     ])
     const invoiceModels: MonthlyInvoiceModel[] = []
     let cursor: string | null = null
     do {
-        const page = await contractApi.invoices(cursor)
+        const page = await contractApi.invoices(cursor, signal)
         invoiceModels.push(...page.items)
         cursor = page.isHasMore ? page.nextCursor : null
     } while (cursor)
@@ -124,6 +124,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         amount: "",
         transactionInfo: "",
     })
+    const loadControllerRef = useRef<AbortController | null>(null)
 
     const ownContractIds = new Set(contracts.filter((contract) => contract.contractAccountId === accountId).map((contract) => contract.contractId))
     const visibleInvoices = ownOnly ? invoices.filter((invoice) => ownContractIds.has(invoice.invoiceContractId)) : invoices
@@ -138,7 +139,10 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         .reduce((sum, invoice) => sum + (invoice.invoiceTotalAmount ?? 0), 0)
 
     const refreshData = async () => {
-        const data = await loadInvoicesData(canReadReceipts, canCreateInvoice)
+        loadControllerRef.current?.abort()
+        const controller = new AbortController()
+        loadControllerRef.current = controller
+        const data = await loadInvoicesData(canReadReceipts, canCreateInvoice, controller.signal)
         setInvoices(data.invoices)
         setDetails(data.details)
         setReceipts(data.receipts)
@@ -149,7 +153,10 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
 
     useEffect(() => {
         let isActive = true
-        void loadInvoicesData(canReadReceipts, canCreateInvoice)
+        loadControllerRef.current?.abort()
+        const controller = new AbortController()
+        loadControllerRef.current = controller
+        void loadInvoicesData(canReadReceipts, canCreateInvoice, controller.signal)
             .then((data) => {
                 if (!isActive) return
                 setInvoices(data.invoices)
@@ -159,13 +166,17 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                 setPremises(data.premises)
             })
             .catch((loadError: unknown) => {
-                if (isActive) setError(loadError instanceof Error ? loadError.message : "Không tải được dữ liệu hóa đơn.")
+                if (isActive && !controller.signal.aborted) {
+                    setError(loadError instanceof Error ? loadError.message : "Không tải được dữ liệu hóa đơn.")
+                }
             })
             .finally(() => {
-                if (isActive) setIsLoading(false)
+                if (isActive && !controller.signal.aborted) setIsLoading(false)
             })
         return () => {
             isActive = false
+            controller.abort()
+            if (loadControllerRef.current === controller) loadControllerRef.current = null
         }
     }, [canCreateInvoice, canReadReceipts])
 
@@ -744,10 +755,11 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                         </FormField>
                     </div>
 
-                    <div className="rounded-xl border border-gray-100 overflow-hidden mb-5">
-                        <div
-                            className="grid grid-cols-5 gap-3 bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-400">
-                            <span>Premise ID</span>
+                    <div className="mb-5 overflow-hidden rounded-xl border border-gray-100">
+                        <div className="max-h-72 overflow-auto">
+                            <div className="min-w-225">
+                        <div className="sticky top-0 z-10 grid grid-cols-5 gap-3 bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-400">
+                            <span>Mặt bằng</span>
                             <span className="text-right">Tiền thuê</span>
                             <span className="text-right">Tiền điện</span>
                             <span className="text-right">Tiền nước</span>
@@ -764,9 +776,9 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                             return (
                                 <div
                                     key={premiseId}
-                                    className="grid grid-cols-5 gap-3 items-center px-4 py-3 border-t border-gray-50"
+                                    className="grid grid-cols-5 items-center gap-3 border-t border-gray-50 px-4 py-3"
                                 >
-                                    <label className="flex min-w-0 items-center gap-2 text-xs font-mono text-gray-500">
+                                    <label className="flex min-w-0 items-center gap-2 text-xs text-gray-700">
                                         <input
                                             type="checkbox"
                                             checked={isSelected}
@@ -782,9 +794,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                                 }
                                             }}
                                         />
-                                        <span className="truncate" title={`${premise.premiseName} · ${premiseId}`}>
-                            {premise.premiseName} · {premiseId}
-                        </span>
+                                        <span className="truncate" title={premise.premiseName}>{premise.premiseName}</span>
                                     </label>
                                     <div className="relative">
                                         <input
@@ -863,6 +873,8 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 </div>
                             )
                         })}
+                            </div>
+                        </div>
                     </div>
 
                     <div
@@ -1052,7 +1064,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                         <div className="flex items-center justify-between mb-3">
                             <div>
                                 <p className="text-sm font-bold text-gray-900">
-                                    Chi tiết hóa đơn theo mặt bằng
+                                    Chi tiết hóa đơn
                                 </p>
                                 <p className="text-xs text-gray-400 mt-0.5">
                                     Một hóa đơn hàng tháng có thể bao gồm nhiều mặt bằng
@@ -1062,6 +1074,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                 {invoiceDetails.length} chi tiết
               </span>
                         </div>
+                        <div className="max-h-50 overflow-auto rounded-xl [&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10">
                         <BaseTable
                             rows={invoiceDetails}
                             getRowKey={(detail) => String(detail.invoiceDetailId)}
@@ -1077,10 +1090,14 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 },
                                 {
                                     key: "premise",
-                                    header: "Premise ID",
-                                    cellClassName: "max-w-48 truncate px-3 py-3 font-mono text-xs text-gray-500",
-                                    render: (detail) => <span
-                                        title={detail.invoiceDetailPremiseId}>{detail.invoiceDetailPremiseId}</span>
+                                    header: "Mặt bằng",
+                                    cellClassName: "max-w-48 truncate px-3 py-3 text-xs text-gray-700",
+                                    render: (detail) => {
+                                        const premiseName = premises.find(
+                                            (premise) => premise.premiseId === detail.invoiceDetailPremiseId,
+                                        )?.premiseName ?? "Không rõ mặt bằng"
+                                        return <span title={premiseName}>{premiseName}</span>
+                                    }
                                 },
                                 {
                                     key: "rental",
@@ -1119,6 +1136,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 },
                             ]}
                         />
+                        </div>
                         <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
@@ -1137,7 +1155,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                             {availablePremiseIds.length ? (
                                 <>
                                     <div className="grid grid-cols-5 gap-x-3">
-                                        <FormField label="Premise ID">
+                                        <FormField label="Mặt bằng">
                                             <select
                                                 className={selectCls}
                                                 value={detailForm.premiseId}
@@ -1150,7 +1168,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                             >
                                                 {availablePremiseIds.map((premiseId) => (
                                                     <option key={premiseId} value={premiseId}>
-                                                        {premises.find((premise) => premise.premiseId === premiseId)?.premiseName ?? premiseId} · {premiseId}
+                                                        {premises.find((premise) => premise.premiseId === premiseId)?.premiseName ?? "Không rõ mặt bằng"}
                                                     </option>
                                                 ))}
                                             </select>

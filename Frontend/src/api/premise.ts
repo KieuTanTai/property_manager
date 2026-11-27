@@ -63,7 +63,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         if (init?.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
         response = await fetch(`${apiBase}${path}`, {...init, headers})
         console.log(`response: ${response}`)
-    } catch {
+    } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") throw error
         throw new Error(`Không thể kết nối Premise API tại ${apiBase}. Kiểm tra backend và HTTPS.`)
     }
 
@@ -86,7 +87,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const premiseApi = {
-    async getPublicPremises(): Promise<PublicPremise[]> {
+    async getPublicPremises(signal?: AbortSignal): Promise<PublicPremise[]> {
         const [premises, locations] = await Promise.all([
             request<Array<{
                 premiseId: string
@@ -97,17 +98,18 @@ export const premiseApi = {
                 premiseFloor: number
                 premiseArea: string
                 premiseDescription: string | null
-            }>>("/Premise"),
-            request<LocationModel[]>("/Location"),
+            }>>("/Premise", {signal}),
+            request<LocationModel[]>("/Location", {signal}),
         ])
         const locationById = new Map(locations.map((location) => [location.locationId, location.locationAddress]))
         const mediaByPremise = await Promise.all(premises.map(async (premise): Promise<
             readonly [string, PublicPremise["media"]]
         > => {
             try {
-                const images = await request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premise.premiseId)}/images`)
+                const images = await request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premise.premiseId)}/images`, {signal})
                 return [premise.premiseId, images.map((image) => ({id: image.imageId, url: image.imageUrl}))]
             } catch {
+                if (signal?.aborted) throw new DOMException("The request was aborted.", "AbortError")
                 return [premise.premiseId, []]
             }
         }))
@@ -125,14 +127,14 @@ export const premiseApi = {
             media: mediaMap.get(premise.premiseId) ?? [],
         }))
     },
-    getPremise() {
-        return request<PremiseModel[]>("/Premise")
+    getPremise(signal?: AbortSignal) {
+        return request<PremiseModel[]>("/Premise", {signal})
     },
-    getLocations() {
-        return request<LocationModel[]>("/Location")
+    getLocations(signal?: AbortSignal) {
+        return request<LocationModel[]>("/Location", {signal})
     },
-    getBusinessTypes() {
-        return request<BusinessTypeModel[]>("/BusinessType")
+    getBusinessTypes(signal?: AbortSignal) {
+        return request<BusinessTypeModel[]>("/BusinessType", {signal})
     },
     createBusinessType(body: BusinessTypeRequest) {
         return request<BusinessTypeModel>("/BusinessType", {
@@ -189,8 +191,8 @@ export const premiseApi = {
             {method: "DELETE"},
         )
     },
-    getImages(premiseId: string) {
-        return request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premiseId)}/images`)
+    getImages(premiseId: string, signal?: AbortSignal) {
+        return request<PremiseMediaModel[]>(`/Premise/${encodeURIComponent(premiseId)}/images`, {signal})
     },
     getBusinessTypesByPremise(premiseId: string) {
         return request<PremiseBusinessTypeResponse[]>(

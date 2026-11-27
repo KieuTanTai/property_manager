@@ -86,15 +86,19 @@ export function PublicHome({onManager}: PublicHomeProps) {
 
     useEffect(() => {
         let active = true
-        void premiseApi.getPublicPremises().then((premises) => {
+        const controller = new AbortController()
+        void premiseApi.getPublicPremises(controller.signal).then((premises) => {
             if (active) setAllPremises(premises)
         }).catch((cause) => {
-            if (active) setPremisesError(cause instanceof Error ? cause.message : "Không tải được danh sách mặt bằng.")
+            if (active && !controller.signal.aborted) {
+                setPremisesError(cause instanceof Error ? cause.message : "Không tải được danh sách mặt bằng.")
+            }
         }).finally(() => {
-            if (active) setPremisesLoading(false)
+            if (active && !controller.signal.aborted) setPremisesLoading(false)
         })
         return () => {
             active = false
+            controller.abort()
         }
     }, [])
     useEffect(() => {
