@@ -1,10 +1,12 @@
 using Identity.Application.Record;
+using Identity.Application.Record.Cache;
 using Identity.Interfaces;
 using Identity.Interfaces.Credentials;
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
 using Identity.Models.Account;
 using Identity.Presentation.Record.Profile;
+using Microsoft.Extensions.Caching.Memory;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
@@ -21,6 +23,7 @@ namespace Identity.Application
         IIdentityHelper<AccountModel> accountHelper,
         IMappingHelper apiHelper,
         IJwtTokenService jwtTokenService,
+        IMemoryCache memoryCache,
         ILogger<AccountApplication> logger,
         ILogPool logPool)
         : IAccountApplication
@@ -41,6 +44,15 @@ namespace Identity.Application
         private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
 
         private readonly ILogPool _logPool = logPool;
+
+        private readonly IMemoryCache _memoryCache = memoryCache;
+
+        private static readonly MemoryCacheEntryOptions CacheOptions = new() { SlidingExpiration = TimeSpan.FromMinutes(20) };
+
+        private static string AccountByEmailKey(string email, bool roles = false, bool permissions = false, bool profile = false) =>
+            $"identity:account:email:{email.Trim().ToUpperInvariant()}:roles:{roles}:permissions:{permissions}:profile:{profile}";
+
+        private static string AccountByIdKey(Guid accountId) => $"identity:account:id:{accountId}";
 
         private readonly ILogger<AccountApplication> _logger = logger;
 
@@ -70,6 +82,7 @@ namespace Identity.Application
                 throw new InvalidOperationException("Failed to add account.");
             }
             accountModel.SetRoles([baseRole]);
+            CacheAccount(accountModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account registration completed.");
             return accountModel;
         }
@@ -125,6 +138,7 @@ namespace Identity.Application
                 _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Password change saved no rows."), "Password change failed.");
                 throw new InvalidOperationException("Failed to change password.");
             }
+            CacheAccount(accountModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Password change completed.");
             return affectRows;
         }
@@ -151,6 +165,7 @@ namespace Identity.Application
                 _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Account deactivation saved no rows."), "Account deactivation failed.");
                 throw new InvalidOperationException("Failed to inactive account.");
             }
+            CacheAccount(accountModel);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account deactivation completed.");
             return affectRows;
         }
@@ -159,15 +174,18 @@ namespace Identity.Application
 
         #region ADMIN
 
-        public Task<IReadOnlyList<AccountModel>> GetAllAccountsByRoleCodeAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<AccountModel>> GetAllAccountsByRoleCodeAsync(ESystemRoleCode roleCode, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Get all accounts by role code operation started.");
-            var result = _accountRepository.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
-            if (result.Result.Count == 0)
+            var result = await _memoryCache.GetOrCreateAsync($"identity:account:role:{roleCode}", async entry => {
+                entry.SetOptions(CacheOptions);
+                return await _accountRepository.GetAllAccountsByRoleCodeAsync(roleCode, cancellationToken);
+            }) ?? Array.Empty<AccountModel>();
+            if (result.Count == 0)
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "No accounts found for the specified role code.");
             }
-            _logger.LogLayerInformation(_logPool, Module, Layer, $"Get all accounts by role code operation completed. Found {result.Result.Count} accounts.");
+            _logger.LogLayerInformation(_logPool, Module, Layer, $"Get all accounts by role code operation completed. Found {result.Count} accounts.");
             return result;
         }
 
@@ -190,6 +208,7 @@ namespace Identity.Application
                 _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Failed to active account."), "Account activation failed.");
                 throw new InvalidOperationException("Failed to active account.");
             }
+            CacheAccount(result);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Admin account activation completed.");
             return affectRows;
         }
@@ -197,23 +216,30 @@ namespace Identity.Application
         public async Task<int> InactiveAccountByAdminAsync(Guid accountId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Admin deactivate account operation started.");
-            var result = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
+            var result = await _memoryCache.GetOrCreateAsync(AccountByIdKey(accountId), async entry => {
+                entry.SetOptions(CacheOptions);
+                var account = await _accountRepository.GetByIdAsync(accountId, cancellationToken);
+                return account is null ? null : new RecordIdentityCacheEntry<AccountModel>(account.AccountId, account);
+            });
 
-            if (result == null)
+            var accountResult = result?.Fields;
+            if (accountResult == null)
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Admin account deactivation rejected because the account was not found.");
                 throw new ArgumentException("Account not found.", nameof(accountId));
             }
 
-            if (!result.AccountIsActive)
+            if (!accountResult.AccountIsActive)
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Admin account deactivation rejected because the account is already inactive.");
                 throw new InvalidOperationException("Account is already inactive.");
             }
-            result.SetAccountIsActive(false);
-            await _accountRepository.UpdateAsync(result, cancellationToken);
+            accountResult.SetAccountIsActive(false);
+            await _accountRepository.UpdateAsync(accountResult, cancellationToken);
             var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
-            return affectRows == 0 ? throw new InvalidOperationException("Failed to inactive account.") : affectRows;
+            if (affectRows == 0) throw new InvalidOperationException("Failed to inactive account.");
+            CacheAccount(accountResult);
+            return affectRows;
         }
 
         public async Task<RecordBaseCursorPage<AccountModel>> GetApplyPagingAsync(Guid? cursor, int pageSize, CancellationToken cancellationToken = default)
@@ -233,7 +259,12 @@ namespace Identity.Application
         public async Task<AccountModel?> GetAccountByEmailAsync(string email, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Account lookup operation started.");
-            var accountModel = await _accountRepository.GetAccountAndNavigationByEmailAsync(email, true, true, true, cancellationToken);
+            var accountModel = await _memoryCache.GetOrCreateAsync(AccountByEmailKey(email, true, true, true), async entry => {
+                entry.SetOptions(CacheOptions);
+                return await _accountRepository.GetAccountAndNavigationByEmailAsync(email, true, true, true, cancellationToken);
+            });
+            if (accountModel is not null)
+                _memoryCache.Set(AccountByIdKey(accountModel.AccountId), new RecordIdentityCacheEntry<AccountModel>(accountModel.AccountId, accountModel), CacheOptions);
             return accountModel;
         }
 
@@ -255,6 +286,7 @@ namespace Identity.Application
                 _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Account update range saved no rows."), "Account update range failed.");
                 throw new InvalidOperationException("Failed to update accounts.");
             }
+            foreach (var account in accountModels) CacheAccount(account);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Account update range completed.");
             return affectRows;
         }
@@ -304,7 +336,12 @@ namespace Identity.Application
 
         private async Task<AccountModel> GetAccountByEmailAsync(string email, bool isGetRole = true, bool isGetAdditionalPermission = true, bool isGetProfile = false, CancellationToken cancellationToken = default)
         {
-            var existedAccount = await _accountRepository.GetAccountAndNavigationByEmailAsync(email, isGetRole, isGetAdditionalPermission, isGetProfile, cancellationToken);
+            var existedAccount = await _memoryCache.GetOrCreateAsync(AccountByEmailKey(email, isGetRole, isGetAdditionalPermission, isGetProfile), async entry => {
+                entry.SetOptions(CacheOptions);
+                return await _accountRepository.GetAccountAndNavigationByEmailAsync(email, isGetRole, isGetAdditionalPermission, isGetProfile, cancellationToken);
+            });
+            if (existedAccount is not null)
+                _memoryCache.Set(AccountByIdKey(existedAccount.AccountId), new RecordIdentityCacheEntry<AccountModel>(existedAccount.AccountId, existedAccount), CacheOptions);
             return existedAccount ?? throw new InvalidOperationException("AccountModel not found!");
         }
 
@@ -315,8 +352,33 @@ namespace Identity.Application
                 return await _accountRepository.GetTrackedAccountByEmailAsync(email, cancellationToken);
             }
 
-            var existedAccount = await _accountRepository.GetAccountByEmailAsync(email, cancellationToken);
-            return existedAccount;
+            var existedAccount = await _memoryCache.GetOrCreateAsync(AccountByEmailKey(email), async entry => {
+                entry.SetOptions(CacheOptions);
+                return await _accountRepository.GetAccountByEmailAsync(email, cancellationToken);
+            });
+            if (existedAccount is not null)
+                _memoryCache.Set(AccountByIdKey(existedAccount.AccountId), new RecordIdentityCacheEntry<AccountModel>(existedAccount.AccountId, existedAccount), CacheOptions);
+            return existedAccount ?? throw new InvalidOperationException("AccountModel not found!");
+        }
+
+        private void CacheAccount(AccountModel account)
+        {
+            _memoryCache.TryGetValue(AccountByIdKey(account.AccountId), out RecordIdentityCacheEntry<AccountModel>? previousEntry);
+            if (previousEntry is not null) RemoveAccountEmailCache(previousEntry.Fields.AccountEmail);
+            _memoryCache.Remove(AccountByIdKey(account.AccountId));
+            RemoveAccountEmailCache(account.AccountEmail);
+            _memoryCache.Set(AccountByIdKey(account.AccountId), new RecordIdentityCacheEntry<AccountModel>(account.AccountId, account), CacheOptions);
+            _memoryCache.Set(AccountByEmailKey(account.AccountEmail), account, CacheOptions);
+            foreach (var roleCode in Enum.GetValues<ESystemRoleCode>())
+                _memoryCache.Remove($"identity:account:role:{roleCode}");
+        }
+
+        private void RemoveAccountEmailCache(string email)
+        {
+            for (var roles = 0; roles <= 1; roles++)
+            for (var permissions = 0; permissions <= 1; permissions++)
+            for (var profile = 0; profile <= 1; profile++)
+                _memoryCache.Remove(AccountByEmailKey(email, roles == 1, permissions == 1, profile == 1));
         }
 
         #endregion

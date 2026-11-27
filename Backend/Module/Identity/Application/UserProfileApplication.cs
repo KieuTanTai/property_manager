@@ -1,6 +1,8 @@
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
+using Identity.Application.Record.Cache;
 using Identity.Models.Profile;
+using Microsoft.Extensions.Caching.Memory;
 using Shared.Interfaces;
 using Shared.Logging;
 
@@ -9,6 +11,7 @@ namespace Identity.Application
     public class UserProfileApplication(
         IUnitOfWork unitOfWork,
         IUserProfileRepository userProfileRepository,
+        IMemoryCache memoryCache,
         ILogger<UserProfileApplication> logger,
         ILogPool logPool) : IUserProfileApplication
     {
@@ -23,6 +26,14 @@ namespace Identity.Application
         private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
         private readonly IUserProfileRepository _userProfileRepository = userProfileRepository;
+
+        private readonly IMemoryCache _memoryCache = memoryCache;
+
+        private static string ProfileByAccountKey(Guid accountId) => $"identity:profile:account:{accountId}";
+
+        private static string ProfileByCodeKey(string identityCode) => $"identity:profile:code:{identityCode}";
+
+        private static readonly MemoryCacheEntryOptions CacheOptions = new() { SlidingExpiration = TimeSpan.FromMinutes(20) };
 
         #region PRIVATE
 
@@ -44,15 +55,23 @@ namespace Identity.Application
         public async Task<UserProfileModel> GetProfileInfoAsync(Guid accountId, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup operation started.");
-            var result = await _userProfileRepository.GetUserProfileAsync(accountId, cancellationToken);
-            return EnsureProfileFound(result);
+            var cachedProfile = await _memoryCache.GetOrCreateAsync(ProfileByAccountKey(accountId), async entry => {
+                entry.SetOptions(CacheOptions);
+                var result = await _userProfileRepository.GetUserProfileAsync(accountId, cancellationToken);
+                var profile = EnsureProfileFound(result);
+                return new RecordIdentityCacheEntry<UserProfileModel>(profile.UserProfileAccountId, profile);
+            });
+            return cachedProfile?.Fields ?? throw new InvalidOperationException("Profile was not found.");
         }
 
         public async Task<UserProfileModel> GetProfileInfoAsync(string identityCode, CancellationToken cancellationToken = default)
         {
             _logger.LogLayerDebug(_logPool, Module, Layer, "Profile lookup operation started.");
-            var result = await _userProfileRepository.GetByIdAsync(identityCode, cancellationToken);
-            return EnsureProfileFound(result);
+            return await _memoryCache.GetOrCreateAsync(ProfileByCodeKey(identityCode), async entry => {
+                entry.SetOptions(CacheOptions);
+                var result = await _userProfileRepository.GetByIdAsync(identityCode, cancellationToken);
+                return EnsureProfileFound(result);
+            }) ?? throw new InvalidOperationException("Profile was not found.");
         }
 
         #endregion
@@ -64,6 +83,7 @@ namespace Identity.Application
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update operation started.");
             try
             {
+                _memoryCache.TryGetValue(ProfileByAccountKey(userProfile.UserProfileAccountId), out RecordIdentityCacheEntry<UserProfileModel>? previousEntry);
                 await _userProfileRepository.UpdateAsync(userProfile, cancellationToken);
                 var affectRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
                 if (affectRows == 0)
@@ -71,6 +91,12 @@ namespace Identity.Application
                     _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Profile update saved no rows."), "Profile update persistence failed.");
                     throw new InvalidOperationException("Failed to update user profile.");
                 }
+                _memoryCache.Remove(ProfileByAccountKey(userProfile.UserProfileAccountId));
+                if (previousEntry is not null)
+                    _memoryCache.Remove(ProfileByCodeKey(previousEntry.Fields.UserProfileId));
+                _memoryCache.Remove(ProfileByCodeKey(userProfile.UserProfileId));
+                InvalidateAccountProfile(userProfile.UserProfileAccountId);
+                CacheProfile(userProfile);
                 _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update completed.");
                 return userProfile;
             }
@@ -99,6 +125,8 @@ namespace Identity.Application
                 _logger.LogLayerError(_logPool, Module, Layer, new InvalidOperationException("Profile creation saved no rows."), "Profile creation persistence failed.");
                 throw new InvalidOperationException("Failed to create user profile.");
             }
+            CacheProfile(baseProfile);
+            InvalidateAccountProfile(baseProfile.UserProfileAccountId);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile creation completed.");
             return baseProfile;
         }
@@ -107,9 +135,43 @@ namespace Identity.Application
         {
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation started.");
             var userProfileModels = userProfiles.ToList();
+            var previousCodes = userProfileModels.Select(profile => {
+                _memoryCache.TryGetValue(ProfileByAccountKey(profile.UserProfileAccountId), out RecordIdentityCacheEntry<UserProfileModel>? previous);
+                return previous?.Fields.UserProfileId;
+            }).Where(code => code is not null).ToList();
             _userProfileRepository.UpdateRange(userProfileModels, cancellationToken);
             _logger.LogLayerInformation(_logPool, Module, Layer, "Profile update range operation completed.");
-            return await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (affectedRows > 0) foreach (var profile in userProfileModels)
+            {
+                _memoryCache.Remove(ProfileByAccountKey(profile.UserProfileAccountId));
+                _memoryCache.Remove(ProfileByCodeKey(profile.UserProfileId));
+                InvalidateAccountProfile(profile.UserProfileAccountId);
+                CacheProfile(profile);
+            }
+            foreach (var previousCode in previousCodes)
+                _memoryCache.Remove(ProfileByCodeKey(previousCode!));
+            return affectedRows;
+        }
+
+        private void CacheProfile(UserProfileModel profile)
+        {
+            _memoryCache.Set(ProfileByAccountKey(profile.UserProfileAccountId), new RecordIdentityCacheEntry<UserProfileModel>(profile.UserProfileAccountId, profile), CacheOptions);
+            _memoryCache.Set(ProfileByCodeKey(profile.UserProfileId), profile, CacheOptions);
+        }
+
+        private void InvalidateAccountProfile(Guid accountId)
+        {
+            var accountKey = $"identity:account:id:{accountId}";
+            _memoryCache.TryGetValue(accountKey, out RecordIdentityCacheEntry<Identity.Models.Account.AccountModel>? cachedAccountEntry);
+            _memoryCache.Remove(accountKey);
+            if (cachedAccountEntry is null) return;
+            var cachedAccount = cachedAccountEntry.Fields;
+            var normalizedEmail = cachedAccount.AccountEmail.Trim().ToUpperInvariant();
+            foreach (var roles in new[] {false, true})
+            foreach (var permissions in new[] {false, true})
+            foreach (var includeProfile in new[] {false, true})
+                _memoryCache.Remove($"identity:account:email:{normalizedEmail}:roles:{roles}:permissions:{permissions}:profile:{includeProfile}");
         }
 
         #endregion

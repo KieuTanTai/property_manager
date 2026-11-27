@@ -1,8 +1,10 @@
 import type {SubmitEvent} from "react"
 import {useEffect, useMemo, useState} from "react"
 import {contractApi} from "@/api/contracts"
+import {identityApi} from "@/api/identity"
 import type {ContractModel, ContractViolationModel} from "@/types/contracts"
-import {BaseTable, FormField, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
+import type {AccountProfileOption} from "@/types/identity"
+import {BaseTable, FormField, formatProfileFullName, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
 import {fmt, isIntegerAmountInput} from "@/scripts/format.ts"
 import type {Violation} from "@/types/modules.ts"
 import {filterViolationsForAccount, mapContractViolationToView} from "@/scripts/violations.ts"
@@ -26,6 +28,7 @@ export function ViolationsModule({
                                      ownOnly = readOnly
                                  }: ViolationsModuleProps) {
     const [contracts, setContracts] = useState<ContractModel[]>([])
+    const [customerAccounts, setCustomerAccounts] = useState<AccountProfileOption[]>([])
     const [violations, setViolations] = useState<Violation[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [modal, setModal] = useState<"add" | "view" | null>(null)
@@ -69,7 +72,34 @@ export function ViolationsModule({
         return () => controller.abort()
     }, [accountId, ownOnly])
 
-    const getTenant = (contractId: string) => contracts.find((contract) => contract.contractId === contractId)?.contractAccountId ?? "—"
+    useEffect(() => {
+        if (ownOnly) {
+            setCustomerAccounts([])
+            return
+        }
+
+        let isActive = true
+        void identityApi.getAccountsByRoleCode("Customer")
+            .then((items) => {
+                if (isActive) setCustomerAccounts(items)
+            })
+            .catch((cause: unknown) => {
+                if (isActive) setError(cause instanceof Error ? cause.message : "Không tải được danh sách khách thuê.")
+            })
+        return () => {
+            isActive = false
+        }
+    }, [ownOnly])
+
+    const getTenant = (contractId: string) => {
+        const accountIdForContract = contracts.find((contract) => contract.contractId === contractId)?.contractAccountId
+        if (!accountIdForContract) return "—"
+        if (ownOnly && accountIdForContract.toLowerCase() === accountId?.toLowerCase()) return "Bạn"
+        const account = customerAccounts.find((item) =>
+            item.accountId.toLowerCase() === accountIdForContract.toLowerCase(),
+        )
+        return formatProfileFullName(account?.userProfile) || account?.accountEmail || "Không rõ khách thuê"
+    }
 
     const visible = useMemo(() => violations.filter((item) =>
         filter === "all" || item.resolved === (filter === "resolved"),
@@ -203,7 +233,7 @@ export function ViolationsModule({
                     key: "tenant",
                     header: "Khách thuê",
                     cellClassName: "px-4 py-3 font-medium text-gray-800",
-                    render: (item) => item.tenant || "—"
+                    render: (item) => getTenant(item.contractId)
                 },
                 {
                     key: "content",
@@ -250,7 +280,7 @@ export function ViolationsModule({
                     setForm({...form, contractId, tenant: getTenant(contractId)})
                 }}>{contracts.map((contract) => <option key={contract.contractId}
                                                              value={contract.contractId}>{contract.contractId}</option>)}</select></FormField>
-                <FormField label="Khách thuê"><input className={inputCls} value={form.tenant} disabled/></FormField>
+                <FormField label="Khách thuê"><input className={inputCls} value={getTenant(form.contractId)} disabled/></FormField>
                 <FormField label="Ngày vi phạm"><input required type="date" className={inputCls} value={form.date}
                                                        disabled={disabled} onChange={(event) => setForm({
                     ...form,

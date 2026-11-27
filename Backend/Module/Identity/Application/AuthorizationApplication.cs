@@ -1,8 +1,10 @@
 using Identity.Interfaces.IApplication;
 using Identity.Interfaces.IRepository;
+using Identity.Application.Record.Cache;
 using Identity.Models.Account;
 using Identity.Models.Permission;
 using Identity.Models.Role;
+using Microsoft.Extensions.Caching.Memory;
 using Shared.Enum;
 using Shared.Interfaces;
 using Shared.Logging;
@@ -16,6 +18,7 @@ namespace Identity.Application
         IRolePermissionRepository rolePermissionRepository,
         IAccountAdditionalPermissionRepository accountAdditionalPermissionRepository,
         IAccountRoleRepository accountRoleRepository,
+        IMemoryCache memoryCache,
         ILogger<AuthorizationApplication> logger,
         ILogPool logPool) : IAuthorizationApplication
     {
@@ -29,6 +32,8 @@ namespace Identity.Application
         private readonly IAccountRoleRepository _accountRoleRepository = accountRoleRepository;
 
         private readonly ILogPool _logPool = logPool;
+
+        private readonly IMemoryCache _memoryCache = memoryCache;
 
         private readonly ILogger<AuthorizationApplication> _logger = logger;
 
@@ -147,7 +152,12 @@ namespace Identity.Application
                     var rolePermission = new RolePermissionModel(roleModel.RoleId, permissionId);
                     await _rolePermissionRepository.AddAsync(rolePermission, cancellationToken);
                 }
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                if (affectedRows > 0)
+                {
+                    roleModel.SetPermissions(await _permissionRepository.GetByIdsAsync(permissionIds, cancellationToken));
+                }
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {
@@ -170,7 +180,9 @@ namespace Identity.Application
                     var accountRole = new AccountRoleModel(accountId, roleId);
                     await _accountRoleRepository.AddAsync(accountRole, cancellationToken);
                 }
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                if (affectedRows > 0) InvalidateAccountCache(accountId);
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {
@@ -197,7 +209,8 @@ namespace Identity.Application
                     throw new ArgumentException("Cannot update admin roles.", nameof(roleModel));
                 }
                 await _roleRepository.UpdateAsync(roleModel, cancellationToken);
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {
@@ -229,7 +242,12 @@ namespace Identity.Application
                     await _rolePermissionRepository.AddAsync(permission, cancellationToken);
 
                 await _roleRepository.UpdateAsync(roleModel, cancellationToken);
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                if (affectedRows > 0)
+                {
+                    roleModel.SetPermissions(await _permissionRepository.GetByIdsAsync(permissionIds, cancellationToken));
+                }
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {
@@ -260,7 +278,9 @@ namespace Identity.Application
                 foreach (var role in rolesToAdd.Select(roleToAdd => new AccountRoleModel(accountId, roleToAdd)))
                     await _accountRoleRepository.AddAsync(role, cancellationToken);
 
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                if (affectedRows > 0) InvalidateAccountCache(accountId);
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {
@@ -274,6 +294,22 @@ namespace Identity.Application
         }
 
         #endregion
+
+        private void InvalidateAccountCache(Guid accountId)
+        {
+            var accountKey = $"identity:account:id:{accountId}";
+            foreach (var roleCode in Enum.GetValues<ESystemRoleCode>())
+                _memoryCache.Remove($"identity:account:role:{roleCode}");
+            _memoryCache.TryGetValue(accountKey, out RecordIdentityCacheEntry<AccountModel>? cachedAccountEntry);
+            _memoryCache.Remove(accountKey);
+            if (cachedAccountEntry is null) return;
+            var cachedAccount = cachedAccountEntry.Fields;
+            var normalizedEmail = cachedAccount.AccountEmail.Trim().ToUpperInvariant();
+            foreach (var roles in new[] {false, true})
+            foreach (var permissions in new[] {false, true})
+            foreach (var profile in new[] {false, true})
+                _memoryCache.Remove($"identity:account:email:{normalizedEmail}:roles:{roles}:permissions:{permissions}:profile:{profile}");
+        }
 
         #endregion
 
@@ -333,7 +369,8 @@ namespace Identity.Application
             try
             {
                 await _permissionRepository.AddAsync(permissionModel, cancellationToken);
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {
@@ -379,7 +416,8 @@ namespace Identity.Application
             try
             {
                 await _permissionRepository.UpdateAsync(permissionModel, cancellationToken);
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {
@@ -411,7 +449,9 @@ namespace Identity.Application
                 foreach (var permission in idsToAdd.Select(permissionToAdd => new AccountAdditionalPermissionModel(accountId, permissionToAdd)))
                     await _accountAdditionalPermissionRepository.AddAsync(permission, cancellationToken);
 
-                return await _unitOfWork.SaveChangesAsync(cancellationToken);
+                var affectedRows = await _unitOfWork.SaveChangesAsync(cancellationToken);
+                if (affectedRows > 0) InvalidateAccountCache(accountId);
+                return affectedRows;
             }
             catch (OperationCanceledException canceledException)
             {

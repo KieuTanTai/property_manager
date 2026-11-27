@@ -4,11 +4,14 @@ import type {InvoiceStatus} from "@/types/modules.ts"
 import type {InvoiceDetail, InvoiceTab, MonthlyInvoice, Receipt, ReceiptPaymentMethod} from "@/types/invoices"
 import {contractApi} from "@/api/contracts"
 import {premiseApi} from "@/api/premise"
+import {identityApi} from "@/api/identity"
 import type {ContractModel, MonthlyInvoiceModel, ReceiptModel} from "@/types/contracts"
 import type {PremiseModel} from "@/components/premises/types"
+import type {AccountProfileOption} from "@/types/identity"
 import {createUuidV7} from "@/scripts/ids.ts"
 import {fmt, isIntegerAmountInput, today} from "@/scripts/format.ts"
 import {hasAnyPermissionForRole, hasPermission, PERMISSIONS} from "@/utils/authorization"
+import {formatProfileFullName} from "./shared"
 
 const paymentMethodLabels: Record<ReceiptPaymentMethod, string> = {
     cash: "Tiền mặt",
@@ -28,7 +31,7 @@ const toUiReceipt = (receipt: ReceiptModel): Receipt => ({
     receiptPaymentMethod: receipt.receiptPaymentMethod.toLowerCase() as ReceiptPaymentMethod,
 })
 
-async function loadInvoicesData(includeReceipts: boolean, includePremises: boolean, signal: AbortSignal) {
+async function loadInvoicesData(includeReceipts: boolean, signal: AbortSignal) {
     const [receipts, contracts, premises] = await Promise.all([
         includeReceipts ? contractApi.receipts(signal) : Promise.resolve([]),
         (async () => {
@@ -41,7 +44,7 @@ async function loadInvoicesData(includeReceipts: boolean, includePremises: boole
             } while (cursor)
             return results
         })(),
-        includePremises ? premiseApi.getPremise(signal) : Promise.resolve([]),
+        premiseApi.getPremise(signal),
     ])
     const invoiceModels: MonthlyInvoiceModel[] = []
     let cursor: string | null = null
@@ -76,6 +79,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
     const [receipts, setReceipts] = useState<Receipt[]>([])
     const [contracts, setContracts] = useState<ContractModel[]>([])
     const [premises, setPremises] = useState<PremiseModel[]>([])
+    const [customerAccounts, setCustomerAccounts] = useState<AccountProfileOption[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -142,7 +146,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         loadControllerRef.current?.abort()
         const controller = new AbortController()
         loadControllerRef.current = controller
-        const data = await loadInvoicesData(canReadReceipts, canCreateInvoice, controller.signal)
+        const data = await loadInvoicesData(canReadReceipts, controller.signal)
         setInvoices(data.invoices)
         setDetails(data.details)
         setReceipts(data.receipts)
@@ -156,7 +160,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
         loadControllerRef.current?.abort()
         const controller = new AbortController()
         loadControllerRef.current = controller
-        void loadInvoicesData(canReadReceipts, canCreateInvoice, controller.signal)
+        void loadInvoicesData(canReadReceipts, controller.signal)
             .then((data) => {
                 if (!isActive) return
                 setInvoices(data.invoices)
@@ -179,6 +183,27 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
             if (loadControllerRef.current === controller) loadControllerRef.current = null
         }
     }, [canCreateInvoice, canReadReceipts])
+
+    useEffect(() => {
+        if (ownOnly) {
+            setCustomerAccounts([])
+            return
+        }
+
+        let isActive = true
+        void identityApi.getAccountsByRoleCode("Customer")
+            .then((accounts) => {
+                if (isActive) setCustomerAccounts(accounts)
+            })
+            .catch((cause: unknown) => {
+                if (isActive) {
+                    setError(cause instanceof Error ? cause.message : "Không tải được danh sách khách thuê.")
+                }
+            })
+        return () => {
+            isActive = false
+        }
+    }, [ownOnly])
 
     const runMutation = async (operation: () => Promise<void>) => {
         setError(null)
@@ -487,6 +512,22 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                 ),
         ) ?? []
     const selectedContract = selected ? contracts.find((contract) => contract.contractId === selected.invoiceContractId) : undefined
+    const getTenantName = (contract: ContractModel | undefined) => {
+        if (!contract) return "Không rõ khách thuê"
+        if (ownOnly && contract.contractAccountId.toLowerCase() === accountId?.toLowerCase()) return "Bạn"
+        const account = customerAccounts.find((item) =>
+            item.accountId.toLowerCase() === contract.contractAccountId.toLowerCase(),
+        )
+        return formatProfileFullName(account?.userProfile) || account?.accountEmail || "Không rõ khách thuê"
+    }
+    const getInvoicePremiseNames = (invoiceId: string) => {
+        const names = details
+            .filter((detail) => detail.invoiceDetailInvoiceId === invoiceId)
+            .map((detail) => premises.find((premise) =>
+                premise.premiseId === detail.invoiceDetailPremiseId,
+            )?.premiseName ?? "Mặt bằng không còn hoạt động")
+        return [...new Set(names)].join(", ") || "—"
+    }
     const detailTotal =
         (selectedContract?.contractRentalPrice ?? 0) +
         (Number(detailForm.electricityFee) || 0) +
@@ -620,6 +661,20 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                 header: "Contract ID",
                                 cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
                                 render: (invoice) => invoice.invoiceContractId
+                            },
+                            {
+                                key: "tenant",
+                                header: "Khách thuê",
+                                cellClassName: "max-w-48 truncate px-4 py-3 text-xs text-gray-700",
+                                render: (invoice) => getTenantName(
+                                    contracts.find((contract) => contract.contractId === invoice.invoiceContractId),
+                                ),
+                            },
+                            {
+                                key: "premises",
+                                header: "Mặt bằng",
+                                cellClassName: "max-w-56 truncate px-4 py-3 text-xs text-gray-700",
+                                render: (invoice) => getInvoicePremiseNames(invoice.invoiceId),
                             },
                             {
                                 key: "paymentDate",
@@ -1013,6 +1068,12 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                             </div>
                             <div className="grid grid-cols-4 gap-3">
                                 <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-xs text-gray-400 mb-1">Khách thuê</p>
+                                    <p className="text-sm truncate">
+                                        {getTenantName(selectedContract)}
+                                    </p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3">
                                     <p className="text-xs text-gray-400 mb-1">Contract ID</p>
                                     <p className="text-xs font-mono truncate">
                                         {selected.invoiceContractId}
@@ -1095,7 +1156,7 @@ export function InvoicesModule({roleCodes = [], permissionCodes = [], accountId,
                                     render: (detail) => {
                                         const premiseName = premises.find(
                                             (premise) => premise.premiseId === detail.invoiceDetailPremiseId,
-                                        )?.premiseName ?? "Không rõ mặt bằng"
+                                        )?.premiseName ?? "Mặt bằng không còn hoạt động"
                                         return <span title={premiseName}>{premiseName}</span>
                                     }
                                 },

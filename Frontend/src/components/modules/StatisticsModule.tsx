@@ -1,10 +1,12 @@
 import {useEffect, useState} from "react"
 import {contractApi} from "@/api/contracts"
 import type {ContractModel, ContractViolationModel, MonthlyInvoiceModel} from "@/types/contracts"
-import {BaseTable, ContractStatusBadge, InvoiceStatusBadge, ModulePageHeader, PremiseStatusBadge} from "./shared"
+import {recordStatuses, statuses as contractStatuses} from "@/types/contracts"
+import {BaseTable, ContractStatusBadge, formatProfileFullName, InvoiceStatusBadge, ModulePageHeader, PremiseStatusBadge} from "./shared"
 import {fmt} from "../../scripts/format"
 import {identityApi} from "@/api/identity"
 import type {AccountModel} from "@/types/identity"
+import type {AccountProfileOption} from "@/types/identity"
 import type {Contract, Invoice, Violation} from "@/types/modules"
 import {premiseApi} from "@/api/premise"
 import type {LocationModel, PremiseModel, PremiseStatus} from "../premises/types"
@@ -121,6 +123,8 @@ function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseStatus {
             return "reserved"
         case "Maintenance":
             return "maintenance"
+        default:
+            throw new Error(`Trạng thái mặt bằng không được hỗ trợ: ${status}`)
     }
 }
 
@@ -132,10 +136,16 @@ export function StatisticsModule() {
     const [premises, setPremises] = useState<PremiseModel[]>([])
     const [locations, setLocations] = useState<LocationModel[]>([])
     const [premiseFilter, setPremiseFilter] = useState<PremiseStatus | "all">("all")
+    const [invoiceFilter, setInvoiceFilter] = useState<Invoice["status"] | "all">("all")
+    const [accountStatusFilter, setAccountStatusFilter] = useState<"all" | "active" | "inactive">("all")
+    const [accountRoleFilter, setAccountRoleFilter] = useState("all")
+    const [contractFilter, setContractFilter] = useState<Contract["status"] | "all">("all")
+    const [violationFilter, setViolationFilter] = useState<"all" | "resolved" | "unresolved">("all")
     const [premisesLoading, setPremisesLoading] = useState(false)
     const [premisesError, setPremisesError] = useState<string | null>(null)
     const [premisesReload, setPremisesReload] = useState(0)
     const [accounts, setAccounts] = useState<AccountModel[]>([])
+    const [customerAccounts, setCustomerAccounts] = useState<AccountProfileOption[]>([])
     const [accountsLoading, setAccountsLoading] = useState(false)
     const [accountsError, setAccountsError] = useState<string | null>(null)
     const [accountsReload, setAccountsReload] = useState(0)
@@ -167,11 +177,13 @@ export function StatisticsModule() {
             loadPages((cursor, signal) => contractApi.contracts(cursor, signal)),
             loadPages((cursor, signal) => contractApi.invoices(cursor, signal)),
             loadPages((cursor, signal) => contractApi.violations(cursor, undefined, signal)),
-        ]).then(([contractItems, invoiceItems, violationItems]) => {
+            premiseApi.getPremise(controller.signal),
+        ]).then(([contractItems, invoiceItems, violationItems, premiseItems]) => {
             if (controller.signal.aborted) return
             setContractModels(contractItems)
             setInvoiceModels(invoiceItems)
             setViolationModels(violationItems)
+            setPremises(premiseItems)
         }).catch((cause: unknown) => {
             if (!controller.signal.aborted) {
                 setAnalyticsError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu thống kê.")
@@ -180,6 +192,24 @@ export function StatisticsModule() {
             if (!controller.signal.aborted) setAnalyticsLoading(false)
         })
         return () => controller.abort()
+    }, [activeTab])
+
+    useEffect(() => {
+        if (!["finance", "contracts", "violations"].includes(activeTab)) return
+
+        let isCurrent = true
+        void identityApi.getAccountsByRoleCode("Customer")
+            .then((items) => {
+                if (isCurrent) setCustomerAccounts(items)
+            })
+            .catch((cause: unknown) => {
+                if (isCurrent) {
+                    setAnalyticsError(cause instanceof Error ? cause.message : "Không thể tải danh sách khách thuê.")
+                }
+            })
+        return () => {
+            isCurrent = false
+        }
     }, [activeTab])
 
     useEffect(() => {
@@ -237,14 +267,28 @@ export function StatisticsModule() {
         {id: "violations" as const, label: "Vi phạm"},
     ]
 
+    const tenantAccountsById = new Map(customerAccounts.map((account) => [
+        account.accountId.toLowerCase(),
+        account,
+    ]))
+    const tenantName = (accountId: string) => {
+        const account = tenantAccountsById.get(accountId.toLowerCase())
+        return formatProfileFullName(account?.userProfile) || account?.accountEmail || "Không rõ khách thuê"
+    }
+    const premiseNamesByContractId = (contractId: string) => {
+        const premiseIds = invoiceModels
+            .filter((invoice) => invoice.invoiceContractId === contractId)
+            .flatMap((invoice) => (invoice.invoiceDetails ?? []).map((detail) => detail.invoiceDetailPremiseId))
+        return [...new Set(premiseIds.map((premiseId) =>
+            premises.find((premise) => premise.premiseId === premiseId)?.premiseName ?? "Mặt bằng không còn hoạt động",
+        ))].join(", ") || "—"
+    }
     const contractById = new Map(contractModels.map((contract) => [contract.contractId, contract]))
     const CONTRACTS: Contract[] = contractModels.map((contract) => ({
         id: contract.contractId,
-        accountEmail: contract.contractAccountId,
-        tenant: contract.contractAccountId,
-        premiseName: contract.contractInvoices.flatMap((invoice) => invoice.invoiceDetails ?? [])
-            .map((detail) => premises.find((premise) => premise.premiseId === detail.invoiceDetailPremiseId)?.premiseName ?? detail.invoiceDetailPremiseId)
-            .filter((name, index, all) => all.indexOf(name) === index).join(", ") || "—",
+        accountEmail: tenantAccountsById.get(contract.contractAccountId.toLowerCase())?.accountEmail ?? "",
+        tenant: tenantName(contract.contractAccountId),
+        premiseName: premiseNamesByContractId(contract.contractId),
         deposit: contract.contractDeposit,
         rentalPrice: contract.contractRentalPrice,
         returnDate: contract.contractPremiseReturnDate,
@@ -254,9 +298,9 @@ export function StatisticsModule() {
     const INVOICES: Invoice[] = invoiceModels.map((invoice) => ({
         id: invoice.invoiceId,
         contractId: invoice.invoiceContractId,
-        tenant: contractById.get(invoice.invoiceContractId)?.contractAccountId ?? invoice.invoiceContractId,
+        tenant: tenantName(contractById.get(invoice.invoiceContractId)?.contractAccountId ?? ""),
         premiseName: (invoice.invoiceDetails ?? []).map((detail) =>
-            premises.find((premise) => premise.premiseId === detail.invoiceDetailPremiseId)?.premiseName ?? detail.invoiceDetailPremiseId,
+            premises.find((premise) => premise.premiseId === detail.invoiceDetailPremiseId)?.premiseName ?? "Mặt bằng không còn hoạt động",
         ).join(", ") || "—",
         totalAmount: invoice.invoiceTotalAmount ?? 0,
         paymentDate: invoice.invoicePaymentDate,
@@ -266,7 +310,7 @@ export function StatisticsModule() {
     const VIOLATIONS: Violation[] = violationModels.map((violation) => ({
         id: violation.violationId,
         contractId: violation.contractId,
-        tenant: contractById.get(violation.contractId)?.contractAccountId ?? violation.contractId,
+        tenant: tenantName(contractById.get(violation.contractId)?.contractAccountId ?? ""),
         content: violation.violationContent,
         penaltyAmount: violation.violationPenaltyAmount ?? 0,
         date: violation.violationDate,
@@ -411,7 +455,28 @@ export function StatisticsModule() {
         return !normalizedAccountSearch ||
             `${fullName} ${account.accountEmail} ${roles}`.toLocaleLowerCase("vi").includes(normalizedAccountSearch)
     })
+    const allInternalAccounts = accounts.filter(isInternalHighLevelAccount)
     const internalAccounts = filteredAccounts.filter(isInternalHighLevelAccount)
+    const internalRoleOptions = [...new Map(allInternalAccounts.flatMap((account) =>
+        account.roles
+            .filter((role) => internalRoleCodes.has(role.roleCode.toLowerCase()))
+            .map((role) => [role.roleCode, role.roleName || role.roleCode] as const),
+    ))]
+    const filteredInternalAccounts = internalAccounts.filter((account) =>
+        (accountStatusFilter === "all" ||
+            account.accountIsActive === (accountStatusFilter === "active")) &&
+        (accountRoleFilter === "all" ||
+            account.roles.some((role) => role.roleCode === accountRoleFilter)),
+    )
+    const filteredInvoices = invoiceFilter === "all"
+        ? INVOICES
+        : INVOICES.filter((invoice) => invoice.status === invoiceFilter)
+    const filteredContracts = contractFilter === "all"
+        ? CONTRACTS
+        : CONTRACTS.filter((contract) => contract.status === contractFilter)
+    const filteredViolations = violationFilter === "all"
+        ? VIOLATIONS
+        : VIOLATIONS.filter((violation) => violation.resolved === (violationFilter === "resolved"))
     const premiseStatusCounts: Record<PremiseStatus, number> = {
         rented: premises.filter((premise) => premise.premiseStatus === "Rented").length,
         available: premises.filter((premise) => premise.premiseStatus === "Available").length,
@@ -551,38 +616,75 @@ export function StatisticsModule() {
                     <div
                         className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                         <SectionHeading title="Chi tiết hóa đơn" sub="Theo hợp đồng"/>
-                        <div className="overflow-hidden">
-                            <div
-                                className="grid grid-cols-6 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                                <span className="col-span-1">Mã HD</span>
-                                <span className="col-span-1">Khách thuê</span>
-                                <span className="col-span-1">Mặt bằng</span>
-                                <span className="col-span-1">Tổng tiền</span>
-                                <span className="col-span-1">Đến hạn</span>
-                                <span className="col-span-1">Trạng thái</span>
-                            </div>
-                            {INVOICES.map((inv) => (
-                                <div
-                                    key={inv.id}
-                                    className="grid grid-cols-6 px-4 py-3 border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
+                        <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+                            {([
+                                {status: "all" as const, label: "Tất cả", count: INVOICES.length},
+                                {status: "unpaid" as const, label: "Chưa thanh toán", count: INVOICES.filter((invoice) => invoice.status === "unpaid").length},
+                                {status: "paid" as const, label: "Đã thanh toán", count: INVOICES.filter((invoice) => invoice.status === "paid").length},
+                                {status: "overdue" as const, label: "Quá hạn", count: INVOICES.filter((invoice) => invoice.status === "overdue").length},
+                            ]).map(({status, label, count}) => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => setInvoiceFilter(status)}
+                                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                                        invoiceFilter === status
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                    }`}
                                 >
-                  <span className="text-xs font-mono text-gray-400">
-                    {inv.id}
-                  </span>
-                                    <span className="text-xs font-medium text-gray-800">
-                    {inv.tenant}
-                  </span>
-                                    <span className="text-xs font-semibold text-gray-700">
-                    {inv.premiseName}
-                  </span>
-                                    <span className="text-xs font-mono font-semibold text-gray-800">
-                    {fmt(inv.totalAmount)}
-                  </span>
-                                    <span className="text-xs text-gray-400">{inv.dueDate}</span>
-                                    <InvoiceStatusBadge status={inv.status}/>
-                                </div>
+                                    {label}<span className="ml-1.5 text-gray-400">{count}</span>
+                                </button>
                             ))}
                         </div>
+                        <BaseTable
+                            rows={filteredInvoices}
+                            getRowKey={(invoice) => invoice.id}
+                            isHaveStt={false}
+                            paginationResetKey={invoiceFilter}
+                            loading={analyticsLoading}
+                            emptyMessage={analyticsError ? "Không thể tải danh sách hóa đơn." : "Chưa có hóa đơn phù hợp."}
+                            tableClassName="min-w-[900px] w-full text-sm"
+                            rowClassName={() => "hover:bg-blue-50/40 transition-colors"}
+                            columns={[
+                                {
+                                    key: "id",
+                                    header: "Mã HĐ",
+                                    cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                                    render: (invoice) => invoice.id,
+                                },
+                                {
+                                    key: "tenant",
+                                    header: "Khách thuê",
+                                    cellClassName: "max-w-48 truncate px-4 py-3 text-xs text-gray-700",
+                                    render: (invoice) => invoice.tenant,
+                                },
+                                {
+                                    key: "premise",
+                                    header: "Mặt bằng",
+                                    cellClassName: "max-w-56 truncate px-4 py-3 text-xs text-gray-700",
+                                    render: (invoice) => invoice.premiseName,
+                                },
+                                {
+                                    key: "amount",
+                                    header: "Tổng tiền",
+                                    headerClassName: "px-4 py-3 text-right font-medium",
+                                    cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-800",
+                                    render: (invoice) => fmt(invoice.totalAmount),
+                                },
+                                {
+                                    key: "dueDate",
+                                    header: "Đến hạn",
+                                    cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500",
+                                    render: (invoice) => invoice.dueDate,
+                                },
+                                {
+                                    key: "status",
+                                    header: "Trạng thái",
+                                    render: (invoice) => <InvoiceStatusBadge status={invoice.status}/>,
+                                },
+                            ]}
+                        />
                     </div>
                 </div>
             )}
@@ -673,7 +775,7 @@ export function StatisticsModule() {
                             <div>
                                 <h2 className="text-base font-bold text-gray-900"
                                     style={{fontFamily: "Open Sans, sans-serif"}}>Tài khoản nội bộ cấp cao</h2>
-                                <p className="mt-0.5 text-xs text-gray-400">{accountsLoading ? "Đang tải..." : `${internalAccounts.length} tài khoản · không gồm Customer và Employee`}</p>
+                                <p className="mt-0.5 text-xs text-gray-400">{accountsLoading ? "Đang tải..." : `${filteredInternalAccounts.length} tài khoản phù hợp · không gồm Customer và Employee`}</p>
                             </div>
                             <input
                                 type="search"
@@ -684,52 +786,105 @@ export function StatisticsModule() {
                                 className="w-full max-w-sm rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                             />
                         </div>
-                        <div className="overflow-x-auto">
-                            <div className="min-w-[760px]">
-                                <div
-                                    className="grid grid-cols-5 rounded-lg bg-gray-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                                    <span>Họ tên</span>
-                                    <span>Email</span>
-                                    <span>Vai trò</span>
-                                    <span>Ngày tạo</span>
-                                    <span>Trạng thái</span>
-                                </div>
-                                {accountsLoading ? (
-                                    <p className="py-12 text-center text-sm text-gray-400">Đang tải dữ liệu tài
-                                        khoản...</p>
-                                ) : accountsError ? (
-                                    <p className="py-12 text-center text-sm text-gray-400">Không tải được dữ liệu tài
-                                        khoản.</p>
-                                ) : internalAccounts.length ? internalAccounts.map((account) => {
-                                    const fullName = [account.userProfile?.userProfileFirstName, account.userProfile?.userProfileLastName]
-                                        .filter(Boolean).join(" ")
-                                    const createdAt = new Date(account.accountCreatedAt)
-                                    return (
-                                        <div key={account.accountId}
-                                             className="grid grid-cols-5 items-center border-b border-gray-50 px-4 py-3 last:border-0 hover:bg-gray-50/50">
-                                            <span className="truncate pr-3 text-xs font-semibold text-gray-900"
-                                                  title={fullName || account.accountEmail}>{fullName || "Chưa có hồ sơ"}</span>
-                                            <span className="truncate pr-3 text-xs text-gray-500"
-                                                  title={account.accountEmail}>{account.accountEmail}</span>
-                                            <span className="flex flex-wrap gap-1 pr-3">
-                                                {account.roles.length ? account.roles.map((role) => (
-                                                    <span key={role.roleId}
-                                                          className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">{role.roleName || role.roleCode}</span>
-                                                )) : <span className="text-xs text-gray-400">Chưa gán</span>}
-                                            </span>
-                                            <span
-                                                className="text-xs text-gray-500">{Number.isNaN(createdAt.getTime()) ? "—" : createdAt.toLocaleDateString("vi-VN")}</span>
-                                            <span
-                                                className={`text-xs font-semibold ${account.accountIsActive ? "text-emerald-600" : "text-gray-400"}`}>
-                                                {account.accountIsActive ? "Hoạt động" : "Vô hiệu"}
-                                            </span>
-                                        </div>
-                                    )
-                                }) : (
-                                    <p className="py-12 text-center text-sm text-gray-400">{accounts.length ? "Không tìm thấy tài khoản nội bộ cấp cao phù hợp." : "Chưa có tài khoản trong hệ thống."}</p>
-                                )}
+                        <div className="mb-4 flex flex-wrap items-center gap-3">
+                            <div className="flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1">
+                                {([
+                                    {status: "all" as const, label: "Tất cả", count: internalAccounts.length},
+                                    {status: "active" as const, label: "Hoạt động", count: internalAccounts.filter((account) => account.accountIsActive).length},
+                                    {status: "inactive" as const, label: "Vô hiệu", count: internalAccounts.filter((account) => !account.accountIsActive).length},
+                                ]).map(({status, label, count}) => (
+                                    <button
+                                        key={status}
+                                        type="button"
+                                        onClick={() => setAccountStatusFilter(status)}
+                                        className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                                            accountStatusFilter === status
+                                                ? "bg-white text-gray-900 shadow-sm"
+                                                : "text-gray-500 hover:text-gray-700"
+                                        }`}
+                                    >
+                                        {label}<span className="ml-1.5 text-gray-400">{count}</span>
+                                    </button>
+                                ))}
                             </div>
+                            <select
+                                aria-label="Lọc theo vai trò"
+                                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+                                value={accountRoleFilter}
+                                onChange={(event) => setAccountRoleFilter(event.target.value)}
+                            >
+                                <option value="all">Tất cả vai trò</option>
+                                {internalRoleOptions.map(([roleCode, roleName]) => (
+                                    <option key={roleCode} value={roleCode}>{roleName}</option>
+                                ))}
+                            </select>
                         </div>
+                        <BaseTable
+                            rows={filteredInternalAccounts}
+                            getRowKey={(account) => account.accountId}
+                            isHaveStt={false}
+                            paginationResetKey={`${accountSearch}:${accountStatusFilter}:${accountRoleFilter}`}
+                            loading={accountsLoading}
+                            emptyMessage={accountsError
+                                ? "Không thể tải dữ liệu tài khoản."
+                                : accounts.length
+                                    ? "Không tìm thấy tài khoản phù hợp."
+                                    : "Chưa có tài khoản trong hệ thống."}
+                            tableClassName="min-w-[760px] w-full text-sm"
+                            rowClassName={(account) => account.accountIsActive
+                                ? "hover:bg-blue-50/40 transition-colors"
+                                : "bg-gray-50 hover:bg-gray-100"}
+                            columns={[
+                                {
+                                    key: "name",
+                                    header: "Họ tên",
+                                    cellClassName: "max-w-48 truncate px-4 py-3 text-xs font-semibold text-gray-900",
+                                    render: (account) => {
+                                        const fullName = formatProfileFullName(account.userProfile)
+                                        return <span title={fullName || account.accountEmail}>{fullName || "Chưa có hồ sơ"}</span>
+                                    },
+                                },
+                                {
+                                    key: "email",
+                                    header: "Email",
+                                    cellClassName: "max-w-56 truncate px-4 py-3 text-xs text-gray-500",
+                                    render: (account) => account.accountEmail,
+                                },
+                                {
+                                    key: "roles",
+                                    header: "Vai trò",
+                                    render: (account) => <div className="flex flex-wrap gap-1">
+                                        {account.roles.map((role) => (
+                                            <span key={role.roleId}
+                                                  className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                                                {role.roleName || role.roleCode}
+                                            </span>
+                                        ))}
+                                    </div>,
+                                },
+                                {
+                                    key: "createdAt",
+                                    header: "Ngày tạo",
+                                    cellClassName: "whitespace-nowrap px-4 py-3 text-xs text-gray-500",
+                                    render: (account) => {
+                                        const createdAt = new Date(account.accountCreatedAt)
+                                        return Number.isNaN(createdAt.getTime())
+                                            ? "—"
+                                            : createdAt.toLocaleDateString("vi-VN")
+                                    },
+                                },
+                                {
+                                    key: "status",
+                                    header: "Trạng thái",
+                                    cellClassName: "px-4 py-3 text-xs font-semibold",
+                                    render: (account) => <span className={account.accountIsActive
+                                        ? "text-emerald-600"
+                                        : "text-gray-400"}>
+                                        {account.accountIsActive ? "Hoạt động" : "Vô hiệu"}
+                                    </span>,
+                                },
+                            ]}
+                        />
                     </div>
                 </div>
             )}
@@ -998,45 +1153,83 @@ export function StatisticsModule() {
                     <div
                         className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                         <SectionHeading title="Chi tiết hợp đồng"/>
-                        <div>
-                            <div
-                                className="grid grid-cols-7 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                                <span>Mã HĐ</span>
-                                <span className="col-span-2">Khách thuê</span>
-                                <span>Mặt bằng</span>
-                                <span>Tiền cọc</span>
-                                <span>Giá/tháng</span>
-                                <span>Trạng thái</span>
-                            </div>
-                            {CONTRACTS.map((c) => (
-                                <div
-                                    key={c.id}
-                                    className="grid grid-cols-7 px-4 py-3 border-b border-gray-50 hover:bg-gray-50/50 transition-colors items-center"
+                        <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+                            {([
+                                {status: "all" as const, label: "Tất cả", count: CONTRACTS.length},
+                                ...contractStatuses.map((status) => ({
+                                    status,
+                                    label: recordStatuses[status],
+                                    count: CONTRACTS.filter((contract) => contract.status === status).length,
+                                })),
+                            ]).map(({status, label, count}) => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => setContractFilter(status)}
+                                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                                        contractFilter === status
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                    }`}
                                 >
-                  <span className="text-xs font-mono text-gray-400">
-                    {c.id.replace("CTR-", "")}
-                  </span>
-                                    <div className="col-span-2">
-                                        <div className="text-xs font-semibold text-gray-900">
-                                            {c.tenant}
-                                        </div>
-                                        <div className="text-xs text-gray-400">
-                                            {c.accountEmail}
-                                        </div>
-                                    </div>
-                                    <span className="text-xs font-semibold text-gray-700">
-                    {c.premiseName}
-                  </span>
-                                    <span className="text-xs font-mono text-gray-600">
-                    {fmtM(c.deposit)}
-                  </span>
-                                    <span className="text-xs font-mono font-semibold text-gray-800">
-                    {fmtM(c.rentalPrice)}
-                  </span>
-                                    <ContractStatusBadge status={c.status}/>
-                                </div>
+                                    {label}<span className="ml-1.5 text-gray-400">{count}</span>
+                                </button>
                             ))}
                         </div>
+                        <BaseTable
+                            rows={filteredContracts}
+                            getRowKey={(contract) => contract.id}
+                            isHaveStt={false}
+                            paginationResetKey={contractFilter}
+                            loading={analyticsLoading}
+                            emptyMessage={analyticsError
+                                ? "Không thể tải danh sách hợp đồng."
+                                : "Chưa có hợp đồng phù hợp."}
+                            tableClassName="min-w-[900px] w-full text-sm"
+                            rowClassName={() => "hover:bg-blue-50/40 transition-colors"}
+                            columns={[
+                                {
+                                    key: "id",
+                                    header: "Mã HĐ",
+                                    cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                                    render: (contract) => contract.id,
+                                },
+                                {
+                                    key: "tenant",
+                                    header: "Khách thuê",
+                                    cellClassName: "max-w-48 truncate px-4 py-3 text-xs text-gray-700",
+                                    render: (contract) => <div>
+                                        <p className="truncate font-medium">{contract.tenant}</p>
+                                        {contract.accountEmail && <p className="truncate text-gray-400">{contract.accountEmail}</p>}
+                                    </div>,
+                                },
+                                {
+                                    key: "premise",
+                                    header: "Mặt bằng",
+                                    cellClassName: "max-w-56 truncate px-4 py-3 text-xs font-semibold text-gray-700",
+                                    render: (contract) => contract.premiseName,
+                                },
+                                {
+                                    key: "deposit",
+                                    header: "Tiền cọc",
+                                    headerClassName: "px-4 py-3 text-right font-medium",
+                                    cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs text-gray-600",
+                                    render: (contract) => fmtM(contract.deposit),
+                                },
+                                {
+                                    key: "rentalPrice",
+                                    header: "Giá/tháng",
+                                    headerClassName: "px-4 py-3 text-right font-medium",
+                                    cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-gray-800",
+                                    render: (contract) => fmtM(contract.rentalPrice),
+                                },
+                                {
+                                    key: "status",
+                                    header: "Trạng thái",
+                                    render: (contract) => <ContractStatusBadge status={contract.status}/>,
+                                },
+                            ]}
+                        />
                     </div>
                 </div>
             )}
@@ -1141,42 +1334,77 @@ export function StatisticsModule() {
                     <div
                         className="bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                         <SectionHeading title="Danh sách vi phạm" sub="Lịch sử ghi nhận"/>
-                        <div>
-                            <div
-                                className="grid grid-cols-6 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
-                                <span>Mã VP</span>
-                                <span>HĐ</span>
-                                <span className="col-span-2">Nội dung</span>
-                                <span>Tiền phạt</span>
-                                <span>Trạng thái</span>
-                            </div>
-                            {VIOLATIONS.map((v) => (
-                                <div
-                                    key={v.id}
-                                    className="grid grid-cols-6 px-4 py-3 border-b border-gray-50 hover:bg-gray-50/50 transition-colors items-center"
+                        <div className="mb-4 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1 w-fit">
+                            {([
+                                {status: "all" as const, label: "Tất cả", count: VIOLATIONS.length},
+                                {status: "unresolved" as const, label: "Chưa xử lý", count: VIOLATIONS.filter((violation) => !violation.resolved).length},
+                                {status: "resolved" as const, label: "Đã xử lý", count: VIOLATIONS.filter((violation) => violation.resolved).length},
+                            ]).map(({status, label, count}) => (
+                                <button
+                                    key={status}
+                                    type="button"
+                                    onClick={() => setViolationFilter(status)}
+                                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                                        violationFilter === status
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                    }`}
                                 >
-                  <span className="text-xs font-mono text-gray-400">
-                    {v.id}
-                  </span>
-                                    <span className="text-xs font-mono text-gray-500">
-                    {v.contractId.replace("CTR-2024-", "")}
-                  </span>
-                                    <span className="col-span-2 text-xs text-gray-700 truncate">
-                    {v.content}
-                  </span>
-                                    <span className="text-xs font-mono font-semibold text-red-600">
-                    {fmt(v.penaltyAmount)}
-                  </span>
-                                    <span
-                                        className={`text-xs font-semibold ${
-                                            v.resolved ? "text-emerald-600" : "text-orange-500"
-                                        }`}
-                                    >
-                    {v.resolved ? "Đã xử lý" : "Chưa xử lý"}
-                  </span>
-                                </div>
+                                    {label}<span className="ml-1.5 text-gray-400">{count}</span>
+                                </button>
                             ))}
                         </div>
+                        <BaseTable
+                            rows={filteredViolations}
+                            getRowKey={(violation) => violation.id}
+                            isHaveStt={false}
+                            paginationResetKey={violationFilter}
+                            loading={analyticsLoading}
+                            emptyMessage={analyticsError
+                                ? "Không thể tải danh sách vi phạm."
+                                : "Chưa có vi phạm phù hợp."}
+                            tableClassName="min-w-[760px] w-full text-sm"
+                            rowClassName={(violation) => violation.resolved
+                                ? "hover:bg-emerald-50/40 transition-colors"
+                                : "hover:bg-orange-50/40 transition-colors"}
+                            columns={[
+                                {
+                                    key: "id",
+                                    header: "Mã VP",
+                                    cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                                    render: (violation) => violation.id,
+                                },
+                                {
+                                    key: "contractId",
+                                    header: "HĐ",
+                                    cellClassName: "max-w-44 truncate px-4 py-3 font-mono text-xs text-gray-500",
+                                    render: (violation) => violation.contractId,
+                                },
+                                {
+                                    key: "content",
+                                    header: "Nội dung",
+                                    cellClassName: "max-w-96 truncate px-4 py-3 text-xs text-gray-700",
+                                    render: (violation) => violation.content,
+                                },
+                                {
+                                    key: "penalty",
+                                    header: "Tiền phạt",
+                                    headerClassName: "px-4 py-3 text-right font-medium",
+                                    cellClassName: "whitespace-nowrap px-4 py-3 text-right font-mono text-xs font-semibold text-red-600",
+                                    render: (violation) => fmt(violation.penaltyAmount),
+                                },
+                                {
+                                    key: "status",
+                                    header: "Trạng thái",
+                                    cellClassName: "px-4 py-3 text-xs font-semibold",
+                                    render: (violation) => <span className={violation.resolved
+                                        ? "text-emerald-600"
+                                        : "text-orange-500"}>
+                                        {violation.resolved ? "Đã xử lý" : "Chưa xử lý"}
+                                    </span>,
+                                },
+                            ]}
+                        />
                     </div>
                 </div>
             )}

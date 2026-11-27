@@ -12,6 +12,8 @@ namespace Identity.Infrastructure.DIContainer
     {
         public static IServiceCollection AddIdentityApplicationCollection(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddMemoryCache();
+
             #region CONFIG
 
             services.AddSharedIdentityHelper<AccountModel>(configuration);

@@ -3,14 +3,17 @@ import {useEffect, useMemo, useState} from "react"
 import debounce from "lodash.debounce"
 import {contractApi} from "@/api/contracts.ts"
 import {identityApi} from "@/api/identity.ts"
+import {premiseApi} from "@/api/premise"
 import type {AccountProfileOption} from "@/types/identity.ts"
 import type {
     ContractForm,
     ContractModel,
     ContractsModuleProps,
     ContractStatus,
+    MonthlyInvoiceModel,
     RegulationModel
 } from "@/types/contracts.ts"
+import type {PremiseModel} from "@/components/premises/types"
 import {recordStatuses, statuses} from "@/types/contracts.ts";
 import {
     BaseTable,
@@ -62,6 +65,8 @@ export function ContractsModule({
     const [contracts, setContracts] = useState<ContractModel[]>([])
     const [regulations, setRegulations] = useState<RegulationModel[]>([])
     const [customerAccounts, setCustomerAccounts] = useState<AccountProfileOption[]>([])
+    const [premises, setPremises] = useState<PremiseModel[]>([])
+    const [invoiceModels, setInvoiceModels] = useState<MonthlyInvoiceModel[]>([])
     const [filter, setFilter] = useState<ContractStatus | "all">("all")
     const [selected, setSelected] = useState<ContractModel | null>(null)
     const [modal, setModal] = useState<"add" | "detail" | null>(null)
@@ -143,12 +148,61 @@ export function ContractsModule({
         }
     }, [])
 
+    useEffect(() => {
+        let active = true
+        const loadPremiseNames = async () => {
+            try {
+                const [premiseItems, invoiceItems] = await Promise.all([
+                    premiseApi.getPremise(),
+                    (async () => {
+                        const items: MonthlyInvoiceModel[] = []
+                        let cursor: string | null = null
+                        do {
+                            const page = await contractApi.invoices(cursor)
+                            items.push(...page.items)
+                            cursor = page.isHasMore ? page.nextCursor : null
+                        } while (cursor)
+                        return items
+                    })(),
+                ])
+                if (active) {
+                    setPremises(premiseItems)
+                    setInvoiceModels(invoiceItems)
+                }
+            } catch (cause) {
+                if (active) {
+                    setError(cause instanceof Error ? cause.message : "Không tải được danh sách mặt bằng của hợp đồng.")
+                }
+            }
+        }
+        void loadPremiseNames()
+        return () => {
+            active = false
+        }
+    }, [])
+
     const visibleContracts = contracts
     const filtered = visibleContracts.filter((item) => filter === "all" || item.contractStatus === filter)
     const selectedAccount = customerAccounts.find((item) => item.accountId.toLowerCase() === form.accountId.toLowerCase())
     const selectedAccountName = selectedAccount
         ? formatProfileFullName(selectedAccount.userProfile) || selectedAccount.accountEmail
         : ""
+    const getTenantName = (contract: ContractModel) => {
+        if (ownOnly && contract.contractAccountId.toLowerCase() === accountId?.toLowerCase()) return "Bạn"
+        const account = customerAccounts.find((item) =>
+            item.accountId.toLowerCase() === contract.contractAccountId.toLowerCase(),
+        )
+        return formatProfileFullName(account?.userProfile) || account?.accountEmail || "Không rõ khách thuê"
+    }
+    const getContractPremiseNames = (contractId: string) => {
+        const premiseIds = invoiceModels
+            .filter((invoice) => invoice.invoiceContractId === contractId)
+            .flatMap((invoice) => (invoice.invoiceDetails ?? []).map((detail) => detail.invoiceDetailPremiseId))
+        const names = premiseIds.map((premiseId) =>
+            premises.find((premise) => premise.premiseId === premiseId)?.premiseName ?? "Mặt bằng không còn hoạt động",
+        )
+        return [...new Set(names)].join(", ") || "—"
+    }
     const activeRegulations = regulations.filter((item) => item.regulationIsActive)
     const allActiveRegulationsSelected = activeRegulations.length > 0 && activeRegulations.every((item) => form.regulationIds.includes(item.regulationId))
     const customerSuggestions = customerAccounts.filter((account) => {
@@ -415,9 +469,15 @@ export function ContractsModule({
                 },
                 {
                     key: "accountId",
-                    header: "Account ID",
-                    cellClassName: "max-w-48 truncate px-4 py-3 font-mono text-xs text-slate-500",
-                    render: (item) => item.contractAccountId
+                    header: "Khách thuê",
+                    cellClassName: "max-w-48 truncate px-4 py-3 text-xs text-slate-700",
+                    render: (item) => getTenantName(item)
+                },
+                {
+                    key: "premises",
+                    header: "Mặt bằng",
+                    cellClassName: "max-w-56 truncate px-4 py-3 text-xs text-slate-700",
+                    render: (item) => getContractPremiseNames(item.contractId)
                 },
                 {
                     key: "deposit",
@@ -479,8 +539,10 @@ export function ContractsModule({
                         className="break-all font-mono text-sm">{selected.contractId}</p></div>
                     <ContractStatusBadge status={selected.contractStatus}/></div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Account ID</p><p
-                        className="mt-1 break-all font-mono text-xs">{selected.contractAccountId}</p></div>
+                    <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Khách thuê</p><p
+                        className="mt-1 text-sm">{getTenantName(selected)}</p></div>
+                    <div className="rounded-lg bg-slate-50 p-3"><p className="text-xs text-slate-500">Mặt bằng</p><p
+                        className="mt-1 text-sm">{getContractPremiseNames(selected.contractId)}</p></div>
                     <div className="grid grid-cols-2 divide-x divide-slate-200 rounded-lg bg-slate-50 p-3">
                         <div className="pr-3"><p className="text-xs text-slate-500">Ngày hoàn trả</p>
                             <p className="mt-1 text-sm">{new Date(selected.contractPremiseReturnDate).toLocaleDateString("vi-VN")}</p>
