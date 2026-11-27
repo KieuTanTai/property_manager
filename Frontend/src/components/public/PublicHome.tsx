@@ -5,7 +5,6 @@ import {premiseApi, type PublicPremise} from "@/api/premise"
 import type {ContactInfoModel} from "@/types/contracts"
 import {Modal, PremiseStatusBadge, premiseStatusSurface, ProcessingForm} from "../modules/shared"
 import {PublicHomeProps} from "@/components/public/types.ts";
-import {throttle} from "lodash";
 import debounce from "lodash.debounce"
 
 const PREMISE_STATUS_TABS = [
@@ -19,7 +18,6 @@ type PremiseStatusTab = (typeof PREMISE_STATUS_TABS)[number]["key"]
 
 const GOOGLE_LOGIN_SESSION_KEY = "contact-google-login"
 const GOOGLE_LOGIN_SESSION_MS = 5 * 60 * 1000
-const GOOGLE_LOGIN_EXTENSION_STEP = 60 * 1000
 
 let googleIdentityScriptPromise: Promise<any> | null = null
 let googleIdentityInitialized = false
@@ -99,9 +97,6 @@ export function PublicHome({onManager}: PublicHomeProps) {
             active = false
         }
     }, [])
-    const googleLoginMaxExpiresAt =
-        googleLoginExpiresAt ? googleLoginExpiresAt + GOOGLE_LOGIN_SESSION_MS : GOOGLE_LOGIN_SESSION_MS
-
     useEffect(() => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim()
         if (!clientId) return
@@ -240,8 +235,11 @@ export function PublicHome({onManager}: PublicHomeProps) {
 
     const sendInquiry = async (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
-        if (!contactSenderEmail) {
-            setContactError("Vui lòng đăng nhập Google để gửi kèm Gmail của bạn.")
+        if (!contactSenderEmail || !googleLoginExpiresAt || googleLoginExpiresAt <= Date.now()) {
+            sessionStorage.removeItem(GOOGLE_LOGIN_SESSION_KEY)
+            setContactSenderEmail("")
+            setGoogleLoginExpiresAt(null)
+            setContactError("Phiên đăng nhập Google đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.")
             return
         }
         setContactError(null)
@@ -283,17 +281,6 @@ export function PublicHome({onManager}: PublicHomeProps) {
         setContactSenderEmail("")
         setGoogleLoginExpiresAt(null)
     }
-
-    const throttleExtendGoogleLogin = useMemo(
-        () => throttle(() => {
-            if (!contactSenderEmail || !googleLoginExpiresAt) return
-            const now = Date.now()
-            const remaining = googleLoginExpiresAt - now
-
-            if (remaining < GOOGLE_LOGIN_SESSION_MS)
-                setGoogleLoginExpiresAt(Math.min(googleLoginExpiresAt + GOOGLE_LOGIN_EXTENSION_STEP, googleLoginMaxExpiresAt))
-
-        }, 10000), [contactSenderEmail, googleLoginExpiresAt, googleLoginMaxExpiresAt])
 
     return (
         <div className="min-h-screen bg-[#f7f8fa] text-slate-900">
@@ -629,7 +616,6 @@ export function PublicHome({onManager}: PublicHomeProps) {
                             </div>
                         </div>
                         <ProcessingForm processing={contactSending} onSubmit={sendInquiry}
-                                        onChange={() => throttleExtendGoogleLogin()}
                                         className="rounded-2xl bg-white p-5 text-slate-900 sm:p-7">
                             <h3 className="text-lg font-semibold">Yêu cầu tư vấn</h3>
                             <p className="mt-1 text-sm text-slate-500">Thông tin sẽ được gửi đến ban quản lý qua

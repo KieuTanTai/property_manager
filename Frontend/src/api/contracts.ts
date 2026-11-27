@@ -18,12 +18,15 @@ const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
 const baseReqPageItemsLoaded = String(APP_SETTINGS.pagination.defaultPageLoaded * APP_SETTINGS.pagination.defaultPageSize)
 const maxPageLoaded = String(APP_SETTINGS.pagination.maxPageLoaded * APP_SETTINGS.pagination.defaultPageSize);
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, includeAccessToken = true): Promise<T> {
     let response: Response
     try {
         response = await fetch(`${base}${path}`, {
             ...init,
-            headers: createApiHeaders({...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers}),
+            headers: createApiHeaders(
+                { ...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers },
+                includeAccessToken,
+            ),
         })
     } catch {
         throw new Error(`Không thể kết nối Gateway API tại ${base}; kiểm tra Gateway và HTTPS.`)
@@ -112,7 +115,7 @@ export const contractApi = {
         return request<{ recipientEmail: string }>("/contact/consultation", {
             method: "POST",
             body: JSON.stringify(body),
-        })
+        }, false)
     },
     createContactInfo(body: ContactInfoRequest) {
         return request<ContactInfoModel>("/contact", {method: "POST", body: JSON.stringify(body)})

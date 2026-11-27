@@ -81,6 +81,12 @@ namespace Gateway.Middleware
                 return true;
             }
 
+            if (HttpMethods.IsPost(method)
+                && path.Equals("/api/contact/consultation", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
             if (!HttpMethods.IsGet(method))
             {
                 return false;

@@ -1,9 +1,9 @@
 const SESSION_KEY = "managerspace.session"
 
-export function createApiHeaders(headers?: HeadersInit): Headers {
+export function createApiHeaders(headers?: HeadersInit, includeAccessToken = true): Headers {
     const requestHeaders = new Headers(headers)
 
-    if (typeof window === "undefined") {
+    if (!includeAccessToken || typeof window === "undefined") {
         return requestHeaders
     }
 
