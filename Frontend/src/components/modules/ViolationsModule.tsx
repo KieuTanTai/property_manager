@@ -1,13 +1,12 @@
 import type {SubmitEvent} from "react"
-import {useMemo, useState} from "react"
-import {MOCK_CONTRACTS} from "../../mocks/contracts"
-import {getMockTenant, MOCK_VIOLATIONS} from "../../mocks/violations"
+import {useEffect, useMemo, useState} from "react"
+import {contractApi} from "@/api/contracts"
+import type {ContractModel, ContractViolationModel} from "@/types/contracts"
 import {BaseTable, FormField, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
-import {fmt, isIntegerAmountInput} from "../../scripts/format"
-import type {Violation} from "../../types/modules"
-import {filterViolationsForAccount} from "../../scripts/violations"
-import {createUuid} from "../../scripts/ids"
-import type {ViolationFilter, ViolationForm, ViolationsModuleProps} from "../../types/violations"
+import {fmt, isIntegerAmountInput} from "@/scripts/format.ts"
+import type {Violation} from "@/types/modules.ts"
+import {filterViolationsForAccount, mapContractViolationToView} from "@/scripts/violations.ts"
+import type {ViolationFilter, ViolationForm, ViolationsModuleProps} from "@/types/violations.ts"
 
 const emptyForm: ViolationForm = {
     contractId: "",
@@ -19,8 +18,6 @@ const emptyForm: ViolationForm = {
     resolved: false
 }
 
-const newMockId = createUuid
-
 export function ViolationsModule({
                                      accountId,
                                      readOnly = false,
@@ -28,8 +25,9 @@ export function ViolationsModule({
                                      canUpdate = !readOnly,
                                      ownOnly = readOnly
                                  }: ViolationsModuleProps) {
-    const initialMockViolations = filterViolationsForAccount(MOCK_VIOLATIONS, MOCK_CONTRACTS, accountId, ownOnly)
-    const [violations, setViolations] = useState<Violation[]>(initialMockViolations)
+    const [contracts, setContracts] = useState<ContractModel[]>([])
+    const [violations, setViolations] = useState<Violation[]>([])
+    const [isLoading, setIsLoading] = useState(true)
     const [modal, setModal] = useState<"add" | "view" | null>(null)
     const [selected, setSelected] = useState<Violation | null>(null)
     const [isEditing, setIsEditing] = useState(false)
@@ -37,6 +35,41 @@ export function ViolationsModule({
     const [filter, setFilter] = useState<ViolationFilter>("all")
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        const controller = new AbortController()
+        const loadPages = async <T,>(loadPage: (cursor: string | null, signal: AbortSignal) => Promise<{
+            items: T[]; nextCursor: string | null; isHasMore: boolean
+        }>) => {
+            const items: T[] = []
+            let cursor: string | null = null
+            do {
+                const page = await loadPage(cursor, controller.signal)
+                items.push(...page.items)
+                cursor = page.isHasMore ? page.nextCursor : null
+            } while (cursor && !controller.signal.aborted)
+            return items
+        }
+        void Promise.all([
+            loadPages((cursor, signal) => contractApi.contracts(cursor, signal)),
+            loadPages((cursor, signal) => contractApi.violations(cursor, undefined, signal)),
+        ]).then(([contractItems, violationItems]) => {
+            if (controller.signal.aborted) return
+            setContracts(contractItems)
+            const contractById = new Map(contractItems.map((contract) => [contract.contractId, contract]))
+            const mapped = violationItems.map((item: ContractViolationModel) =>
+                mapContractViolationToView(item, contractById.get(item.contractId)?.contractAccountId ?? "—"),
+            )
+            setViolations(filterViolationsForAccount(mapped, contractItems, accountId, ownOnly))
+        }).catch((cause: unknown) => {
+            if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Không tải được danh sách vi phạm.")
+        }).finally(() => {
+            if (!controller.signal.aborted) setIsLoading(false)
+        })
+        return () => controller.abort()
+    }, [accountId, ownOnly])
+
+    const getTenant = (contractId: string) => contracts.find((contract) => contract.contractId === contractId)?.contractAccountId ?? "—"
 
     const visible = useMemo(() => violations.filter((item) =>
         filter === "all" || item.resolved === (filter === "resolved"),
@@ -56,48 +89,65 @@ export function ViolationsModule({
         setForm(emptyForm)
     }
 
-    const save = (event: SubmitEvent<HTMLFormElement>) => {
+    const save = async (event: SubmitEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (!form.contractId || !form.content.trim() || !form.date || !form.dueDate || form.penaltyAmount < 0) return
         setSaving(true)
         setError(null)
         try {
             if (modal === "view" && selected) {
-                const updated = {
-                    ...selected,
-                    content: form.content.trim(),
-                    penaltyAmount: Number(form.penaltyAmount),
-                    date: form.date,
-                    dueDate: form.dueDate,
-                    resolved: form.resolved
-                }
+                const result = await contractApi.updateViolation(selected.id, {
+                    contractId: form.contractId,
+                    violationContent: form.content.trim(),
+                    violationPenaltyAmount: Number(form.penaltyAmount),
+                    violationDate: form.date,
+                    violationDueDate: form.dueDate,
+                    violationIsResolved: form.resolved,
+                })
+                const updated = mapContractViolationToView(result, getTenant(result.contractId))
                 setViolations((current) => current.map((item) => item.id === updated.id ? updated : item))
                 closeModal()
             } else if (modal === "add") {
-                const created: Violation = {id: newMockId(), ...form, tenant: getMockTenant(form.contractId)}
+                const result = await contractApi.createViolation({
+                    contractId: form.contractId,
+                    violationContent: form.content.trim(),
+                    violationPenaltyAmount: Number(form.penaltyAmount),
+                    violationDate: form.date,
+                    violationDueDate: form.dueDate,
+                })
+                const created = mapContractViolationToView(result, getTenant(result.contractId))
                 setViolations((current) => [created, ...current])
                 closeModal()
             }
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : "Không lưu được mock vi phạm.")
+            setError(cause instanceof Error ? cause.message : "Không lưu được vi phạm.")
         } finally {
             setSaving(false)
         }
     }
 
-    const hardDelete = (item: Violation) => {
+    const hardDelete = async (item: Violation) => {
         if (item.resolved || !canUpdate) return
-        if (!window.confirm("Xóa mock vi phạm chưa xử lý này? Thao tác không thể hoàn tác.")) return
-        setViolations((current) => current.filter((violation) => violation.id !== item.id))
-        closeModal()
+        if (!window.confirm("Xóa vi phạm chưa xử lý này? Thao tác không thể hoàn tác.")) return
+        setSaving(true)
+        setError(null)
+        try {
+            await contractApi.deleteViolation(item.id)
+            setViolations((current) => current.filter((violation) => violation.id !== item.id))
+            closeModal()
+        } catch (cause) {
+            setError(cause instanceof Error ? cause.message : "Không thể xóa vi phạm.")
+        } finally {
+            setSaving(false)
+        }
     }
 
     const openAdd = () => {
         setSelected(null)
         setForm({
             ...emptyForm,
-            contractId: MOCK_CONTRACTS[0]?.contractId ?? "",
-            tenant: getMockTenant(MOCK_CONTRACTS[0]?.contractId ?? ""),
+            contractId: contracts[0]?.contractId ?? "",
+            tenant: contracts[0]?.contractAccountId ?? "",
             date: new Date().toISOString().slice(0, 10),
             dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
         })
@@ -119,6 +169,7 @@ export function ViolationsModule({
 
         {error && <p role="alert"
                      className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+        {isLoading && <p className="mb-4 text-sm text-gray-500">Đang tải dữ liệu vi phạm…</p>}
         <div className="mb-4 flex w-fit gap-1 rounded-lg bg-slate-100 p-1">
             {(["all", "unresolved", "resolved"] as const).map((item) => <button key={item} onClick={() => {
                 setFilter(item);
@@ -196,8 +247,8 @@ export function ViolationsModule({
                 <FormField label="Mã hợp đồng"><select required className={selectCls} value={form.contractId}
                                                        disabled={modal === "view" || readOnly} onChange={(event) => {
                     const contractId = event.target.value;
-                    setForm({...form, contractId, tenant: getMockTenant(contractId)})
-                }}>{MOCK_CONTRACTS.map((contract) => <option key={contract.contractId}
+                    setForm({...form, contractId, tenant: getTenant(contractId)})
+                }}>{contracts.map((contract) => <option key={contract.contractId}
                                                              value={contract.contractId}>{contract.contractId}</option>)}</select></FormField>
                 <FormField label="Khách thuê"><input className={inputCls} value={form.tenant} disabled/></FormField>
                 <FormField label="Ngày vi phạm"><input required type="date" className={inputCls} value={form.date}

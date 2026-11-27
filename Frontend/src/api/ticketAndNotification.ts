@@ -45,16 +45,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
             ...init,
             headers: createApiHeaders({...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers}),
         })
-    } catch {
+    } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") throw error
         throw new Error(`Không thể kết nối Gateway API tại ${base}; kiểm tra Gateway và HTTPS.`)
     }
     if (!response.ok) throw new Error((await response.text()) || `Gateway API trả về HTTP ${response.status}.`)
     if (response.status === 204) return undefined as T
-    return response.json() as Promise<T>
+    return await response.json() as Promise<T>
 }
 
 export const ticketApi = {
-    tickets: () => request<TicketModel[]>("/Ticket"),
+    tickets: (signal?: AbortSignal) => request<TicketModel[]>("/Ticket", {signal}),
     addTicketMedias: (ticketId: string, imageUrls: string[]) =>
         request<number>("/TicketMedia/batch", {
             method: "POST",

@@ -12,7 +12,8 @@ export function getSessionAccessToken(): string | null {
     }
 }
 
-export function createApiHeaders(headers?: HeadersInit): Headers {
+
+export function createApiHeaders(headers?: HeadersInit, includeAccessToken = true): Headers {
     const requestHeaders = new Headers(headers)
 
     if (typeof window === "undefined") {
@@ -23,7 +24,7 @@ export function createApiHeaders(headers?: HeadersInit): Headers {
         const session = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? "null") as {
             accessToken?: string
         } | null
-        if (session?.accessToken) {
+        if (includeAccessToken && session?.accessToken) {
             requestHeaders.set("Authorization", `Bearer ${session.accessToken}`)
         }
     } catch {

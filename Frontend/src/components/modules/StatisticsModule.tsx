@@ -1,12 +1,13 @@
 import {useEffect, useState} from "react"
-import {MOCK_CONTRACT_MONTHLY, MOCK_MONTHLY_REVENUE, MOCK_VIOLATION_MONTHLY} from "../../mocks/statistics"
+import {contractApi} from "@/api/contracts"
+import type {ContractModel, ContractViolationModel, MonthlyInvoiceModel} from "@/types/contracts"
 import {BaseTable, ContractStatusBadge, InvoiceStatusBadge, ModulePageHeader, PremiseStatusBadge} from "./shared"
-import {CONTRACTS, INVOICES, VIOLATIONS} from "../../mocks/shared"
-import {fmt, formatPremiseArea} from "../../scripts/format"
+import {fmt} from "../../scripts/format"
 import {identityApi} from "@/api/identity"
 import type {AccountModel} from "@/types/identity"
+import type {Contract, Invoice, Violation} from "@/types/modules"
 import {premiseApi} from "@/api/premise"
-import type {LocationModel, PremiseModel, PremiseRecordStatus, PremiseStatus} from "../premises/types"
+import type {LocationModel, PremiseModel, PremiseStatus} from "../premises/types"
 
 // ─── Statistics Module ────────────────────────────────────────────────────────
 
@@ -110,7 +111,7 @@ function DistributionList({
     )
 }
 
-function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseRecordStatus {
+function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseStatus {
     switch (status) {
         case "Available":
             return "available"
@@ -120,8 +121,6 @@ function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseRecordSt
             return "reserved"
         case "Maintenance":
             return "maintenance"
-        case "Deleted":
-            return "deleted"
     }
 }
 
@@ -132,7 +131,7 @@ export function StatisticsModule() {
         )
     const [premises, setPremises] = useState<PremiseModel[]>([])
     const [locations, setLocations] = useState<LocationModel[]>([])
-    const [premiseFilter, setPremiseFilter] = useState<PremiseRecordStatus | "all">("all")
+    const [premiseFilter, setPremiseFilter] = useState<PremiseStatus | "all">("all")
     const [premisesLoading, setPremisesLoading] = useState(false)
     const [premisesError, setPremisesError] = useState<string | null>(null)
     const [premisesReload, setPremisesReload] = useState(0)
@@ -141,6 +140,47 @@ export function StatisticsModule() {
     const [accountsError, setAccountsError] = useState<string | null>(null)
     const [accountsReload, setAccountsReload] = useState(0)
     const [accountSearch, setAccountSearch] = useState("")
+    const [contractModels, setContractModels] = useState<ContractModel[]>([])
+    const [invoiceModels, setInvoiceModels] = useState<MonthlyInvoiceModel[]>([])
+    const [violationModels, setViolationModels] = useState<ContractViolationModel[]>([])
+    const [analyticsLoading, setAnalyticsLoading] = useState(false)
+    const [analyticsError, setAnalyticsError] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (!["finance", "contracts", "violations"].includes(activeTab)) return
+        const controller = new AbortController()
+        setAnalyticsLoading(true)
+        setAnalyticsError(null)
+        const loadPages = async <T,>(loadPage: (cursor: string | null, signal: AbortSignal) => Promise<{
+            items: T[]; nextCursor: string | null; isHasMore: boolean
+        }>) => {
+            const items: T[] = []
+            let cursor: string | null = null
+            do {
+                const page = await loadPage(cursor, controller.signal)
+                items.push(...page.items)
+                cursor = page.isHasMore ? page.nextCursor : null
+            } while (cursor && !controller.signal.aborted)
+            return items
+        }
+        void Promise.all([
+            loadPages((cursor, signal) => contractApi.contracts(cursor, signal)),
+            loadPages((cursor, signal) => contractApi.invoices(cursor, signal)),
+            loadPages((cursor, signal) => contractApi.violations(cursor, undefined, signal)),
+        ]).then(([contractItems, invoiceItems, violationItems]) => {
+            if (controller.signal.aborted) return
+            setContractModels(contractItems)
+            setInvoiceModels(invoiceItems)
+            setViolationModels(violationItems)
+        }).catch((cause: unknown) => {
+            if (!controller.signal.aborted) {
+                setAnalyticsError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu thống kê.")
+            }
+        }).finally(() => {
+            if (!controller.signal.aborted) setAnalyticsLoading(false)
+        })
+        return () => controller.abort()
+    }, [activeTab])
 
     useEffect(() => {
         if (activeTab !== "premises") return
@@ -197,17 +237,46 @@ export function StatisticsModule() {
         {id: "violations" as const, label: "Vi phạm"},
     ]
 
-    // Derived stats
-    const totalRevenue = MOCK_MONTHLY_REVENUE.reduce((s, m) => s + m.doanhThu, 0)
-    const totalProfit = MOCK_MONTHLY_REVENUE.reduce((s, m) => s + m.loiNhuan, 0)
-    const invoicePaid = INVOICES.filter((i) => i.status === "paid").reduce(
-        (s, i) => s + i.totalAmount,
-        0,
-    )
-    const invoiceUnpaid = INVOICES.filter((i) => i.status !== "paid").reduce(
-        (s, i) => s + i.totalAmount,
-        0,
-    )
+    const contractById = new Map(contractModels.map((contract) => [contract.contractId, contract]))
+    const CONTRACTS: Contract[] = contractModels.map((contract) => ({
+        id: contract.contractId,
+        accountEmail: contract.contractAccountId,
+        tenant: contract.contractAccountId,
+        premiseName: contract.contractInvoices.flatMap((invoice) => invoice.invoiceDetails ?? [])
+            .map((detail) => premises.find((premise) => premise.premiseId === detail.invoiceDetailPremiseId)?.premiseName ?? detail.invoiceDetailPremiseId)
+            .filter((name, index, all) => all.indexOf(name) === index).join(", ") || "—",
+        deposit: contract.contractDeposit,
+        rentalPrice: contract.contractRentalPrice,
+        returnDate: contract.contractPremiseReturnDate,
+        status: contract.contractStatus,
+        createdAt: contract.contractCreatedAt,
+    }))
+    const INVOICES: Invoice[] = invoiceModels.map((invoice) => ({
+        id: invoice.invoiceId,
+        contractId: invoice.invoiceContractId,
+        tenant: contractById.get(invoice.invoiceContractId)?.contractAccountId ?? invoice.invoiceContractId,
+        premiseName: (invoice.invoiceDetails ?? []).map((detail) =>
+            premises.find((premise) => premise.premiseId === detail.invoiceDetailPremiseId)?.premiseName ?? detail.invoiceDetailPremiseId,
+        ).join(", ") || "—",
+        totalAmount: invoice.invoiceTotalAmount ?? 0,
+        paymentDate: invoice.invoicePaymentDate,
+        dueDate: invoice.invoiceDueDate,
+        status: invoice.invoiceStatus.toLowerCase() as Invoice["status"],
+    }))
+    const VIOLATIONS: Violation[] = violationModels.map((violation) => ({
+        id: violation.violationId,
+        contractId: violation.contractId,
+        tenant: contractById.get(violation.contractId)?.contractAccountId ?? violation.contractId,
+        content: violation.violationContent,
+        penaltyAmount: violation.violationPenaltyAmount ?? 0,
+        date: violation.violationDate,
+        dueDate: violation.violationDueDate,
+        resolved: violation.violationIsResolved,
+    }))
+
+    const invoicePaid = INVOICES.filter((invoice) => invoice.status === "paid").reduce((sum, invoice) => sum + invoice.totalAmount, 0)
+    const invoiceUnpaid = INVOICES.filter((invoice) => invoice.status !== "paid").reduce((sum, invoice) => sum + invoice.totalAmount, 0)
+    const totalRevenue = invoicePaid
 
     const contractsByStatus = [
         {
@@ -258,6 +327,41 @@ export function StatisticsModule() {
     const violationResolved = VIOLATIONS.filter((v) => v.resolved).length
     const violationUnresolved = VIOLATIONS.filter((v) => !v.resolved).length
     const totalPenalty = VIOLATIONS.reduce((s, v) => s + v.penaltyAmount, 0)
+
+    const monthKey = (date: string) => {
+        const parsed = new Date(date)
+        return Number.isNaN(parsed.valueOf()) ? "unknown" : `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}`
+    }
+    const monthLabel = (key: string) => key === "unknown" ? "Không rõ ngày" : new Intl.DateTimeFormat("vi-VN", {month: "short", year: "numeric"}).format(new Date(`${key}-01T00:00:00`))
+    const monthKeys = (dates: string[]) => [...new Set(dates.map(monthKey))].sort().reverse().slice(0, 9).reverse()
+    const monthlyRevenue = monthKeys(invoiceModels.map((invoice) => invoice.invoicePaymentDate)).map((key) => {
+        const monthInvoices = invoiceModels.filter((invoice) => monthKey(invoice.invoicePaymentDate) === key)
+        return {
+            month: monthLabel(key),
+            doanhThu: monthInvoices.filter((invoice) => invoice.invoiceStatus === "Paid").reduce((sum, invoice) => sum + (invoice.invoiceTotalAmount ?? 0), 0),
+            soHoaDon: monthInvoices.length,
+            quaHan: monthInvoices.filter((invoice) => invoice.invoiceStatus === "Overdue").length,
+        }
+    })
+    const monthlyContracts = monthKeys(contractModels.map((contract) => contract.contractCreatedAt)).map((key) => {
+        const monthContracts = contractModels.filter((contract) => monthKey(contract.contractCreatedAt) === key)
+        return {
+            month: monthLabel(key),
+            total: monthContracts.length,
+            signed: monthContracts.filter((contract) => contract.contractStatus === "Signed").length,
+            pending: monthContracts.filter((contract) => contract.contractStatus === "PendingApproval" || contract.contractStatus === "PendingSignature").length,
+        }
+    })
+    const monthlyViolations = monthKeys(violationModels.map((violation) => violation.violationDate)).map((key) => {
+        const monthViolations = violationModels.filter((violation) => monthKey(violation.violationDate) === key)
+        return {
+            month: monthLabel(key),
+            soLuong: monthViolations.length,
+            daXuLy: monthViolations.filter((violation) => violation.violationIsResolved).length,
+            chuaXuLy: monthViolations.filter((violation) => !violation.violationIsResolved).length,
+            tongPhat: monthViolations.reduce((sum, violation) => sum + (violation.violationPenaltyAmount ?? 0), 0),
+        }
+    })
 
     const totalAccounts = accounts.length
     const activeAccounts = accounts.filter((account) => account.accountIsActive).length
@@ -323,8 +427,7 @@ export function StatisticsModule() {
         {name: "Đặt cọc", value: premiseStatusCounts.reserved, color: "bg-amber-500"},
         {name: "Bảo trì", value: premiseStatusCounts.maintenance, color: "bg-red-500"},
     ]
-    const activePremises = premises.filter((premise) => premise.premiseStatus !== "Deleted")
-    const premisesByLocation = [...activePremises.reduce((groups, premise) => {
+    const premisesByLocation = [...premises.reduce((groups, premise) => {
         const address = locations.find((location) => location.locationId === premise.premiseLocationId)
             ?.locationAddress ?? premise.premiseLocation?.locationAddress ?? "Chưa xác định địa chỉ"
         const group = groups.get(premise.premiseLocationId) ?? {
@@ -342,11 +445,11 @@ export function StatisticsModule() {
         const area = Number.parseFloat(premise.premiseArea)
         return Number.isFinite(area) ? total + area : total
     }, 0)
-    const occupancyRate = activePremises.length
-        ? Math.round((premiseStatusCounts.rented / activePremises.length) * 100)
+    const occupancyRate = premises.length
+        ? Math.round((premiseStatusCounts.rented / premises.length) * 100)
         : 0
     const formatArea = (area: number) =>
-        `${area.toLocaleString("vi-VN", {maximumFractionDigits: 2})} `
+        `${area.toLocaleString("vi-VN", {maximumFractionDigits: 2})} m²`
 
     return (
         <div>
@@ -369,6 +472,7 @@ export function StatisticsModule() {
                     </button>
                 ))}
             </div>
+            {analyticsError && <p role="alert" className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{analyticsError}</p>}
 
             {/* ── Finance ── */}
             {activeTab === "finance" && (
@@ -377,15 +481,13 @@ export function StatisticsModule() {
                         <KPICard
                             label="Doanh thu năm"
                             value={fmtM(totalRevenue)}
-                            sub="Tổng 9 tháng"
-                            trend={{val: "12.4%", up: true}}
+                            sub="Từ hóa đơn đã thanh toán"
                             color="bg-blue-500"
                         />
                         <KPICard
-                            label="Lợi nhuận"
-                            value={fmtM(totalProfit)}
-                            sub="Sau chi phí"
-                            trend={{val: "8.1%", up: true}}
+                            label="Số hóa đơn"
+                            value={String(invoiceModels.length)}
+                            sub="Dữ liệu từ Contract API"
                             color="bg-emerald-500"
                         />
                         <KPICard
@@ -398,7 +500,6 @@ export function StatisticsModule() {
                             label="Chưa thu"
                             value={fmt(invoiceUnpaid)}
                             sub={`${INVOICES.filter((i) => i.status !== "paid").length} hóa đơn`}
-                            trend={{val: "", up: false}}
                             color="bg-red-400"
                         />
                     </div>
@@ -407,18 +508,18 @@ export function StatisticsModule() {
                         <div
                             className="col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                             <SectionHeading
-                                title="Doanh thu & Lợi nhuận theo tháng"
-                                sub="Tháng 1 → 9 năm 2024"
+                                title="Doanh thu hóa đơn theo tháng"
+                                sub="Theo ngày thanh toán trong dữ liệu hiện có"
                             />
                             <div
                                 className="grid grid-cols-4 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide">
                                 <span>Tháng</span>
                                 <span className="text-right">Doanh thu</span>
-                                <span className="text-right">Chi phí</span>
-                                <span className="text-right">Lợi nhuận</span>
+                                <span className="text-right">Số hóa đơn</span>
+                                <span className="text-right">Quá hạn</span>
                             </div>
                             <div className="divide-y divide-gray-100">
-                                {MOCK_MONTHLY_REVENUE.slice(0, 9).map((row) => (
+                                {monthlyRevenue.map((row) => (
                                     <div
                                         key={row.month}
                                         className="grid grid-cols-4 px-4 py-3 hover:bg-gray-50/50 transition-colors"
@@ -429,11 +530,11 @@ export function StatisticsModule() {
                                         <span className="text-xs font-mono font-semibold text-blue-600 text-right">
                       {fmtM(row.doanhThu)}
                     </span>
-                                        <span className="text-xs font-mono text-gray-400 text-right">
-                      {fmtM(row.chiPhi)}
+                                        <span className="text-xs font-mono text-gray-500 text-right">
+                      {row.soHoaDon}
                     </span>
-                                        <span className="text-xs font-mono font-semibold text-emerald-600 text-right">
-                      {fmtM(row.loiNhuan)}
+                                        <span className="text-xs font-mono font-semibold text-red-500 text-right">
+                      {row.quaHan}
                     </span>
                                     </div>
                                 ))}
@@ -738,11 +839,6 @@ export function StatisticsModule() {
                                     label: "Bảo trì",
                                     count: premiseStatusCounts.maintenance
                                 },
-                                {
-                                    status: "deleted" as const,
-                                    label: "Đã xóa",
-                                    count: premises.filter((premise) => premise.premiseStatus === "Deleted").length
-                                },
                             ]).map(({status, label, count}) => (
                                 <button
                                     key={status}
@@ -763,9 +859,6 @@ export function StatisticsModule() {
                             getRowKey={(premise) => premise.premiseId}
                             isHaveStt={false}
                             paginationResetKey={premiseFilter}
-                            rowClassName={(premise) => premise.premiseStatus === "Deleted"
-                                ? "bg-gray-100 hover:bg-gray-200"
-                                : ""}
                             loading={premisesLoading}
                             emptyMessage={premisesError
                                 ? "Không thể tải danh sách mặt bằng."
@@ -796,7 +889,7 @@ export function StatisticsModule() {
                                     key: "area",
                                     header: "Diện tích",
                                     cellClassName: "font-mono text-xs text-gray-700",
-                                    render: (premise) => formatPremiseArea(premise.premiseArea),
+                                    render: (premise) => `${premise.premiseArea} m²`,
                                 },
                                 {
                                     key: "location",
@@ -826,7 +919,7 @@ export function StatisticsModule() {
                         <KPICard
                             label="Tổng hợp đồng"
                             value={String(CONTRACTS.length)}
-                            sub="Từ đầu năm"
+                            sub={analyticsLoading ? "Đang tải…" : "Dữ liệu hiện có"}
                             color="bg-blue-500"
                         />
                         <KPICard
@@ -835,7 +928,6 @@ export function StatisticsModule() {
                                 CONTRACTS.filter((c) => c.status === "Signed").length,
                             )}
                             sub="Đã ký kết"
-                            trend={{val: "2 mới tháng 9", up: true}}
                             color="bg-emerald-500"
                         />
                         <KPICard
@@ -854,7 +946,6 @@ export function StatisticsModule() {
                             label="Tổng giá trị"
                             value={fmtM(CONTRACTS.reduce((s, c) => s + c.rentalPrice, 0))}
                             sub="Giá thuê/tháng"
-                            trend={{val: "5.2%", up: true}}
                             color="bg-violet-500"
                         />
                     </div>
@@ -863,18 +954,18 @@ export function StatisticsModule() {
                         <div
                             className="col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                             <SectionHeading
-                                title="Hợp đồng mới ký theo tháng"
-                                sub="Tháng 1 → 9 năm 2024"
+                                title="Hợp đồng tạo theo tháng"
+                                sub="Theo ngày tạo trong dữ liệu hiện có"
                             />
                             <div
                                 className="grid grid-cols-4 bg-gray-50 px-4 py-2.5 rounded-lg text-xs font-semibold text-gray-400 uppercase tracking-wide">
                                 <span>Tháng</span>
-                                <span className="text-right">Mới ký</span>
-                                <span className="text-right">Hết hạn</span>
-                                <span className="text-right">Chuyển nhượng</span>
+                                <span className="text-right">Tổng hợp đồng</span>
+                                <span className="text-right">Đã ký</span>
+                                <span className="text-right">Chờ xử lý</span>
                             </div>
                             <div className="divide-y divide-gray-100">
-                                {MOCK_CONTRACT_MONTHLY.map((row) => (
+                                {monthlyContracts.map((row) => (
                                     <div
                                         key={row.month}
                                         className="grid grid-cols-4 px-4 py-3 hover:bg-gray-50/50 transition-colors"
@@ -883,13 +974,13 @@ export function StatisticsModule() {
                       {row.month}
                     </span>
                                         <span className="text-xs font-mono font-semibold text-blue-600 text-right">
-                      {row.moiKy}
+                      {row.total}
                     </span>
                                         <span className="text-xs font-mono font-semibold text-amber-600 text-right">
-                      {row.hetHan}
+                      {row.signed}
                     </span>
                                         <span className="text-xs font-mono font-semibold text-violet-600 text-right">
-                      {row.chuyenGia}
+                      {row.pending}
                     </span>
                                     </div>
                                 ))}
@@ -970,7 +1061,7 @@ export function StatisticsModule() {
                         <KPICard
                             label="Đã xử lý"
                             value={String(violationResolved)}
-                            sub={`${Math.round((violationResolved / VIOLATIONS.length) * 100)}% tỷ lệ xử lý`}
+                            sub={`${VIOLATIONS.length ? Math.round((violationResolved / VIOLATIONS.length) * 100) : 0}% tỷ lệ xử lý`}
                             color="bg-emerald-500"
                         />
                         <KPICard
@@ -996,7 +1087,7 @@ export function StatisticsModule() {
                                 <span className="text-right">Chưa xử lý</span>
                             </div>
                             <div className="divide-y divide-gray-100">
-                                {MOCK_VIOLATION_MONTHLY.map((row) => (
+                                {monthlyViolations.map((row) => (
                                     <div
                                         key={row.month}
                                         className="grid grid-cols-4 px-4 py-3 hover:bg-gray-50/50 transition-colors"
@@ -1027,7 +1118,7 @@ export function StatisticsModule() {
                                 <span className="text-right">Tổng tiền phạt</span>
                             </div>
                             <div className="divide-y divide-gray-100">
-                                {MOCK_VIOLATION_MONTHLY.map((row) => (
+                                {monthlyViolations.map((row) => (
                                     <div
                                         key={row.month}
                                         className="grid grid-cols-3 px-4 py-3 hover:bg-gray-50/50 transition-colors"

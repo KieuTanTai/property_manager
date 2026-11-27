@@ -22,6 +22,7 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<RequestDeadlineMiddleware>();
 app.UseHttpsRedirection();
 app.UseWebSockets();
+app.UseRateLimiter();
 app.UseMiddleware<IdentityTokenAuthorizationMiddleware>();
 app.UseMiddleware<NotificationHubProxyMiddleware>();
 app.MapControllers();

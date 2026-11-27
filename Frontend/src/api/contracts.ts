@@ -18,14 +18,18 @@ const base = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "")
 const baseReqPageItemsLoaded = String(APP_SETTINGS.pagination.defaultPageLoaded * APP_SETTINGS.pagination.defaultPageSize)
 const maxPageLoaded = String(APP_SETTINGS.pagination.maxPageLoaded * APP_SETTINGS.pagination.defaultPageSize);
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, includeAccessToken = true): Promise<T> {
     let response: Response
     try {
         response = await fetch(`${base}${path}`, {
             ...init,
-            headers: createApiHeaders({...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers}),
+            headers: createApiHeaders(
+                { ...(init?.body ? {"Content-Type": "application/json"} : {}), ...init?.headers },
+                includeAccessToken,
+            ),
         })
-    } catch {
+    } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") throw error
         throw new Error(`Không thể kết nối Gateway API tại ${base}; kiểm tra Gateway và HTTPS.`)
     }
     if (!response.ok) {
@@ -52,14 +56,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const contractApi = {
-    contracts(cursor: string | null) {
+    contracts(cursor: string | null, signal?: AbortSignal) {
         const query = new URLSearchParams({
             pageSize: baseReqPageItemsLoaded,
             isGetViolations: "true",
             isGetInvoices: "true"
         })
         if (cursor) query.set("cursor", cursor)
-        return request<CursorPage<ContractModel>>(`/Contract?${query}`)
+        return request<CursorPage<ContractModel>>(`/Contract?${query}`, {signal})
     },
     regulations(cursor: string | null = null) {
         const query = new URLSearchParams({pageSize: maxPageLoaded})
@@ -78,10 +82,10 @@ export const contractApi = {
     deleteRegulation(id: string) {
         return request<void>(`/Regulation/${encodeURIComponent(id)}`, {method: "DELETE"})
     },
-    violations(cursor: string | null = null, pageSize = APP_SETTINGS.pagination.defaultPageSize) {
+    violations(cursor: string | null = null, pageSize = APP_SETTINGS.pagination.defaultPageSize, signal?: AbortSignal) {
         const query = new URLSearchParams({pageSize: String(pageSize)})
         if (cursor) query.set("cursor", cursor)
-        return request<CursorPage<ContractViolationModel>>(`/Violation?${query}`)
+        return request<CursorPage<ContractViolationModel>>(`/Violation?${query}`, {signal})
     },
     createViolation(body: {
         contractId: string;
@@ -112,7 +116,7 @@ export const contractApi = {
         return request<{ recipientEmail: string }>("/contact/consultation", {
             method: "POST",
             body: JSON.stringify(body),
-        })
+        }, false)
     },
     createContactInfo(body: ContactInfoRequest) {
         return request<ContactInfoModel>("/contact", {method: "POST", body: JSON.stringify(body)})
@@ -129,10 +133,10 @@ export const contractApi = {
     updateContract(id: string, body: UpdateContractRequest) {
         return request<ContractModel>(`/Contract/${id}`, {method: "PUT", body: JSON.stringify(body)})
     },
-    invoices(cursor: string | null = null) {
+    invoices(cursor: string | null = null, signal?: AbortSignal) {
         const query = new URLSearchParams({pageSize: maxPageLoaded, isGetDetails: "true", isGetReceipt: "true"})
         if (cursor) query.set("cursor", cursor)
-        return request<CursorPage<MonthlyInvoiceModel>>(`/Invoice?${query}`)
+        return request<CursorPage<MonthlyInvoiceModel>>(`/Invoice?${query}`, {signal})
     },
     createInvoice(body: {
         invoiceId: string
@@ -171,8 +175,8 @@ export const contractApi = {
             body: JSON.stringify(body),
         })
     },
-    receipts() {
-        return request<ReceiptModel[]>("/Receipt")
+    receipts(signal?: AbortSignal) {
+        return request<ReceiptModel[]>("/Receipt", {signal})
     },
     createReceipt(body: {
         invoiceId: string

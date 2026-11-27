@@ -306,6 +306,7 @@ export function PremisesModule({
 
     useEffect(() => {
         let isActive = true
+        const controller = new AbortController()
         const load = async () => {
             setIsLoadingPremises(true)
             setPremiseError(null)
@@ -313,8 +314,8 @@ export function PremisesModule({
             try {
                 console.log("start try!");
                 const [premiseModels, locationModels] = await Promise.all([
-                    premiseApi.getPremise(),
-                    premiseApi.getLocations(),
+                    premiseApi.getPremise(controller.signal),
+                    premiseApi.getLocations(controller.signal),
                 ]);
 
                 if (!isActive) return
@@ -326,10 +327,11 @@ export function PremisesModule({
                 const imageModels: PremiseMediaModel[] = []
                 let failedImageRequests = 0
                 for (let offset = 0; offset < premiseModels.length; offset += 5) {
+                    if (controller.signal.aborted) return
                     const imageBatch = await Promise.allSettled(
                         premiseModels
                             .slice(offset, offset + 5)
-                            .map((premise) => premiseApi.getImages(premise.premiseId)),
+                            .map((premise) => premiseApi.getImages(premise.premiseId, controller.signal)),
                     )
                     for (const result of imageBatch) {
                         if (result.status === "fulfilled") {
@@ -348,29 +350,31 @@ export function PremisesModule({
                     }
                 }
             } catch (error) {
-                if (isActive) {
+                if (isActive && !controller.signal.aborted) {
                     setPremiseError(error instanceof Error ? error.message : "Không tải được dữ liệu mặt bằng.")
                     console.log("load premise: " + premiseError);
                 }
             } finally {
-                if (isActive) setIsLoadingPremises(false)
+                if (isActive && !controller.signal.aborted) setIsLoadingPremises(false)
             }
         }
         void load()
         return () => {
             isActive = false
+            controller.abort()
         }
     }, [])
 
     useEffect(() => {
         let isActive = true
+        const controller = new AbortController()
 
         const loadBusinessTypes = async () => {
             setIsLoadingBusinessTypes(true)
             setBusinessTypeError(null)
             try {
-                const businessTypeModels = await premiseApi.getBusinessTypes()
-                if (isActive) {
+                const businessTypeModels = await premiseApi.getBusinessTypes(controller.signal)
+                if (isActive && !controller.signal.aborted) {
                     setBusinessTypes(businessTypeModels.map(toBusinessType))
                 }
             } catch (error) {
@@ -382,13 +386,14 @@ export function PremisesModule({
                     )
                 }
             } finally {
-                if (isActive) setIsLoadingBusinessTypes(false)
+                if (isActive && !controller.signal.aborted) setIsLoadingBusinessTypes(false)
             }
         }
 
         void loadBusinessTypes()
         return () => {
             isActive = false
+            controller.abort()
         }
     }, [])
 
