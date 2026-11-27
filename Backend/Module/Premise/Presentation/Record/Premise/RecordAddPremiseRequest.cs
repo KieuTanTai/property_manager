@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Shared.Enum;
+using Shared.ModelHelper;
 
 namespace Premise.Presentation.Record.Premise
 {
@@ -14,6 +15,7 @@ namespace Premise.Presentation.Record.Premise
         int PremiseFloor,
         [Required]
         [StringLength(10)]
+        [RegularExpression(ModelFieldGuard.PremiseAreaPattern, ErrorMessage = "Diện tích chỉ được chứa chữ số và tối đa một dấu thập phân.")]
         string PremiseArea,
         [StringLength(100)]
         string? PremiseDescription

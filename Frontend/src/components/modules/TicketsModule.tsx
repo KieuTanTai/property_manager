@@ -3,6 +3,7 @@ import {useEffect, useMemo, useState} from "react"
 import debounce from "lodash.debounce"
 import {compressImageToDataUrl} from "@/utils/compressImage"
 import {identityApi} from "@/api/identity"
+import {accountName} from "@/scripts/identity"
 import type {AccountProfileOption, UserProfileModel} from "@/types/identity"
 import {
     type NotificationModel,
@@ -12,7 +13,14 @@ import {
     type TicketType
 } from "../../api/ticketAndNotification"
 import {APP_SETTINGS} from "@/config/appSettings"
-import {FormField, inputCls, Modal, ModulePageHeader, ProcessingForm, selectCls} from "./shared"
+import {
+    FormField,
+    inputCls,
+    Modal,
+    ModulePageHeader,
+    ProcessingForm,
+    selectCls,
+} from "./shared"
 import {ImageAttachments} from "./ImageAttachments"
 import {hasRole} from "@/utils/authorization"
 import {getSessionAccessToken} from "@/api/authHeaders"
@@ -35,6 +43,7 @@ const notificationRoleLabel: Record<NotificationRecipientRole, string> = {
     Employee: "Employee",
     Customer: "Customer",
 }
+const accountLookupRoles = ["Admin", "Manager", "Inspector", "Employee", "Customer"] as const
 
 export function TicketsModule({
                                   accountId,
@@ -54,6 +63,10 @@ export function TicketsModule({
     const canViewTickets = !customerMode && (canReadOwn || canCreateViolation)
     const [tickets, setTickets] = useState<TicketModel[]>([])
     const [notifications, setNotifications] = useState<NotificationModel[]>([])
+    const [accountDisplayNames, setAccountDisplayNames] = useState<Record<string, string>>({})
+    const [accountNamesLoaded, setAccountNamesLoaded] = useState(false)
+    const [accountNameReload, setAccountNameReload] = useState(0)
+    const [accountNameLookupError, setAccountNameLookupError] = useState<string | null>(null)
     const [filter, setFilter] = useState<"all" | "open" | "resolved">("all")
     const [ticketTypeFilter, setTicketTypeFilter] = useState<TicketType | "all">("all")
     const [notificationFilter, setNotificationFilter] = useState<"all" | "unread" | "read">("all")
@@ -106,6 +119,37 @@ export function TicketsModule({
         () => debounce(setDebouncedProfileId, APP_SETTINGS.debounceDelayMs),
         [],
     )
+
+    useEffect(() => {
+        let isCurrent = true
+        setAccountNamesLoaded(false)
+        setAccountNameLookupError(null)
+
+        void Promise.all(accountLookupRoles.map(async (role) => {
+            try {
+                return {accounts: await identityApi.getAccountsByRoleCode(role), failed: false}
+            } catch {
+                return {accounts: [], failed: true}
+            }
+        })).then((results) => {
+            if (!isCurrent) return
+
+            const accounts = results.flatMap((result) => result.accounts)
+            setAccountDisplayNames(Object.fromEntries(
+                accounts.map((account) => [account.accountId, accountName(account)]),
+            ))
+            setAccountNameLookupError(
+                results.some((result) => result.failed)
+                    ? "Không tải được đầy đủ danh sách tài khoản; một số tên có thể chưa hiển thị."
+                    : null,
+            )
+            setAccountNamesLoaded(true)
+        })
+
+        return () => {
+            isCurrent = false
+        }
+    }, [accountNameReload])
 
     useEffect(() => {
         if (!accountId) return
@@ -338,11 +382,15 @@ export function TicketsModule({
             setModal(null)
         }
     }
-    const markRead = (notification: NotificationModel) => void run(async () => {
-        const updated = await ticketApi.updateNotification(notification, true)
-        setNotifications((current) => current.map((item) =>
-            item.notificationId === updated.notificationId ? updated : item))
-    }, "Đã đánh dấu thông báo đã đọc.")
+    const markRead = (notification: NotificationModel) => {
+        if (!window.confirm("Bạn có chắc chắn muốn đánh dấu thông báo này là đã đọc?")) return
+
+        void run(async () => {
+            const updated = await ticketApi.updateNotification(notification, true)
+            setNotifications((current) => current.map((item) =>
+                item.notificationId === updated.notificationId ? updated : item))
+        }, "Đã đánh dấu thông báo đã đọc.")
+    }
     const recipientAccountIds = [...new Set(selectedRecipientRoles.flatMap((role) =>
         accountsByRecipientRole[role]?.map((account) => account.accountId) ?? [],
     ))]
@@ -392,6 +440,12 @@ export function TicketsModule({
     const unreadNotificationCount = notifications.filter((notification) =>
         !notification.notificationIsRead
         && (notificationTypeFilter === "all" || notification.notificationType === notificationTypeFilter)).length
+
+    const accountDisplayName = (id: string) => {
+        if (accountDisplayNames[id]) return accountDisplayNames[id]
+        if (!accountNamesLoaded) return "Đang tải tên..."
+        return accountNameLookupError ? "Không tải được tên" : "Không tìm thấy tài khoản"
+    }
 
     useEffect(() => {
         if (ticketPage !== activeTicketPage) setTicketPage(activeTicketPage)
@@ -488,6 +542,13 @@ export function TicketsModule({
                        className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         {notice && <div role="status"
                         className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
+        {accountNameLookupError && <div role="alert"
+                                       className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span>{accountNameLookupError}</span>
+            <button type="button" className={`${button} border border-amber-200 bg-white`}
+                    onClick={() => setAccountNameReload((current) => current + 1)}>Thử tải lại tên
+            </button>
+        </div>}
 
         {!customerMode && canViewTickets ? <>
             {ticketLoadError && <div role="alert"
@@ -527,7 +588,7 @@ export function TicketsModule({
                         <div className="mb-2 flex flex-wrap items-center gap-2"><span
                             className="rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">{ticketLabel[ticket.ticketType]}</span><span
                             className="font-mono text-xs text-slate-400">{ticket.ticketId}</span><span
-                            className="text-xs text-slate-500">Account {ticket.ticketAccountId}</span></div>
+                            className="text-xs text-slate-500">Người yêu cầu: {accountDisplayName(ticket.ticketAccountId)}</span></div>
                         <p className="whitespace-pre-wrap text-sm text-slate-800">{ticket.ticketContent}</p><p
                         className="mt-2 text-xs text-slate-400">Tạo
                         lúc {new Date(ticket.ticketCreatedAt).toLocaleString("vi-VN")}</p>
@@ -648,7 +709,7 @@ export function TicketsModule({
                                 <div className="mb-2 flex flex-wrap items-center gap-2"><span
                                     className="rounded-md bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">{notificationLabel[item.notificationType]}</span><span
                                     className="font-mono text-xs text-slate-400">{item.notificationId}</span><span
-                                    className="text-xs text-slate-500">Người gửi {item.notificationSenderAccountId}</span>
+                                    className="text-xs text-slate-500">Người gửi: {accountDisplayName(item.notificationSenderAccountId)}</span>
                                 </div>
                                 <p className="text-sm text-slate-800">{item.notificationContent}</p><p
                                 className="mt-2 text-xs text-slate-500">{new Date(item.notificationCreatedAt).toLocaleString("vi-VN")}</p>

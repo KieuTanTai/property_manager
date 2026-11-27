@@ -2,11 +2,11 @@ import {useEffect, useState} from "react"
 import {MOCK_CONTRACT_MONTHLY, MOCK_MONTHLY_REVENUE, MOCK_VIOLATION_MONTHLY} from "../../mocks/statistics"
 import {BaseTable, ContractStatusBadge, InvoiceStatusBadge, ModulePageHeader, PremiseStatusBadge} from "./shared"
 import {CONTRACTS, INVOICES, VIOLATIONS} from "../../mocks/shared"
-import {fmt} from "../../scripts/format"
+import {fmt, formatPremiseArea} from "../../scripts/format"
 import {identityApi} from "@/api/identity"
 import type {AccountModel} from "@/types/identity"
 import {premiseApi} from "@/api/premise"
-import type {LocationModel, PremiseModel, PremiseStatus} from "../premises/types"
+import type {LocationModel, PremiseModel, PremiseRecordStatus, PremiseStatus} from "../premises/types"
 
 // ─── Statistics Module ────────────────────────────────────────────────────────
 
@@ -110,7 +110,7 @@ function DistributionList({
     )
 }
 
-function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseStatus {
+function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseRecordStatus {
     switch (status) {
         case "Available":
             return "available"
@@ -120,6 +120,8 @@ function toPremiseStatus(status: PremiseModel["premiseStatus"]): PremiseStatus {
             return "reserved"
         case "Maintenance":
             return "maintenance"
+        case "Deleted":
+            return "deleted"
     }
 }
 
@@ -130,7 +132,7 @@ export function StatisticsModule() {
         )
     const [premises, setPremises] = useState<PremiseModel[]>([])
     const [locations, setLocations] = useState<LocationModel[]>([])
-    const [premiseFilter, setPremiseFilter] = useState<PremiseStatus | "all">("all")
+    const [premiseFilter, setPremiseFilter] = useState<PremiseRecordStatus | "all">("all")
     const [premisesLoading, setPremisesLoading] = useState(false)
     const [premisesError, setPremisesError] = useState<string | null>(null)
     const [premisesReload, setPremisesReload] = useState(0)
@@ -321,7 +323,8 @@ export function StatisticsModule() {
         {name: "Đặt cọc", value: premiseStatusCounts.reserved, color: "bg-amber-500"},
         {name: "Bảo trì", value: premiseStatusCounts.maintenance, color: "bg-red-500"},
     ]
-    const premisesByLocation = [...premises.reduce((groups, premise) => {
+    const activePremises = premises.filter((premise) => premise.premiseStatus !== "Deleted")
+    const premisesByLocation = [...activePremises.reduce((groups, premise) => {
         const address = locations.find((location) => location.locationId === premise.premiseLocationId)
             ?.locationAddress ?? premise.premiseLocation?.locationAddress ?? "Chưa xác định địa chỉ"
         const group = groups.get(premise.premiseLocationId) ?? {
@@ -339,11 +342,11 @@ export function StatisticsModule() {
         const area = Number.parseFloat(premise.premiseArea)
         return Number.isFinite(area) ? total + area : total
     }, 0)
-    const occupancyRate = premises.length
-        ? Math.round((premiseStatusCounts.rented / premises.length) * 100)
+    const occupancyRate = activePremises.length
+        ? Math.round((premiseStatusCounts.rented / activePremises.length) * 100)
         : 0
     const formatArea = (area: number) =>
-        `${area.toLocaleString("vi-VN", {maximumFractionDigits: 2})} m²`
+        `${area.toLocaleString("vi-VN", {maximumFractionDigits: 2})} `
 
     return (
         <div>
@@ -735,6 +738,11 @@ export function StatisticsModule() {
                                     label: "Bảo trì",
                                     count: premiseStatusCounts.maintenance
                                 },
+                                {
+                                    status: "deleted" as const,
+                                    label: "Đã xóa",
+                                    count: premises.filter((premise) => premise.premiseStatus === "Deleted").length
+                                },
                             ]).map(({status, label, count}) => (
                                 <button
                                     key={status}
@@ -755,6 +763,9 @@ export function StatisticsModule() {
                             getRowKey={(premise) => premise.premiseId}
                             isHaveStt={false}
                             paginationResetKey={premiseFilter}
+                            rowClassName={(premise) => premise.premiseStatus === "Deleted"
+                                ? "bg-gray-100 hover:bg-gray-200"
+                                : ""}
                             loading={premisesLoading}
                             emptyMessage={premisesError
                                 ? "Không thể tải danh sách mặt bằng."
@@ -785,7 +796,7 @@ export function StatisticsModule() {
                                     key: "area",
                                     header: "Diện tích",
                                     cellClassName: "font-mono text-xs text-gray-700",
-                                    render: (premise) => `${premise.premiseArea} m²`,
+                                    render: (premise) => formatPremiseArea(premise.premiseArea),
                                 },
                                 {
                                     key: "location",

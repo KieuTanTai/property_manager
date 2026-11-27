@@ -134,7 +134,7 @@ namespace Premise.Models.Premise
 
         public void SetPremiseArea(string area)
         {
-            PremiseArea = ModelFieldGuard.Required(area, 10, nameof(area));
+            PremiseArea = ModelFieldGuard.NumericArea(area, nameof(area));
         }
 
         public void ClearPremiseDescription()

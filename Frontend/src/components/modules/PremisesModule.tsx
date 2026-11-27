@@ -16,12 +16,18 @@ import type {
     PremiseMedia,
     PremiseMediaModel,
     PremiseModel,
+    PremiseRecordStatus,
     PremisesSubTab,
     PremiseStatus,
     ProductResponse,
 } from "../premises/types"
 
-import {formatDateTime} from "@/scripts/format"
+import {
+    formatDateTime,
+    formatPremiseArea,
+    normalizePremiseArea,
+    PREMISE_AREA_PATTERN,
+} from "@/scripts/format"
 
 import {BusinessTypesTab} from "../premises/BusinessTypesTab"
 import {LocationsTab} from "../premises/LocationsTab"
@@ -32,7 +38,7 @@ import {ImageAttachments} from "./ImageAttachments"
 import {type BusinessTypeRequest, premiseApi, type PremiseRequest, type ProductRequest,} from "@/api/premise"
 import {hasPermission, PERMISSIONS} from "@/utils/authorization"
 
-function toPremiseStatus(status: string): PremiseStatus {
+function toPremiseStatus(status: string): PremiseRecordStatus {
     switch (status.toLowerCase()) {
         case "available":
             return "available"
@@ -42,6 +48,8 @@ function toPremiseStatus(status: string): PremiseStatus {
             return "rented"
         case "maintenance":
             return "maintenance"
+        case "deleted":
+            return "deleted"
         default:
             throw new Error(`Trạng thái mặt bằng không được hỗ trợ: ${status}`)
     }
@@ -140,11 +148,15 @@ function toPremiseRequest(form: {
     const floor = Number(form.floor)
     const position = Number(form.position)
     if (!form.name.trim()) throw new Error("Tên mặt bằng là bắt buộc.")
-    if (!form.area.trim()) throw new Error("Diện tích là bắt buộc.")
+    const area = normalizePremiseArea(form.area)
+    if (!area) throw new Error("Diện tích là bắt buộc.")
     if (!Number.isInteger(floor) || !Number.isInteger(position)) {
         throw new Error("Tầng và vị trí phải là số nguyên.")
     }
-    if (form.area.length > 10) throw new Error("Diện tích không được vượt quá 10 ký tự.")
+    if (!PREMISE_AREA_PATTERN.test(area)) {
+        throw new Error("Diện tích chỉ được chứa chữ số và tối đa một dấu thập phân.")
+    }
+    if (area.length > 10) throw new Error("Diện tích không được vượt quá 10 ký tự.")
     if (form.name.trim().length > 50) throw new Error("Tên mặt bằng không được vượt quá 50 ký tự.")
     if (form.description.length > 100) throw new Error("Mô tả không được vượt quá 100 ký tự.")
     return {
@@ -153,7 +165,7 @@ function toPremiseRequest(form: {
         premiseStatus: toApiStatus(form.status),
         premisePosition: position,
         premiseFloor: floor,
-        premiseArea: form.area.trim(),
+        premiseArea: area,
         premiseDescription: form.description.trim() || null,
     }
 }
@@ -218,7 +230,7 @@ export function PremisesModule({
             : activeSubTab === "products"
                 ? canManageProducts
                 : canCreatePremise
-    const [filter, setFilter] = useState<PremiseStatus | "all">("all")
+    const [filter, setFilter] = useState<PremiseRecordStatus | "all">("all")
     const [modal, setModal] = useState<"add" | "view" | null>(null)
     const [premiseIsEditing, setPremiseIsEditing] = useState(false)
     const [locationModal, setLocationModal] = useState<"add" | "edit" | null>(
@@ -464,12 +476,12 @@ export function PremisesModule({
     }
 
     const startEditingPremise = () => {
-        if (!canUpdatePremise || !selectedPremise) return
+        if (!canUpdatePremise || !selectedPremise || selectedPremise.status === "deleted") return
         setForm({
             name: selectedPremise.name,
             floor: String(selectedPremise.floor),
             position: String(selectedPremise.position),
-            area: selectedPremise.area,
+            area: normalizePremiseArea(selectedPremise.area),
             status: selectedPremise.status,
             locationId: selectedPremise.locationId,
             description: selectedPremise.description,
@@ -508,17 +520,21 @@ export function PremisesModule({
             setModal(null)
         } catch (error) {
             if (createdPremise) {
-                setForm({
-                    name: createdPremise.name,
-                    floor: String(createdPremise.floor),
-                    position: String(createdPremise.position),
-                    area: createdPremise.area,
-                    status: createdPremise.status,
-                    locationId: createdPremise.locationId,
-                    description: createdPremise.description,
-                })
                 setModal("view")
-                setPremiseIsEditing(true)
+                if (createdPremise.status !== "deleted") {
+                    setForm({
+                        name: createdPremise.name,
+                        floor: String(createdPremise.floor),
+                        position: String(createdPremise.position),
+                        area: createdPremise.area,
+                        status: createdPremise.status,
+                        locationId: createdPremise.locationId,
+                        description: createdPremise.description,
+                    })
+                    setPremiseIsEditing(true)
+                } else {
+                    setPremiseIsEditing(false)
+                }
             }
             setPremiseError(error instanceof Error ? error.message : "Không lưu được mặt bằng.")
         } finally {
@@ -574,8 +590,9 @@ export function PremisesModule({
         setIsSavingPremise(true)
         try {
             await premiseApi.deletePremise(selectedPremise.id)
-            setPremises((current) => current.filter((premise) => premise.id !== selectedPremise.id))
-            setPremiseMedia((current) => current.filter((media) => media.premiseMediaPremiseId !== selectedPremise.id))
+            setPremises((current) => current.map((premise) =>
+                premise.id === selectedPremise.id ? {...premise, status: "deleted"} : premise,
+            ))
             setModal(null)
             setSelectedPremise(null)
         } catch (error) {
@@ -1522,7 +1539,7 @@ export function PremisesModule({
                                     {productError}
                                 </p>
                             )}
-                            <div className="border border-gray-100 rounded-xl">
+                            <div className="max-h-64 overflow-y-auto overscroll-contain border border-gray-100 rounded-xl">
                                 {isLoadingProducts ? (
                                     <div className="px-4 py-10 text-center text-sm text-gray-400">
                                         Đang tải sản phẩm...
@@ -1610,12 +1627,28 @@ export function PremisesModule({
                             />
                         </FormField>
                         <FormField label="Diện tích">
-                            <input
-                                className={inputCls}
-                                value={form.area}
-                                onChange={(e) => setForm({...form, area: e.target.value})}
-                                placeholder="VD: 45m²"
-                            />
+                            <div className="relative">
+                                <input
+                                    className={`${inputCls} pr-12`}
+                                    value={form.area}
+                                    maxLength={10}
+                                    inputMode="decimal"
+                                    aria-label="Diện tích (m²)"
+                                    onChange={(event) => {
+                                        const value = event.target.value
+                                        if (/^[0-9]*(?:\.[0-9]*)?$/.test(value)) {
+                                            setForm({...form, area: value})
+                                        }
+                                    }}
+                                    placeholder="VD: 45"
+                                />
+                                <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-gray-500"
+                                >
+                                    m²
+                                </span>
+                            </div>
                         </FormField>
                         <FormField label="Tầng">
                             <input
@@ -1879,7 +1912,7 @@ export function PremisesModule({
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-3">
                                     <p className="text-xs text-gray-400 mb-1">Diện tích</p>
-                                    <p className="text-sm font-mono font-medium">{selectedPremise.area}</p>
+                                    <p className="text-sm font-mono font-medium">{formatPremiseArea(selectedPremise.area)}</p>
                                 </div>
                                 <div className="bg-white/70 rounded-lg p-3">
                                     <p className="text-xs text-gray-400 mb-1">Tầng / Vị trí</p>
@@ -1949,7 +1982,7 @@ export function PremisesModule({
                             )}
                         </section>
                         <div className="lg:col-span-2 flex justify-end gap-2 border-t border-white/60 pt-4">
-                            {canUpdatePremise && <button
+                            {canUpdatePremise && selectedPremise.status !== "deleted" && <button
                                 type="button"
                                 onClick={() => void handleDeletePremise()}
                                 disabled={isSavingPremise}
@@ -1963,7 +1996,7 @@ export function PremisesModule({
                             >
                                 Đóng
                             </button>
-                            {canUpdatePremise && <button
+                            {canUpdatePremise && selectedPremise.status !== "deleted" && <button
                                 onClick={startEditingPremise}
                                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >

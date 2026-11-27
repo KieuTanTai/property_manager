@@ -32,8 +32,6 @@ namespace Premise.Infrastructure.Persistence.Configuration
                 .HasConversion<string>()
                 .HasMaxLength(20);
 
-            entity.HasQueryFilter(premise => premise.PremiseStatus != EPremiseStatus.Deleted);
-
             entity.Property(premise => premise.PremisePosition)
                 .HasColumnName("premise_position")
                 .HasConversion<int>()

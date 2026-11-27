@@ -1,10 +1,11 @@
 export type PremiseStatus = "available" | "reserved" | "rented" | "maintenance"
+export type PremiseRecordStatus = PremiseStatus | "deleted"
 export type PremisesSubTab = "locations" | "business-types" | "products" | "premises"
 
 // Backend Premise models are returned with ASP.NET's camel-cased property names.
 // Keep these wire types separate from the presentation types below until this
 // module exposes its own API controllers/response DTOs.
-export type EPremiseStatus = "Available" | "Reserved" | "Rented" | "Maintenance"
+export type EPremiseStatus = "Available" | "Reserved" | "Rented" | "Maintenance" | "Deleted"
 
 export interface PremiseModel {
     premiseId: string
@@ -88,7 +89,7 @@ export interface Premise {
     floor: number
     position: number
     area: string
-    status: PremiseStatus
+    status: PremiseRecordStatus
     locationId: string
     location: string
     description: string
@@ -167,8 +168,8 @@ export interface PremisesTabProps {
     premises: Premise[]
     premiseMedia: PremiseMedia[]
     filteredPremises: Premise[]
-    filter: PremiseStatus | "all"
-    onFilterChange: (filter: PremiseStatus | "all") => void
+    filter: PremiseRecordStatus | "all"
+    onFilterChange: (filter: PremiseRecordStatus | "all") => void
     onView: (premise: Premise) => void
 }
 

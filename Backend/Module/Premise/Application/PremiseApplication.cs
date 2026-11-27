@@ -259,6 +259,7 @@ namespace Premise.Application
             PremiseModel premise,
             CancellationToken cancellationToken = default)
         {
+            premise.SetPremiseArea(premise.PremiseArea);
             _logger.LogLayerDebug(_logPool, Module, Layer, "Adding premise.");
 
             if (premise.PremiseStatus == EPremiseStatus.Deleted)

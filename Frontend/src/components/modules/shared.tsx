@@ -2,7 +2,7 @@ import type {FormHTMLAttributes, ReactNode, SubmitEvent} from "react"
 import {useEffect, useState} from "react"
 import {APP_SETTINGS} from "@/config/appSettings"
 import type {UserProfileModel} from "@/types/identity.ts"
-import type {PremiseStatus} from "../premises/types"
+import type {PremiseRecordStatus} from "../premises/types"
 import type {ContractStatus, InvoiceStatus, TicketType} from "@/types/modules.ts"
 
 type ProcessingFormProps = Omit<FormHTMLAttributes<HTMLFormElement>, "onSubmit"> & {
@@ -58,15 +58,16 @@ export function formatProfileFullName(profile: UserProfileModel | null | undefin
 }
 
 // Nền nhạt cùng tông với PremiseStatusBadge, dùng cho card / modal mặt bằng
-export const premiseStatusSurface: Record<PremiseStatus, string> = {
+export const premiseStatusSurface: Record<PremiseRecordStatus, string> = {
     available: "bg-emerald-50",
     rented: "bg-blue-50",
     reserved: "bg-amber-50",
     maintenance: "bg-red-50",
+    deleted: "bg-gray-100",
 }
 
-export function PremiseStatusBadge({status}: { status: PremiseStatus }) {
-    const map: Record<PremiseStatus, { label: string; cls: string }> = {
+export function PremiseStatusBadge({status}: { status: PremiseRecordStatus }) {
+    const map: Record<PremiseRecordStatus, { label: string; cls: string }> = {
         available: {
             label: "Còn trống",
             cls: "bg-emerald-100 text-emerald-700 border border-emerald-200",
@@ -82,6 +83,10 @@ export function PremiseStatusBadge({status}: { status: PremiseStatus }) {
         maintenance: {
             label: "Bảo trì",
             cls: "bg-red-100 text-red-700 border border-red-200",
+        },
+        deleted: {
+            label: "Đã xóa",
+            cls: "bg-gray-200 text-gray-600 border border-gray-300",
         },
     }
     const {label, cls} = map[status]

@@ -4,6 +4,7 @@ import {contractApi} from "@/api/contracts"
 import {premiseApi, type PublicPremise} from "@/api/premise"
 import type {ContactInfoModel} from "@/types/contracts"
 import {Modal, PremiseStatusBadge, premiseStatusSurface, ProcessingForm} from "../modules/shared"
+import {formatPremiseArea as formatArea} from "@/scripts/format"
 import {PublicHomeProps} from "@/components/public/types.ts";
 import {throttle} from "lodash";
 import debounce from "lodash.debounce"
@@ -41,8 +42,6 @@ function loadGoogleIdentity() {
     }
     return googleIdentityScriptPromise
 }
-
-const formatArea = (value: string) => value.replace(/m²?$/i, " m²")
 
 export function PublicHome({onManager}: PublicHomeProps) {
     const [query, setQuery] = useState("")
@@ -671,7 +670,7 @@ export function PublicHome({onManager}: PublicHomeProps) {
                                     className="w-full rounded-xl border bg-white px-3.5 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10">
                                     <option value="">Chưa chọn</option>
                                     {availablePremises.map((premise) => <option key={premise.id}
-                                                                                value={premise.id}>{premise.name} · {premise.area} ·
+                                                                                value={premise.id}>{premise.name} · {formatArea(premise.area)} ·
                                         Tầng {premise.floor}</option>)}</select></label>
                                 <label className="block sm:col-span-2"><span
                                     className="mb-1.5 block text-xs font-medium text-slate-600">Nội dung cần tư vấn</span><textarea

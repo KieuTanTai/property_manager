@@ -1,6 +1,6 @@
 import type {AccountModel} from "@/types/identity"
 
-export const accountName = (account: AccountModel) => {
+export const accountName = (account: Pick<AccountModel, "accountEmail" | "userProfile">) => {
     const profile = account.userProfile
     return [profile?.userProfileFirstName, profile?.userProfileLastName]
         .filter(Boolean)

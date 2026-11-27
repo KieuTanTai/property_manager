@@ -1,8 +1,9 @@
-import type {PremisesTabProps as Props, PremiseStatus} from "./types"
+import type {PremiseRecordStatus, PremisesTabProps as Props} from "./types"
 import {BaseTable} from "../modules/shared"
+import {formatPremiseArea, normalizePremiseArea} from "@/scripts/format"
 
-function StatusBadge({status}: { status: PremiseStatus }) {
-    const map: Record<PremiseStatus, { label: string; cls: string }> = {
+function StatusBadge({status}: { status: PremiseRecordStatus }) {
+    const map: Record<PremiseRecordStatus, { label: string; cls: string }> = {
         available: {
             label: "Còn trống",
             cls: "bg-emerald-100 text-emerald-700 border border-emerald-200",
@@ -18,6 +19,10 @@ function StatusBadge({status}: { status: PremiseStatus }) {
         maintenance: {
             label: "Bảo trì",
             cls: "bg-red-100 text-red-700 border border-red-200",
+        },
+        deleted: {
+            label: "Đã xóa",
+            cls: "bg-gray-200 text-gray-600 border border-gray-300",
         },
     }
     return (
@@ -46,6 +51,7 @@ export function PremisesTab({
                     "rented",
                     "reserved",
                     "maintenance",
+                    "deleted",
                 ] as const).map((status) => (
                     <button
                         key={status}
@@ -64,7 +70,9 @@ export function PremisesTab({
                                     ? "Đang thuê"
                                     : status === "reserved"
                                         ? "Đã đặt cọc"
-                                        : "Bảo trì"}
+                                        : status === "maintenance"
+                                            ? "Bảo trì"
+                                            : "Đã xóa"}
                         <span className="ml-1.5 text-gray-400">
               {status === "all"
                   ? premises.length
@@ -78,7 +86,9 @@ export function PremisesTab({
                 rows={filteredPremises}
                 getRowKey={(premise) => premise.id}
                 paginationResetKey={filter}
-                rowClassName={() => "hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none transition-colors"}
+                rowClassName={(premise) => premise.status === "deleted"
+                    ? "bg-gray-100 opacity-60 grayscale hover:bg-gray-200 focus:bg-gray-200 focus:outline-none transition-colors"
+                    : "hover:bg-blue-50/50 focus:bg-blue-50/50 focus:outline-none transition-colors"}
                 rowTitle="Bấm để xem chi tiết"
                 onRowClick={onView}
                 columns={[
@@ -113,7 +123,7 @@ export function PremisesTab({
                         key: "area",
                         header: "Diện tích",
                         cellClassName: "px-4 py-3 font-mono text-xs text-gray-700",
-                        render: (premise) => `${premise.area} m²`
+                        render: (premise) => formatPremiseArea(premise.area)
                     },
                     {
                         key: "location",
