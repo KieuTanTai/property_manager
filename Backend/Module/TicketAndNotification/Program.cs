@@ -26,7 +26,7 @@ app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<NotificationHub>(NotificationHub.Route).RequireAuthorization();
+app.MapHub<NotificationHub>(NotificationHub.Route);
 app.UseSwagger();
 app.UseSwaggerUI();
 app.Run();

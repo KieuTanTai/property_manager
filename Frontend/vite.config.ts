@@ -44,6 +44,7 @@ export default defineConfig(({mode, command}) => {
             proxy: {
                 // Keep one frontend entry point; Gateway routes requests to their owning modules.
                 "/api": {target: apiProxyTarget, changeOrigin: true, secure: false},
+                "/hubs": {target: apiProxyTarget, changeOrigin: true, secure: false, ws: true},
             },
         },
         preview: {

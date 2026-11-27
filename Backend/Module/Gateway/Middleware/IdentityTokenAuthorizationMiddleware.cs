@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Gateway.Interfaces.Authorization;
 using Shared.Logging;
 
@@ -36,14 +37,22 @@ namespace Gateway.Middleware
             }
 
             var authorizationHeader = context.Request.Headers.Authorization.ToString();
-            if (!authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            string accessToken;
+            if (authorizationHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                accessToken = authorizationHeader["Bearer ".Length..].Trim();
+            }
+            else
+            {
+                accessToken = context.Request.Query["access_token"].ToString().Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(accessToken))
             {
                 _logger.LogLayerWarning(_logPool, Module, Layer, "Request rejected because a bearer access token is missing.");
                 await RejectAsync(context, StatusCodes.Status401Unauthorized, "Bearer access token is required.");
                 return;
             }
-
-            var accessToken = authorizationHeader["Bearer ".Length..].Trim();
             var statusCode = await _tokenAuthorizationService.AuthorizeAsync(accessToken, context.RequestAborted);
             if (statusCode is null)
             {
@@ -69,7 +78,53 @@ namespace Gateway.Middleware
                 return;
             }
 
+            var accountId = TryGetAccountId(accessToken);
+            var gatewayApiKey = context.RequestServices
+                .GetRequiredService<IConfiguration>()["INTERNAL_GATEWAY_API_KEY"];
+            if (!Guid.TryParse(accountId, out _) || string.IsNullOrWhiteSpace(gatewayApiKey))
+            {
+                await RejectAsync(context, StatusCodes.Status401Unauthorized,
+                    "Authenticated account identity could not be established.");
+                return;
+            }
+
+            context.Request.Headers["X-Authenticated-Account-Id"] = accountId;
+            context.Request.Headers["X-Internal-Gateway-Key"] = gatewayApiKey;
             await _next(context);
+        }
+
+        private static string? TryGetAccountId(string accessToken)
+        {
+            var parts = accessToken.Split('.');
+            if (parts.Length != 3)
+            {
+                return null;
+            }
+
+            var payload = Convert.FromBase64String(PadBase64Url(parts[1]));
+            using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (root.TryGetProperty("sub", out var sub))
+            {
+                return sub.GetString();
+            }
+            if (root.TryGetProperty("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+                    out var nameIdentifier))
+            {
+                return nameIdentifier.GetString();
+            }
+            return null;
+        }
+
+        private static string PadBase64Url(string value)
+        {
+            var padded = value.Replace('-', '+').Replace('_', '/');
+            return (padded.Length % 4) switch
+            {
+                2 => padded + "==",
+                3 => padded + "=",
+                _ => padded
+            };
         }
 
         private static bool IsPublicEndpoint(string method, PathString path)

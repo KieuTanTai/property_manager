@@ -1,14 +1,12 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Shared.Logging;
 
 namespace TicketAndNotification.Infrastructure.SignalR
 {
-    [Authorize]
     public sealed class NotificationHub(
         ILogger<NotificationHub> logger,
-        ILogPool logPool) : Hub
+        ILogPool logPool,
+        IConfiguration configuration) : Hub
     {
         private const string Module = "TicketAndNotification";
 
@@ -23,7 +21,20 @@ namespace TicketAndNotification.Infrastructure.SignalR
 
         public override async Task OnConnectedAsync()
         {
-            var accountIdValue = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var configuredKey = configuration["INTERNAL_GATEWAY_API_KEY"];
+            var providedKey = Context.GetHttpContext()?.Request.Headers["X-Internal-Gateway-Key"].ToString();
+            if (string.IsNullOrWhiteSpace(configuredKey)
+                || string.IsNullOrWhiteSpace(providedKey)
+                || !FixedTimeEquals(configuredKey, providedKey))
+            {
+                logger.LogLayerWarning(logPool, Module, Layer,
+                    "SignalR notification connection rejected because Gateway authentication headers are missing or invalid.");
+                await logPool.FlushAsync(Module, Layer, CancellationToken.None);
+                Context.Abort();
+                return;
+            }
+
+            var accountIdValue = Context.GetHttpContext()?.Request.Headers["X-Authenticated-Account-Id"].ToString();
             if (!Guid.TryParse(accountIdValue, out var accountId)
                 || accountId == Guid.Empty)
             {
@@ -41,6 +52,14 @@ namespace TicketAndNotification.Infrastructure.SignalR
                 Context.ConnectionId, GetAccountGroupName(accountId));
             await logPool.FlushAsync(Module, Layer, CancellationToken.None);
             await base.OnConnectedAsync();
+        }
+
+        private static bool FixedTimeEquals(string expected, string provided)
+        {
+            var expectedBytes = System.Text.Encoding.UTF8.GetBytes(expected);
+            var providedBytes = System.Text.Encoding.UTF8.GetBytes(provided);
+            return expectedBytes.Length == providedBytes.Length
+                   && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
         }
     }
 }
